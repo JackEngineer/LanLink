@@ -37,12 +37,13 @@ describe('transfer actions', () => {
   })
 
   it('allows only cancel for an outgoing transfer whose source is unavailable', () => {
-    const sourceUnavailable = {
-      direction: 'outgoing',
-      status: 'failed',
-      failure_kind: 'source_unavailable',
-    } as const
-    expect(transferActions(sourceUnavailable)).toEqual(['cancel'])
+    expect(
+      transferActions({
+        direction: 'outgoing',
+        status: 'failed',
+        failure_kind: 'source_unavailable',
+      }),
+    ).toEqual(['cancel'])
   })
 
   it('only lets the receiver cancel a paused transfer', () => {

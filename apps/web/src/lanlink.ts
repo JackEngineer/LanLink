@@ -58,6 +58,7 @@ export interface Transfer {
   sha256: string
   offset: number
   status: TransferStatus
+  failure_kind?: 'source_unavailable'
   error: string | null
   created_at: number
 }
@@ -90,7 +91,7 @@ export const messageLabels: Record<Message['status'], string> = {
 }
 
 export function transferActions(
-  transfer: Pick<Transfer, 'status' | 'direction'>,
+  transfer: Pick<Transfer, 'status' | 'direction' | 'failure_kind'>,
 ): TransferAction[] {
   const { status, direction } = transfer
   if (status === 'offered' && direction === 'incoming')
@@ -103,7 +104,10 @@ export function transferActions(
     return ['cancel']
   if (status === 'paused')
     return direction === 'outgoing' ? ['retry', 'cancel'] : ['cancel']
-  if (status === 'failed' && direction === 'outgoing') return ['retry']
+  if (status === 'failed' && direction === 'outgoing')
+    return transfer.failure_kind === 'source_unavailable'
+      ? ['cancel']
+      : ['retry', 'cancel']
   return []
 }
 
