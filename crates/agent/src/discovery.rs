@@ -77,7 +77,6 @@ pub async fn start(state: Arc<State>) -> Result<ServiceDaemon> {
         loop {
             tokio::select! {
                 _ = tick.tick() => {
-                    for fullname in names.keys() { let _ = update_daemon.verify(fullname.clone(), Duration::from_secs(10)); }
                     let device = state.device.read().await.clone();
                     if device.name != advertised && let Ok(info) = service(&device, state.tcp_port, &incarnation) && update_daemon.register(info).is_ok() { advertised = device.name; }
                 }
