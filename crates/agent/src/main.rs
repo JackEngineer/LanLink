@@ -149,6 +149,7 @@ async fn main() -> Result<()> {
         pairing_slots: Arc::new(Semaphore::new(4)),
         events,
         handshakes: Arc::new(Semaphore::new(16)),
+        sessions: Arc::new(Semaphore::new(64)),
         uploads: Arc::new(Semaphore::new(1)),
         tcp_port,
         outbox: tokio::sync::Notify::new(),
@@ -187,11 +188,34 @@ async fn main() -> Result<()> {
     tracing::info!(%origin, tcp_port, "agent started");
     axum::serve(http, http::router(state, web_dir))
         .with_graceful_shutdown(async {
-            let _ = tokio::signal::ctrl_c().await;
-            if let Some(mdns) = mdns {
-                let _ = mdns.shutdown();
+            if let Err(error) = shutdown_signal().await {
+                tracing::warn!(%error, "shutdown signal listener failed");
+            }
+            if let Some(mdns) = mdns
+                && let Ok(stopped) = mdns.shutdown()
+                && !matches!(
+                    tokio::time::timeout(std::time::Duration::from_secs(3), stopped.recv_async())
+                        .await,
+                    Ok(Ok(_))
+                )
+            {
+                tracing::warn!("mDNS shutdown did not complete within three seconds");
             }
         })
         .await?;
     Ok(())
+}
+
+async fn shutdown_signal() -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        let mut terminate =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+        tokio::select! {
+            result = tokio::signal::ctrl_c() => result,
+            _ = terminate.recv() => Ok(()),
+        }
+    }
+    #[cfg(not(unix))]
+    tokio::signal::ctrl_c().await
 }

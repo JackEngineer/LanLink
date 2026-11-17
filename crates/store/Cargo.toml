@@ -9,7 +9,7 @@ sqlx.workspace = true
 serde_json.workspace = true
 lanlink-protocol.workspace = true
 serde.workspace = true
+tokio.workspace = true
 
 [dev-dependencies]
-tokio.workspace = true
 tempfile = "3"

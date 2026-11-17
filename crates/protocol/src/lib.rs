@@ -56,6 +56,15 @@ pub struct Message {
     pub created_at: i64,
     pub status: MessageStatus,
 }
+impl Message {
+    pub fn control(&self) -> Control {
+        Control::Chat {
+            id: self.id.clone(),
+            body: self.body.clone(),
+            created_at: self.created_at,
+        }
+    }
+}
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TransferStatus {
@@ -76,6 +85,11 @@ impl TransferStatus {
         )
     }
 }
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TransferFailureKind {
+    SourceUnavailable,
+}
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Transfer {
     pub id: String,
@@ -86,6 +100,8 @@ pub struct Transfer {
     pub sha256: String,
     pub offset: u64,
     pub status: TransferStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_kind: Option<TransferFailureKind>,
     pub error: Option<String>,
     pub created_at: i64,
 }
@@ -162,6 +178,7 @@ impl Frame {
         let mut out = Vec::new();
         match self {
             Self::Control(control) => {
+                control.validate_timestamp()?;
                 out.push(0);
                 out.extend(serde_json::to_vec(control).map_err(|e| e.to_string())?);
             }
@@ -188,9 +205,12 @@ impl Frame {
     }
     pub fn decode(input: &[u8]) -> Result<Self, String> {
         match input.first() {
-            Some(0) => serde_json::from_slice(&input[1..])
-                .map(Self::Control)
-                .map_err(|e| e.to_string()),
+            Some(0) => {
+                let control: Control =
+                    serde_json::from_slice(&input[1..]).map_err(|e| e.to_string())?;
+                control.validate_timestamp()?;
+                Ok(Self::Control(control))
+            }
             Some(1) if input.len() >= 26 && input.len() <= 26 + FRAGMENT_SIZE && input[25] <= 1 => {
                 Ok(Self::Data {
                     id: Uuid::from_slice(&input[1..17]).map_err(|e| e.to_string())?,
@@ -201,6 +221,16 @@ impl Frame {
             }
             _ => Err("invalid record".into()),
         }
+    }
+}
+impl Control {
+    fn validate_timestamp(&self) -> Result<(), String> {
+        if let Self::Chat { created_at, .. } | Self::Offer { created_at, .. } = self
+            && !(-8_640_000_000_000_000..=8_640_000_000_000_000).contains(created_at)
+        {
+            return Err("timestamp is outside the supported date range".into());
+        }
+        Ok(())
     }
 }
 pub fn valid_id(id: &str) -> bool {
@@ -240,6 +270,46 @@ pub fn now_ms() -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn network_timestamps_must_be_representable_by_clients() {
+        for timestamp in [
+            i64::MIN,
+            -8_640_000_000_000_001,
+            8_640_000_000_000_001,
+            i64::MAX,
+        ] {
+            for control in [
+                Control::Chat {
+                    id: Uuid::new_v4().to_string(),
+                    body: "hello".into(),
+                    created_at: timestamp,
+                },
+                Control::Offer {
+                    id: Uuid::new_v4().to_string(),
+                    name: "a.txt".into(),
+                    size: 1,
+                    sha256: "a".repeat(64),
+                    created_at: timestamp,
+                    retry: false,
+                },
+            ] {
+                let mut wire = vec![0];
+                wire.extend(serde_json::to_vec(&control).unwrap());
+                assert!(Frame::decode(&wire).unwrap_err().contains("timestamp"));
+                assert!(Frame::Control(control).encode().is_err());
+            }
+        }
+        for timestamp in [-8_640_000_000_000_000, 0, now_ms(), 8_640_000_000_000_000] {
+            let encoded = Frame::Control(Control::Chat {
+                id: Uuid::new_v4().to_string(),
+                body: "hello".into(),
+                created_at: timestamp,
+            })
+            .encode()
+            .unwrap();
+            assert!(Frame::decode(&encoded).is_ok());
+        }
+    }
     #[test]
     fn fragments_fit_noise_and_roundtrip() {
         let frame = Frame::Data {

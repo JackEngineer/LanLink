@@ -1,15 +1,19 @@
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, ensure};
 use lanlink_protocol::*;
 use serde::{Serialize, de::DeserializeOwned};
 use sqlx::{
     Row, SqlitePool,
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+const MAX_ACTIVE_TRANSFERS: usize = 32;
+const MAX_TRANSFER_HISTORY: usize = 10_000;
 
 #[derive(Clone)]
 pub struct Store {
     pub pool: SqlitePool,
+    spool_dir: PathBuf,
 }
 impl Store {
     pub async fn open(path: &Path) -> Result<Self> {
@@ -35,7 +39,8 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
         )
         .execute(&pool)
         .await?;
-        Ok(Self { pool })
+        let spool_dir = path.parent().unwrap_or(Path::new(".")).join("spool");
+        Ok(Self { pool, spool_dir })
     }
     pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
         let value: Option<String> = sqlx::query_scalar("SELECT value FROM kv WHERE key=?")
@@ -211,6 +216,14 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
             .context("transfer not found")?;
         Ok(serde_json::from_str(&value)?)
     }
+    pub async fn transfer_exists(&self, id: &str) -> Result<bool> {
+        Ok(
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM transfers WHERE id=?)")
+                .bind(id)
+                .fetch_one(&self.pool)
+                .await?,
+        )
+    }
     pub async fn insert_transfer(&self, transfer: &Transfer) -> Result<()> {
         sqlx::query("INSERT INTO transfers VALUES (?,?,?)")
             .bind(&transfer.id)
@@ -231,27 +244,37 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
     }
     pub async fn reserve(&self, transfer: &Transfer) -> Result<()> {
         let mut tx = self.pool.begin().await?;
+        let settings = quota_settings(&mut tx).await?;
         let rows: Vec<String> = sqlx::query_scalar("SELECT value FROM transfers")
             .fetch_all(&mut *tx)
             .await?;
-        let mut used: u64 =
-            sqlx::query_scalar::<_, i64>("SELECT COALESCE(SUM(size),0) FROM uploads")
+        let (uploads, bytes): (i64, i64) =
+            sqlx::query_as("SELECT COUNT(*), COALESCE(SUM(size),0) FROM uploads")
                 .fetch_one(&mut *tx)
-                .await? as u64;
-        let mut active = 0;
+                .await?;
+        let mut used = bytes as u64;
+        let mut history = uploads as usize;
+        let mut active = uploads as usize;
         for row in rows {
             let t: Transfer = serde_json::from_str(&row)?;
             if t.id == transfer.id {
                 continue;
             }
+            history += 1;
             if reserves_space(&t) {
-                used = used.checked_add(t.size).context("quota overflow")?;
+                used = used
+                    .checked_add(self.reserved_bytes(&t, settings.as_ref()).await?)
+                    .context("quota overflow")?;
             }
             if !t.status.terminal() {
                 active += 1;
             }
         }
-        ensure!(active < 32, "too many pending transfers");
+        ensure!(
+            history < MAX_TRANSFER_HISTORY,
+            "transfer history limit reached"
+        );
+        ensure!(active < MAX_ACTIVE_TRANSFERS, "too many pending transfers");
         ensure!(
             used.checked_add(transfer.size)
                 .is_some_and(|n| n <= DISK_QUOTA),
@@ -262,37 +285,65 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
         Ok(())
     }
     pub async fn reserve_upload(&self, id: &str, size: u64) -> Result<()> {
+        self.reserve_upload_up_to(id, size, size).await?;
+        Ok(())
+    }
+    pub async fn reserve_upload_up_to(
+        &self,
+        id: &str,
+        minimum: u64,
+        preferred: u64,
+    ) -> Result<u64> {
+        ensure!(
+            minimum <= preferred && preferred <= DISK_QUOTA,
+            "invalid upload reservation"
+        );
         let mut tx = self.pool.begin().await?;
+        let settings = quota_settings(&mut tx).await?;
         let rows: Vec<String> = sqlx::query_scalar("SELECT value FROM transfers")
             .fetch_all(&mut *tx)
             .await?;
-        ensure!(rows.len() < 10_000, "transfer history limit reached");
-        let mut active = 0;
-        let mut used: u64 =
-            sqlx::query_scalar::<_, i64>("SELECT COALESCE(SUM(size),0) FROM uploads")
+        let (uploads, bytes): (i64, i64) =
+            sqlx::query_as("SELECT COUNT(*), COALESCE(SUM(size),0) FROM uploads WHERE id != ?")
+                .bind(id)
                 .fetch_one(&mut *tx)
-                .await? as u64;
+                .await?;
+        ensure!(
+            rows.len() + (uploads as usize) < MAX_TRANSFER_HISTORY,
+            "transfer history limit reached"
+        );
+        let mut active = uploads as usize;
+        let mut used = bytes as u64;
         for row in rows {
             let t: Transfer = serde_json::from_str(&row)?;
             if !t.status.terminal() {
                 active += 1;
             }
             if reserves_space(&t) {
-                used = used.checked_add(t.size).context("quota overflow")?;
+                used = used
+                    .checked_add(self.reserved_bytes(&t, settings.as_ref()).await?)
+                    .context("quota overflow")?;
             }
         }
-        ensure!(active < 32, "too many pending transfers");
+        ensure!(active < MAX_ACTIVE_TRANSFERS, "too many pending transfers");
         ensure!(
-            used.checked_add(size).is_some_and(|n| n <= DISK_QUOTA),
+            used.checked_add(minimum).is_some_and(|n| n <= DISK_QUOTA),
             "storage quota exceeded"
         );
-        sqlx::query("INSERT INTO uploads VALUES (?,?)")
-            .bind(id)
-            .bind(size as i64)
-            .execute(&mut *tx)
-            .await?;
+        let size = if used.checked_add(preferred).is_some_and(|n| n <= DISK_QUOTA) {
+            preferred
+        } else {
+            minimum
+        };
+        sqlx::query(
+            "INSERT INTO uploads VALUES (?,?) ON CONFLICT(id) DO UPDATE SET size=excluded.size",
+        )
+        .bind(id)
+        .bind(size as i64)
+        .execute(&mut *tx)
+        .await?;
         tx.commit().await?;
-        Ok(())
+        Ok(size)
     }
     pub async fn release_upload(&self, id: &str) -> Result<()> {
         sqlx::query("DELETE FROM uploads WHERE id=?")
@@ -303,6 +354,14 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
     }
     pub async fn finish_upload(&self, t: &Transfer) -> Result<()> {
         let mut tx = self.pool.begin().await?;
+        let reserved: Option<i64> = sqlx::query_scalar("SELECT size FROM uploads WHERE id=?")
+            .bind(&t.id)
+            .fetch_optional(&mut *tx)
+            .await?;
+        ensure!(
+            reserved == Some(t.size as i64),
+            "upload size does not match its reservation"
+        );
         sqlx::query("INSERT INTO transfers VALUES (?,?,?)")
             .bind(&t.id)
             .bind(&t.peer_id)
@@ -318,15 +377,28 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
     }
     pub async fn recover_messages(&self) -> Result<()> {
         for mut m in self.list::<Message>("messages").await? {
-            if m.status == MessageStatus::Sending {
-                m.status = MessageStatus::Pending;
+            if m.direction == Direction::Outgoing
+                && matches!(m.status, MessageStatus::Sending | MessageStatus::Pending)
+            {
+                m.status = if Frame::Control(m.control()).encode().is_ok() {
+                    MessageStatus::Pending
+                } else {
+                    MessageStatus::Failed
+                };
                 self.save_message(&m).await?;
             }
         }
         Ok(())
     }
-    pub async fn receive_offer(&self, offer: &Transfer) -> Result<Transfer> {
-        if let Ok(existing) = self.transfer(&offer.id).await {
+    pub async fn receive_offer(&self, offer: &Transfer, retry: bool) -> Result<(Transfer, bool)> {
+        let mut tx = self.pool.begin().await?;
+        let row: Option<String> = sqlx::query_scalar("SELECT value FROM transfers WHERE id=?")
+            .bind(&offer.id)
+            .fetch_optional(&mut *tx)
+            .await?;
+        let mut reopened = None;
+        if let Some(row) = row {
+            let mut existing: Transfer = serde_json::from_str(&row)?;
             ensure!(
                 existing.direction == Direction::Incoming
                     && existing.peer_id == offer.peer_id
@@ -335,18 +407,71 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
                     && existing.sha256 == offer.sha256,
                 "conflicting transfer ID"
             );
-            return Ok(existing);
+            if !retry || existing.status != TransferStatus::Failed {
+                return Ok((existing, false));
+            }
+            existing.status = TransferStatus::Offered;
+            existing.offset = 0;
+            existing.error = None;
+            reopened = Some(existing);
         }
-        let transfers = self.transfers().await?;
-        ensure!(transfers.len() < 10_000, "transfer history limit reached");
-        if transfers.iter().filter(|t| !t.status.terminal()).count() >= 32 {
-            bail!("too many pending transfers");
+        let rows: Vec<String> = sqlx::query_scalar("SELECT value FROM transfers")
+            .fetch_all(&mut *tx)
+            .await?;
+        let uploads: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM uploads")
+            .fetch_one(&mut *tx)
+            .await?;
+        ensure!(
+            reopened.is_some() || rows.len() + (uploads as usize) < MAX_TRANSFER_HISTORY,
+            "transfer history limit reached"
+        );
+        let mut active = uploads as usize;
+        for row in rows {
+            let t: Transfer = serde_json::from_str(&row)?;
+            if !t.status.terminal() {
+                active += 1;
+            }
         }
-        self.insert_transfer(offer).await?;
-        Ok(offer.clone())
+        ensure!(active < MAX_ACTIVE_TRANSFERS, "too many pending transfers");
+        let retrying = reopened.is_some();
+        let t = reopened.unwrap_or_else(|| offer.clone());
+        sqlx::query("INSERT INTO transfers VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value")
+            .bind(&t.id)
+            .bind(&t.peer_id)
+            .bind(serde_json::to_string(&t)?)
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        Ok((t, retrying))
+    }
+
+    async fn reserved_bytes(&self, t: &Transfer, settings: Option<&Settings>) -> Result<u64> {
+        let path = match (t.direction, t.status, settings) {
+            (Direction::Incoming, TransferStatus::Completed, Some(settings)) => {
+                Path::new(&settings.download_dir).join(format!("{}-{}", t.id, safe_name(&t.name)))
+            }
+            (Direction::Outgoing, TransferStatus::Failed, _) => {
+                self.spool_dir.join(format!("{}.send", t.id))
+            }
+            _ => return Ok(t.size),
+        };
+        match tokio::fs::symlink_metadata(path).await {
+            Ok(metadata) if metadata.is_file() => Ok(metadata.len()),
+            Ok(_) => Ok(t.size),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(0),
+            Err(error) => Err(error).context("cannot reconcile transfer storage"),
+        }
     }
 }
-pub fn reserves_space(t: &Transfer) -> bool {
+async fn quota_settings(tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>) -> Result<Option<Settings>> {
+    let value: Option<String> = sqlx::query_scalar("SELECT value FROM kv WHERE key='settings'")
+        .fetch_optional(&mut **tx)
+        .await?;
+    value
+        .map(|value| serde_json::from_str(&value).map_err(Into::into))
+        .transpose()
+}
+fn reserves_space(t: &Transfer) -> bool {
     match t.direction {
         Direction::Outgoing => !matches!(
             t.status,
@@ -362,6 +487,188 @@ pub fn reserves_space(t: &Transfer) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn transfer(id: &str, direction: Direction, size: u64, status: TransferStatus) -> Transfer {
+        Transfer {
+            id: id.into(),
+            peer_id: "peer".into(),
+            direction,
+            name: "a.txt".into(),
+            size,
+            sha256: "a".repeat(64),
+            offset: 0,
+            status,
+            failure_kind: None,
+            error: None,
+            created_at: 0,
+        }
+    }
+    #[tokio::test]
+    async fn restart_fails_legacy_unencodable_outbox_without_losing_valid_messages() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let store = Store::open(&dir.path().join("test.sqlite3")).await?;
+        for (id, body) in [
+            ("bad", "\u{1}".repeat(MAX_MESSAGE_SIZE)),
+            ("good", "hello".into()),
+        ] {
+            store
+                .insert_message(&Message {
+                    id: id.into(),
+                    peer_id: "peer".into(),
+                    direction: Direction::Outgoing,
+                    body,
+                    created_at: 0,
+                    status: MessageStatus::Pending,
+                })
+                .await?;
+        }
+        store.recover_messages().await?;
+        assert_eq!(store.message("bad").await?.status, MessageStatus::Failed);
+        assert_eq!(store.message("good").await?.status, MessageStatus::Pending);
+        Ok(())
+    }
+    #[tokio::test]
+    async fn completed_download_quota_tracks_files_without_rewriting_history() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let store = Store::open(&dir.path().join("test.sqlite3")).await?;
+        store
+            .put(
+                "settings",
+                &Settings {
+                    download_dir: dir.path().to_string_lossy().into(),
+                    max_file_size: MAX_FILE_SIZE,
+                },
+            )
+            .await?;
+        let completed = transfer(
+            "completed",
+            Direction::Incoming,
+            DISK_QUOTA,
+            TransferStatus::Completed,
+        );
+        let path = dir.path().join("completed-a.txt");
+        let file = tokio::fs::File::create(&path).await?;
+        file.set_len(DISK_QUOTA).await?;
+        store.insert_transfer(&completed).await?;
+        assert!(store.reserve_upload("next", 1).await.is_err());
+        file.set_len(1).await?;
+        store.reserve_upload("next", DISK_QUOTA - 1).await?;
+        store.release_upload("next").await?;
+        drop(file);
+        tokio::fs::rename(&path, dir.path().join("moved.txt")).await?;
+        store.reserve_upload("next", DISK_QUOTA).await?;
+        store.release_upload("next").await?;
+        let next = transfer(
+            "incoming",
+            Direction::Incoming,
+            DISK_QUOTA,
+            TransferStatus::Transferring,
+        );
+        store.reserve(&next).await?;
+        assert_eq!(store.transfer("completed").await?, completed);
+        Ok(())
+    }
+    #[tokio::test]
+    async fn failed_outgoing_quota_tracks_snapshot_bytes() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let store = Store::open(&dir.path().join("test.sqlite3")).await?;
+        let spool = dir.path().join("spool");
+        tokio::fs::create_dir(&spool).await?;
+        let failed = transfer(
+            "failed",
+            Direction::Outgoing,
+            DISK_QUOTA,
+            TransferStatus::Failed,
+        );
+        let path = spool.join("failed.send");
+        let file = tokio::fs::File::create(&path).await?;
+        file.set_len(DISK_QUOTA).await?;
+        store.insert_transfer(&failed).await?;
+        assert!(store.reserve_upload("blocked", 1).await.is_err());
+        file.set_len(1).await?;
+        let incoming = transfer(
+            "incoming",
+            Direction::Incoming,
+            DISK_QUOTA - 1,
+            TransferStatus::Transferring,
+        );
+        store.reserve(&incoming).await?;
+        assert!(store.reserve_upload("blocked", 1).await.is_err());
+        drop(file);
+        tokio::fs::remove_file(&path).await?;
+        store.reserve_upload("next", 1).await?;
+        assert_eq!(store.transfer(&failed.id).await?, failed);
+        Ok(())
+    }
+    #[tokio::test]
+    async fn upload_owns_its_transfer_slot_until_conversion() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let store = Store::open(&dir.path().join("test.sqlite3")).await?;
+        for n in 0..31 {
+            store
+                .insert_transfer(&transfer(
+                    &n.to_string(),
+                    Direction::Incoming,
+                    1,
+                    TransferStatus::Offered,
+                ))
+                .await?;
+        }
+        store.reserve_upload("upload", 32).await?;
+        let mut offer = transfer("offer", Direction::Incoming, 1, TransferStatus::Offered);
+        assert!(store.receive_offer(&offer, false).await.is_err());
+        let mut existing = store.transfer("0").await?;
+        assert_eq!(
+            store.receive_offer(&existing, false).await?,
+            (existing.clone(), false)
+        );
+        existing.status = TransferStatus::Transferring;
+        store.reserve(&existing).await?;
+        offer.status = TransferStatus::Transferring;
+        assert!(store.reserve(&offer).await.is_err());
+        store.reserve_upload("upload", 1).await?;
+        let upload = transfer(
+            "upload",
+            Direction::Outgoing,
+            1,
+            TransferStatus::AwaitingAccept,
+        );
+        store.finish_upload(&upload).await?;
+        assert_eq!(store.transfer("upload").await?, upload);
+        Ok(())
+    }
+    #[tokio::test]
+    async fn upload_reservations_grow_atomically_to_actual_size() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let store = Store::open(&dir.path().join("test.sqlite3")).await?;
+        store.reserve_upload("occupied", DISK_QUOTA - 3).await?;
+        store.reserve_upload("tiny", 0).await?;
+        store.reserve_upload("tiny", 2).await?;
+        store.reserve_upload("tiny", 3).await?;
+        assert!(store.reserve_upload("tiny", 4).await.is_err());
+        let mut uploaded = transfer(
+            "tiny",
+            Direction::Outgoing,
+            2,
+            TransferStatus::AwaitingAccept,
+        );
+        assert!(store.finish_upload(&uploaded).await.is_err());
+        uploaded.size = 3;
+        store.finish_upload(&uploaded).await?;
+        assert!(store.reserve_upload("extra", 1).await.is_err());
+        assert_eq!(store.transfer("tiny").await?.size, 3);
+        Ok(())
+    }
+    #[tokio::test]
+    async fn concurrent_upload_reservations_cannot_exceed_quota() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let store = Store::open(&dir.path().join("test.sqlite3")).await?;
+        let (a, b) = tokio::join!(
+            store.reserve_upload("a", DISK_QUOTA / 2 + 1),
+            store.reserve_upload("b", DISK_QUOTA / 2 + 1)
+        );
+        assert_ne!(a.is_ok(), b.is_ok());
+        Ok(())
+    }
     #[tokio::test]
     async fn durable_dedup_outbox_and_revoke() -> Result<()> {
         let dir = tempfile::tempdir()?;
@@ -431,6 +738,7 @@ mod tests {
             sha256: "a".repeat(64),
             offset: 0,
             status: TransferStatus::Transferring,
+            failure_kind: None,
             error: None,
             created_at: 0,
         };

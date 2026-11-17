@@ -139,9 +139,15 @@ const dateFormatter = new Intl.DateTimeFormat('zh-CN', {
 
 export function formatTime(timestamp: number): string {
   const date = new Date(timestamp)
+  if (!Number.isFinite(date.getTime())) return '时间未知'
   return date.toDateString() === new Date().toDateString()
     ? timeFormatter.format(date)
     : dateFormatter.format(date)
+}
+
+export function isoTime(timestamp: number): string | undefined {
+  const date = new Date(timestamp)
+  return Number.isFinite(date.getTime()) ? date.toISOString() : undefined
 }
 
 export function platformName(platform: string): string {

@@ -1,11 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
   formatBytes,
+  formatTime,
+  isoTime,
   percent,
   transferActions,
   type Direction,
   type TransferStatus,
 } from './lanlink'
+
+it('keeps historical records readable when a peer supplied an invalid date', () => {
+  for (const timestamp of [Number.MAX_SAFE_INTEGER, NaN, Infinity]) {
+    expect(formatTime(timestamp)).toBe('时间未知')
+    expect(isoTime(timestamp)).toBeUndefined()
+  }
+  expect(isoTime(0)).toBe('1970-01-01T00:00:00.000Z')
+})
 
 describe('transfer actions', () => {
   it('requires the receiver to accept or reject a new incoming offer', () => {

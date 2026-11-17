@@ -21,6 +21,7 @@ import {
   MESSAGE_MAX_BYTES,
   formatBytes,
   formatTime,
+  isoTime,
   messageLabels,
   type Message,
   type Pairing,
@@ -169,6 +170,9 @@ export function Chat({
     for (const file of files) {
       if (file.size > maxFileSize) oversized.push(file.name)
       else void startUpload(peer.id, file)
+    }
+    if (files.length > 0 && oversized.length === 0) {
+      useUi.getState().setView('transfers')
     }
     setFileError(
       oversized.length
@@ -355,7 +359,7 @@ function MessageBubble({
     <li className={outgoing ? 'message message-outgoing' : 'message'}>
       <div className="message-bubble">{message.body}</div>
       <div className="message-meta">
-        <time dateTime={new Date(message.created_at).toISOString()}>
+        <time dateTime={isoTime(message.created_at)}>
           {formatTime(message.created_at)}
         </time>
         {outgoing && (

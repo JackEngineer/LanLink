@@ -13,6 +13,7 @@ import { EmptyState, InlineError } from './components'
 import {
   formatBytes,
   formatTime,
+  isoTime,
   percent,
   transferActions,
   transferLabels,
@@ -152,7 +153,7 @@ function TransferRow({
             {incoming ? '来自' : '发送至'} {peerName}
           </span>
           <span>{formatBytes(transfer.size)}</span>
-          <time dateTime={new Date(transfer.created_at).toISOString()}>
+          <time dateTime={isoTime(transfer.created_at)}>
             {formatTime(transfer.created_at)}
           </time>
         </div>

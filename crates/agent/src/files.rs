@@ -8,6 +8,23 @@ use tokio::{
     io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt},
 };
 
+pub fn source_failed(t: &Transfer) -> bool {
+    t.direction == Direction::Outgoing
+        && t.status == TransferStatus::Failed
+        && t.failure_kind == Some(TransferFailureKind::SourceUnavailable)
+}
+
+pub async fn fail_source(state: &State, t: &mut Transfer, error: anyhow::Error) -> Result<()> {
+    t.status = TransferStatus::Failed;
+    t.failure_kind = Some(TransferFailureKind::SourceUnavailable);
+    t.error = Some(format!(
+        "Source snapshot is unavailable; upload the file again. {error}"
+    ));
+    state.store.save_transfer(t).await?;
+    state.changed();
+    Ok(())
+}
+
 pub fn spool_path(state: &State, t: &Transfer) -> PathBuf {
     state.root.join("spool").join(format!(
         "{}.{}",
@@ -69,6 +86,31 @@ pub async fn hash_file(path: &Path) -> Result<String> {
         hasher.update(&buffer[..n]);
     }
     Ok(hex::encode(hasher.finalize()))
+}
+pub async fn open_source(state: &State, t: &Transfer) -> Result<File> {
+    let file = File::open(spool_path(state, t))
+        .await
+        .context("source snapshot is missing")?;
+    let metadata = file.metadata().await?;
+    ensure!(
+        metadata.is_file() && metadata.len() == t.size,
+        "source snapshot is incomplete"
+    );
+    Ok(file)
+}
+pub async fn read_source_chunk(state: &State, t: &Transfer) -> Result<Vec<u8>> {
+    let mut file = open_source(state, t).await?;
+    file.seek(std::io::SeekFrom::Start(t.offset)).await?;
+    let len = (t
+        .size
+        .checked_sub(t.offset)
+        .context("source offset exceeds file size")? as usize)
+        .min(CHUNK_SIZE);
+    let mut bytes = vec![0u8; len];
+    file.read_exact(&mut bytes)
+        .await
+        .context("source snapshot could not be read completely")?;
+    Ok(bytes)
 }
 pub async fn receive_fragment(
     state: &State,
@@ -202,9 +244,13 @@ pub async fn recover(state: &State) -> Result<()> {
                 remove_partial(state, &t).await?;
             }
         }
-        if t.direction == Direction::Outgoing && t.status == TransferStatus::Transferring {
-            t.status = TransferStatus::Paused;
-            state.store.save_transfer(&t).await?;
+        if t.direction == Direction::Outgoing && !t.status.terminal() {
+            if let Err(error) = open_source(state, &t).await {
+                fail_source(state, &mut t, error).await?;
+            } else if t.status == TransferStatus::Transferring {
+                t.status = TransferStatus::Paused;
+                state.store.save_transfer(&t).await?;
+            }
         }
     }
     let known: std::collections::HashSet<_> =
@@ -232,17 +278,20 @@ impl Drop for UploadGuard {
             let path = self.path.clone();
             tokio::spawn(async move {
                 for _ in 0..20 {
-                    match fs::remove_file(&path).await {
-                        Ok(()) => {
-                            let _ = store.release_upload(&id).await;
-                            return;
+                    match store.transfer_exists(&id).await {
+                        Ok(true) => return,
+                        Ok(false) => {
+                            let removed = fs::remove_file(&path).await;
+                            if (removed.is_ok()
+                                || removed.is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound))
+                                && store.release_upload(&id).await.is_ok()
+                            {
+                                return;
+                            }
                         }
-                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                            let _ = store.release_upload(&id).await;
-                            return;
-                        }
-                        Err(_) => tokio::time::sleep(std::time::Duration::from_millis(100)).await,
+                        Err(_) => {}
                     }
+                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                 }
                 tracing::warn!(upload_id=%id, "upload cleanup failed; reservation retained until restart");
             });
@@ -265,9 +314,50 @@ mod tests {
             sha256: String::new(),
             offset: 0,
             status: TransferStatus::Transferring,
+            failure_kind: None,
             error: None,
             created_at: 1,
         }
+    }
+    #[tokio::test]
+    async fn restart_fails_missing_and_truncated_outgoing_snapshots() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let state = test_state(root.path()).await?;
+        for status in [
+            TransferStatus::AwaitingAccept,
+            TransferStatus::Paused,
+            TransferStatus::Transferring,
+        ] {
+            for content in [
+                None,
+                Some(b"short".as_slice()),
+                Some(b"0123456789".as_slice()),
+            ] {
+                let mut t = transfer(10);
+                t.direction = Direction::Outgoing;
+                t.status = status;
+                state.store.insert_transfer(&t).await?;
+                if let Some(bytes) = content {
+                    fs::write(spool_path(&state, &t), bytes).await?;
+                }
+                recover(&state).await?;
+                let current = state.store.transfer(&t.id).await?;
+                if content.is_some_and(|bytes| bytes.len() == 10) {
+                    assert_eq!(
+                        current.status,
+                        if status == TransferStatus::Transferring {
+                            TransferStatus::Paused
+                        } else {
+                            status
+                        }
+                    );
+                } else {
+                    assert_eq!(current.status, TransferStatus::Failed);
+                    assert!(current.error.unwrap().contains("upload the file again"));
+                }
+            }
+        }
+        Ok(())
     }
     #[tokio::test]
     async fn fragment_checkpoint_recovery_and_no_clobber_publication() -> Result<()> {

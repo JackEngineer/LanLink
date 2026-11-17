@@ -164,11 +164,18 @@ async fn pair(State(s): State<Arc<App>>, Path(id): Path<String>) -> Api<Value> {
         "connection attempt already in progress"
     );
     let attempt = Uuid::new_v4().to_string();
-    s.allow_pair
-        .lock()
-        .await
-        .insert(id.clone(), now_ms() + 120_000);
-    s.denied.lock().await.remove(&id);
+    {
+        let gate = s.gate(&id).await;
+        let _guard = gate.lock().await;
+        s.allow_pair.lock().await.insert(
+            id.clone(),
+            crate::state::PairGrant {
+                attempt: attempt.clone(),
+                expires_at: now_ms() + 120_000,
+            },
+        );
+        s.denied.lock().await.remove(&id);
+    }
     let for_task = attempt.clone();
     tokio::spawn(async move {
         if let Err(e) = network::dial(s.clone(), id, true, Some(for_task)).await {
@@ -242,6 +249,9 @@ async fn send_message(State(s): State<Arc<App>>, Json(input): Json<SendMessage>)
         created_at: now_ms(),
         status: MessageStatus::Pending,
     };
+    Frame::Control(m.control())
+        .encode()
+        .map_err(anyhow::Error::msg)?;
     s.store.insert_message(&m).await?;
     s.outbox.notify_waiters();
     s.changed();
@@ -258,6 +268,9 @@ async fn retry_message(State(s): State<Arc<App>>, Path(id): Path<String>) -> Api
             && matches!(m.status, MessageStatus::Pending | MessageStatus::Failed),
         "message cannot be retried"
     );
+    Frame::Control(m.control())
+        .encode()
+        .map_err(anyhow::Error::msg)?;
     m.status = MessageStatus::Pending;
     s.store.save_message(&m).await?;
     s.outbox.notify_waiters();
@@ -286,20 +299,7 @@ async fn upload(
         .context("another upload is in progress")?;
     s.store.trusted(&q.peer_id).await?;
     let limit = s.settings.read().await.max_file_size;
-    let used: u64 = s
-        .store
-        .transfers()
-        .await?
-        .iter()
-        .filter(|t| lanlink_store::reserves_space(t))
-        .map(|t| t.size)
-        .sum();
-    ensure!(
-        used.checked_add(limit).is_some_and(|n| n <= DISK_QUOTA),
-        "storage quota requires room for the configured maximum upload"
-    );
     let id = Uuid::new_v4().to_string();
-    s.store.reserve_upload(&id, limit).await?;
     let path = s.root.join("spool").join(format!("{id}.send"));
     let mut guard = UploadGuard {
         path: path.clone(),
@@ -307,6 +307,7 @@ async fn upload(
         store: s.store.clone(),
         id: id.clone(),
     };
+    s.store.reserve_upload(&id, 0).await?;
     let mut file = tokio::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -322,12 +323,17 @@ async fn upload(
     );
     let name = safe_name(field.file_name().unwrap_or("download"));
     let mut size = 0u64;
+    let mut reserved = 0u64;
     let mut hash = Sha256::new();
     while let Some(chunk) = field.chunk().await? {
         size = size
             .checked_add(chunk.len() as u64)
             .context("upload length overflow")?;
         ensure!(size <= limit, "file exceeds configured limit");
+        if size > reserved {
+            let preferred = (size.div_ceil(CHUNK_SIZE as u64) * CHUNK_SIZE as u64).min(limit);
+            reserved = s.store.reserve_upload_up_to(&id, size, preferred).await?;
+        }
         file.write_all(&chunk).await?;
         hash.update(&chunk);
     }
@@ -339,6 +345,7 @@ async fn upload(
     file.sync_all().await?;
     drop(file);
     files::sync_dir(path.parent().unwrap()).await?;
+    s.store.reserve_upload(&id, size).await?;
     let t = Transfer {
         id,
         peer_id: q.peer_id,
@@ -348,6 +355,7 @@ async fn upload(
         sha256: hex::encode(hash.finalize()),
         offset: 0,
         status: TransferStatus::AwaitingAccept,
+        failure_kind: None,
         error: None,
         created_at: now_ms(),
     };
@@ -435,4 +443,82 @@ async fn events(
             incoming = socket.recv() => { if matches!(incoming, None | Some(Err(_)) | Some(Ok(WsMessage::Close(_)))) { break; } }
         } }
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::extract::FromRequest;
+
+    #[tokio::test]
+    async fn tiny_upload_succeeds_with_less_than_maximum_file_size_free() -> anyhow::Result<()> {
+        let root = tempfile::tempdir()?;
+        let state = Arc::new(crate::state::test_state(root.path()).await?);
+        let peer = "a".repeat(64);
+        state
+            .store
+            .reserve(&Transfer {
+                id: Uuid::new_v4().to_string(),
+                peer_id: peer.clone(),
+                direction: Direction::Incoming,
+                name: "occupied".into(),
+                size: DISK_QUOTA - 3,
+                sha256: "a".repeat(64),
+                offset: 0,
+                status: TransferStatus::Transferring,
+                failure_kind: None,
+                error: None,
+                created_at: now_ms(),
+            })
+            .await?;
+        let request = Request::builder()
+            .header(header::CONTENT_TYPE, "multipart/form-data; boundary=lanlink-test")
+            .body(Body::from("--lanlink-test\r\nContent-Disposition: form-data; name=\"file\"; filename=\"tiny.txt\"\r\n\r\nabc\r\n--lanlink-test--\r\n"))?;
+        let multipart = Multipart::from_request(request, &()).await?;
+        let uploaded = upload(
+            State(state.clone()),
+            Query(PeerQuery { peer_id: peer }),
+            multipart,
+        )
+        .await
+        .map_err(|error| error.0)?
+        .0;
+        assert_eq!(uploaded.size, 3);
+        assert_eq!(
+            tokio::fs::read(files::spool_path(&state, &uploaded)).await?,
+            b"abc"
+        );
+        assert_eq!(state.store.transfer(&uploaded.id).await?, uploaded);
+        assert!(state.store.reserve_upload("extra", 1).await.is_err());
+        Ok(())
+    }
+    #[tokio::test]
+    async fn escaped_message_over_wire_limit_is_rejected_before_persistence() -> anyhow::Result<()>
+    {
+        let root = tempfile::tempdir()?;
+        let state = Arc::new(crate::state::test_state(root.path()).await?);
+        let peer = "a".repeat(64);
+        let result = send_message(
+            State(state.clone()),
+            Json(SendMessage {
+                peer_id: peer.clone(),
+                body: "\u{1}".repeat(MAX_MESSAGE_SIZE),
+            }),
+        )
+        .await;
+        assert!(result.is_err());
+        assert!(state.store.messages(&peer).await?.is_empty());
+        let result = send_message(
+            State(state.clone()),
+            Json(SendMessage {
+                peer_id: peer.clone(),
+                body: "a".repeat(MAX_MESSAGE_SIZE),
+            }),
+        )
+        .await
+        .map_err(|error| error.0)?;
+        assert_eq!(result.0.status, MessageStatus::Pending);
+        assert_eq!(state.store.messages(&peer).await?.len(), 1);
+        Ok(())
+    }
 }

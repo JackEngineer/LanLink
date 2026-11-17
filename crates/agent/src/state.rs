@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, ensure};
+use anyhow::{Result, ensure};
 use lanlink_protocol::*;
 use lanlink_store::Store;
 use std::{
@@ -11,6 +11,11 @@ use tokio::sync::{Mutex, RwLock, Semaphore, broadcast, mpsc, watch};
 pub struct PairAttempt {
     pub value: Pairing,
     pub decisions: mpsc::Sender<bool>,
+}
+#[derive(Clone, PartialEq, Eq)]
+pub struct PairGrant {
+    pub attempt: String,
+    pub expires_at: i64,
 }
 #[derive(Clone)]
 pub struct Active {
@@ -38,11 +43,12 @@ pub struct State {
     pub active: Mutex<HashMap<String, Active>>,
     pub gates: Mutex<HashMap<String, Arc<Mutex<()>>>>,
     pub dialing: Mutex<HashMap<String, bool>>,
-    pub allow_pair: Mutex<HashMap<String, i64>>,
+    pub allow_pair: Mutex<HashMap<String, PairGrant>>,
     pub denied: Mutex<HashSet<String>>,
     pub pairing_slots: Arc<Semaphore>,
     pub events: broadcast::Sender<()>,
     pub handshakes: Arc<Semaphore>,
+    pub sessions: Arc<Semaphore>,
     pub uploads: Arc<Semaphore>,
     pub tcp_port: u16,
     pub outbox: tokio::sync::Notify,
@@ -192,13 +198,10 @@ impl State {
                     "only paused or failed outgoing transfers can be retried"
                 );
                 ensure!(
-                    tokio::fs::metadata(crate::files::spool_path(self, &t))
-                        .await
-                        .context("source snapshot is missing")?
-                        .len()
-                        == t.size,
-                    "source snapshot is incomplete"
+                    !crate::files::source_failed(&t),
+                    "source snapshot is unavailable; upload the file again"
                 );
+                crate::files::open_source(self, &t).await?;
                 t.status = TransferStatus::AwaitingAccept;
                 t.error = None;
                 self.store.reserve(&t).await?;
@@ -245,6 +248,7 @@ pub async fn test_state(root: &std::path::Path) -> Result<State> {
         pairing_slots: Arc::new(Semaphore::new(4)),
         events,
         handshakes: Arc::new(Semaphore::new(4)),
+        sessions: Arc::new(Semaphore::new(64)),
         uploads: Arc::new(Semaphore::new(1)),
         tcp_port: 0,
         outbox: tokio::sync::Notify::new(),
