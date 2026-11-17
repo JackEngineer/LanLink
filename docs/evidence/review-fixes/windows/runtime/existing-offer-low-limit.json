@@ -1,0 +1,26 @@
+[
+  {
+    "id": "17dcec89-8b61-4397-ac32-950c7c25a683",
+    "peer_id": "0429418a",
+    "direction": "incoming",
+    "name": "queue-alpha-64MiB.bin",
+    "size": 67108864,
+    "sha256": "281e519df3077b557c6b03f5da83c4e8d397219259615dd7c3308f89cae8f2a6",
+    "offset": 67108864,
+    "status": "completed",
+    "error": null,
+    "created_at": 1794917908901
+  },
+  {
+    "id": "bae1e8e8-785c-4fff-a2e2-3ae8a8c316cf",
+    "peer_id": "0429418a",
+    "direction": "incoming",
+    "name": "queue-beta-64MiB.bin",
+    "size": 67108864,
+    "sha256": "281e519df3077b557c6b03f5da83c4e8d397219259615dd7c3308f89cae8f2a6",
+    "offset": 0,
+    "status": "offered",
+    "error": null,
+    "created_at": 1794917910073
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "source_commit": "c076be2e17670a27791d00eb5b46ff90322dd551",
+  "method": "GET",
+  "path": "/transfers",
+  "http_status": 200,
+  "new_uploads_by_creation_time": [
+    {
+      "name": "queue-alpha-64MiB.bin",
+      "size": 67108864,
+      "direction": "outgoing",
+      "status": "awaiting_accept",
+      "offset": 0
+    },
+    {
+      "name": "queue-beta-64MiB.bin",
+      "size": 67108864,
+      "direction": "outgoing",
+      "status": "awaiting_accept",
+      "offset": 0
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "RUST_LOG": "lanlink_agent=info",
+  "health": {
+    "service": "lanlink",
+    "status": "ok",
+    "version": "0.1.0"
+  },
+  "transfer": {
+    "id": "5298ba91-b7f8-4bf8-a960-5616578afe56",
+    "peer_id": "0429418a",
+    "direction": "incoming",
+    "name": "mac-1GiB.bin",
+    "size": 1073741824,
+    "sha256": "9abc035488a85bdd2237e51ed32481c8bba1a326e2730145d1ac1971d52ff19e",
+    "offset": 360710144,
+    "status": "transferring",
+    "error": null,
+    "created_at": 1794919163338
+  },
+  "exeSHA256": "08AEB1733F97ACEA4DDAC9529AB29F968731EB811EFC5DBFD27B30E0D4DDFA71",
+  "startRequestedUtc": "2026-11-17T12:42:42.2710053+00:00",
+  "observedUtc": "2026-11-17T12:42:44.8331418+00:00",
+  "pid": 31824
+}

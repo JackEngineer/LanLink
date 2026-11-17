@@ -1,0 +1,18 @@
+{
+  "time": "2026-11-17T12:40:32.439718+00:00",
+  "transfer": {
+    "id": "bcbed60c-1ac8-42fb-b5de-2413377f6ee2",
+    "peer_id": "84652973",
+    "direction": "incoming",
+    "name": "windows-1024MiB.bin",
+    "size": 1073741824,
+    "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+    "offset": 1073741824,
+    "status": "completed",
+    "error": null,
+    "created_at": 1794918728027
+  },
+  "disk_size": 1073741824,
+  "disk_sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+  "match": true
+}

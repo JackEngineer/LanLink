@@ -1,0 +1,23 @@
+{
+  "time": "2026-11-17T12:45:27.373798+00:00",
+  "previous_pid": 82689,
+  "pid": 84570,
+  "health": {
+    "service": "lanlink",
+    "status": "ok",
+    "version": "0.1.0"
+  },
+  "device": {
+    "id": "0429418a",
+    "name": "macos 0429418a",
+    "platform": "macos"
+  },
+  "settings": {
+    "download_dir": "<MAC_HOME>/Library/Application Support/dev.LANLink.LANLink/downloads",
+    "max_file_size": 2147483648
+  },
+  "transfers": 21,
+  "preserved": true,
+  "license_present": true,
+  "agent_sha256": "e67309b97229cf27a2b78b5cbd63b19763c841b35ab6fea2d089b0faa6c76776"
+}

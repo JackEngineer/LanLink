@@ -1,0 +1,24 @@
+{
+  "at": "2026-11-17T12:24:37.4333914+00:00",
+  "messagesChecked": 10,
+  "sameIdentity": true,
+  "pid": 30696,
+  "device": {
+    "id": "84652973",
+    "name": "windows 84652973",
+    "platform": "windows"
+  },
+  "startupExists": false,
+  "missingMessages": [],
+  "zipSHA256": "1B2BE96360C7227339E9CC696AF8B6E70C412EC9E5ACD162873B01AF2497EC7F",
+  "candidate": "c076be2e17670a27791d00eb5b46ff90322dd551",
+  "changedTransfers": [],
+  "exeSHA256": "08AEB1733F97ACEA4DDAC9529AB29F968731EB811EFC5DBFD27B30E0D4DDFA71",
+  "transfersChecked": 18,
+  "health": {
+    "service": "lanlink",
+    "status": "ok",
+    "version": "0.1.0"
+  },
+  "paired": true
+}

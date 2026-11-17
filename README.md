@@ -2,7 +2,7 @@
 
 LANLink 是面向 macOS 和 Windows 的开源局域网聊天与文件传输工具。每台设备运行 Rust Agent，浏览器访问本机 React 界面。运行时不需要公网服务或第三方账号。
 
-当前为 v0.1.0 开发预览。Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢复实测。安装包身份、已测范围和限制见 [验收报告](docs/acceptance.md)。
+当前为 v0.1.0 开发预览。Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢复实测。[取得安装包](docs/install.md#取得开发预览包)，或查看 [验收报告](docs/acceptance.md)中的包哈希、已测范围和限制。
 
 ## 开发运行
 
@@ -27,7 +27,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-双 Agent 集成脚本会启动隔离的数据目录，不使用已有用户数据。其执行方式和实际结果将记录在验收报告。
+双 Agent 集成脚本会启动隔离的数据目录，不使用已有用户数据。执行方式和实际结果见 [验收报告](docs/acceptance.md#可复现集成验证)。
 
 ## 构建安装包
 

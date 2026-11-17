@@ -1,0 +1,12 @@
+{
+  "id": "5298ba91-b7f8-4bf8-a960-5616578afe56",
+  "peer_id": "0429418a",
+  "direction": "incoming",
+  "name": "mac-1GiB.bin",
+  "size": 1073741824,
+  "sha256": "9abc035488a85bdd2237e51ed32481c8bba1a326e2730145d1ac1971d52ff19e",
+  "offset": 1073741824,
+  "status": "completed",
+  "error": null,
+  "created_at": 1794919163338
+}

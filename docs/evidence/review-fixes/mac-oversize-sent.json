@@ -1,0 +1,24 @@
+{
+  "time": "2026-11-17T12:31:11.729892+00:00",
+  "transfer": {
+    "id": "fe3a146c-7608-4c13-8f28-940854382031",
+    "peer_id": "84652973",
+    "direction": "outgoing",
+    "name": "mac-10MiB.bin",
+    "size": 10485760,
+    "sha256": "52224e9cdef8f53a8e80e160f6e3799d817d0790423f0041a72d124049a5be99",
+    "offset": 0,
+    "status": "rejected",
+    "error": null,
+    "created_at": 1794918640702
+  },
+  "message": {
+    "id": "f892529c-f79c-4624-85f9-68d6b9ab2702",
+    "peer_id": "84652973",
+    "direction": "outgoing",
+    "body": "Mac c076be2 \u8d85\u9650\u62d2\u6536\u540e\u804a\u5929\u6b63\u5e38",
+    "created_at": 1794918645157,
+    "status": "sent"
+  },
+  "sender_snapshot_removed": true
+}

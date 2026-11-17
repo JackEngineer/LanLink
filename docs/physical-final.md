@@ -57,6 +57,6 @@ Mac 重新发起配对。双方独立核对同一安全码并依次确认。重�
 
 在同一台 Mac 上，用已安装候选运行两个隔离 Agent，通过真实 mDNS、TCP、Noise 和 SQLite 验证端点迁移。保留 Agent 进程和设备身份，关闭私网 IPv4 地址上的测试 TCP 入口和 mDNS 广播，再用同一实例名、设备 ID 和端口公布回环地址。旧端点继续拒绝 TCP，发送 Agent 自动发现新地址、重连并送达待发消息，接收端 SQLite 只保留一条该消息。受控迁移及独立复核通过，测试进程和测试广播均已退出。物理双机 DHCP 换址和网卡切换未测。[受控迁移日志](evidence/physical-final/ip-migration.log) · [本机集成回归](evidence/physical-final/migration-helper-smoke.log)
 
-以上记录对应本次发现修复候选。随后评审发现的文件上传及传输错误处理问题，需在新候选上重新验证。
+以上记录对应发现修复候选。随后文件上传及传输错误处理的修复、新候选双机复验和当前安装包见[后续验收报告](review-fixes.md)。
 
 当前产物为开发预览。Apple Silicon 包使用 ad-hoc 签名，Developer ID 签名与 Apple 公证未完成，Windows 开发脚本未签名。Intel Mac 覆盖 CI 构建与测试，尚无实机验收。真实注销重登录尚未验证，内存、启动、发现时延和 ACK 性能目标尚未测量。

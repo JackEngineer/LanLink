@@ -24,7 +24,7 @@ The macOS stop script now propagates process-enumeration failures. A sandbox-den
 
 Shell syntax, Python syntax, YAML parsing, Web lint and 13 frontend tests passed in the delivery review. The reviewer found no new code comments that concealed workarounds or suppressed checks.
 
-## Remaining gate
+## Gate at the early Mac-only review
 
 The final independent code review passed for the crates diff against `4c6aeb7`, SHA-256 `bd73f8dd9e7d6ed3af17530b58794e9f38b33b500994575f6aeb8cb0ad893e4b`. It covered the nine initial fixes, upload admission ownership, typed source failure with remote cancellation, stale pairing approval invalidation, and per-process discovery names. No remaining P1/P2 was found. The author and the root separately ran the final 27 Rust tests successfully; strict Clippy and formatting passed. The packaged binary then passed the complete same-host integration suite, including bilateral 1 GiB, verified resume offset, rejection, corruption and revocation. Physical Mac/Windows acceptance remains open regardless of review results.
 
@@ -33,3 +33,7 @@ The final independent code review passed for the crates diff against `4c6aeb7`, 
 Physical Mac/Windows validation found that calling mDNS `verify` every 20 seconds with a 10-second deadline prematurely removed a healthy endpoint after missed multicast replies. The failing regression was committed before the one-line fix removing that forced deadline. Independent review of `fad384c` found no remaining P1/P2 in the bounded fix or test changes. The test retains its 25-second goodbye deadline and permits up to 135 seconds for Windows hard termination without goodbye. See [physical final evidence](../physical-final.md).
 
 The additional controlled IP migration test in `a128770` received independent review and real execution against the installed Mac binary. Review moved socket binding before advertisement; the final run also verified all owned processes exited. Only test scripts changed after the three-platform CI candidate `fad384c`; application and packaging source remained identical.
+
+## File-transfer review and final packaging
+
+The three later PR findings were reproduced and fixed. Independent review passed for the frontend and backend changes integrated in `c076be2`, with 24 Web tests and 34 Rust tests passing. The retained `scripts/file-failures.py` and the three license-copy additions in `93a565d` also received independent review. The later cloud Codex review stopped at its usage limit and is not counted as passed. [Current review and physical verification](../review-fixes.md) supersedes the early physical acceptance gate above.

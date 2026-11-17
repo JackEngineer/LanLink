@@ -1,0 +1,18 @@
+{
+  "exitObservedUtc": "2026-11-17T12:41:32.6216750+00:00",
+  "lastApi": {
+    "id": "5298ba91-b7f8-4bf8-a960-5616578afe56",
+    "peer_id": "0429418a",
+    "direction": "incoming",
+    "name": "mac-1GiB.bin",
+    "size": 1073741824,
+    "sha256": "9abc035488a85bdd2237e51ed32481c8bba1a326e2730145d1ac1971d52ff19e",
+    "offset": 340787200,
+    "status": "transferring",
+    "error": null,
+    "created_at": 1794919163338
+  },
+  "stopRequestedUtc": "2026-11-17T12:41:32.5705605+00:00",
+  "pid": 30696,
+  "pidAlive": false
+}

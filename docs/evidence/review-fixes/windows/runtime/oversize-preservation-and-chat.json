@@ -1,0 +1,22 @@
+{
+  "messages": [
+    {
+      "id": "4b9be778-afb9-4250-947f-75233ffef912",
+      "peer_id": "0429418a",
+      "direction": "outgoing",
+      "body": "Windows c076be2 超限拒收后聊天正常",
+      "created_at": 1794918450883,
+      "status": "sent"
+    },
+    {
+      "id": "5fb6443b-c720-4085-81aa-064dec730517",
+      "peer_id": "0429418a",
+      "direction": "outgoing",
+      "body": "Windows c076be2 远端超限拒收后聊天正常",
+      "created_at": 1794918482827,
+      "status": "sent"
+    }
+  ],
+  "alphaSHA256": "281E519DF3077B557C6B03F5DA83C4E8D397219259615DD7C3308F89CAE8F2A6",
+  "betaFinalExists": false
+}

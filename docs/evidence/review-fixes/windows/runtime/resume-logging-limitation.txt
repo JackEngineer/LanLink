@@ -1,0 +1,1 @@
+本轮c076be2 PID30696启动时未显式覆盖宿主RUST_LOG=warn。transfer stream starting是info事件，当前日志未记录该任务。因此没有发送首帧offset=4194304的日志证据，不能借旧候选日志替代。本轮拥有Windows paused/offset4194304、Mac停机SQLite和part4194304（Mac端证据）以及自动恢复进度证据。未为补日志重启发送Agent。

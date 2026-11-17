@@ -1,5 +1,11 @@
 # 安装与使用 LANLink
 
+## 取得开发预览包
+
+打开[开发预览构建](https://github.com/JackEngineer/LanLink/actions/runs/44085576200)，从 Artifacts 下载与 CPU 匹配的归档，解压后取得 LANLink ZIP。选择 `aarch64-apple-darwin` 对应 Apple Silicon Mac，`x86_64-apple-darwin` 对应 Intel Mac，或 `x86_64-pc-windows-msvc` 对应 Windows x64。GitHub 可能要求登录后下载构建产物；LANLink 运行时不需要账号。
+
+上述归档由 CI 构建。交付时提供的 Mac 和 Windows 原生安装包及其实际测试哈希见[当前验收报告](review-fixes.md)。不同构建环境生成的包哈希可能不同。尚未创建正式 Release。
+
 ## macOS
 
 1. 下载与 CPU 架构匹配的开发版 ZIP 或 PKG。
@@ -32,7 +38,7 @@ Windows 默认数据目录为 `%LOCALAPPDATA%\LANLink\LANLink\data`。Agent 日�
 
 配对后选择设备发送消息。`sent` 表示接收端 Agent 已将消息保存到数据库，不表示对方已阅读。断线后未确认的消息保留原 ID 重试。
 
-发送文件后，接收端需要单独接受。默认单文件上限为 2GB。传输完成前不会以完整文件对外发布。断线后保留已确认偏移，重新连接时继续传输。取消或拒绝后不自动恢复。
+发送文件后，接收端需要单独接受。默认单文件上限为 2 GiB。传输完成前不会以完整文件对外发布。断线后保留已确认偏移，重新连接时继续传输。取消或拒绝后不自动恢复。
 
 ## 排查连接
 

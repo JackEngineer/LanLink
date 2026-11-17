@@ -1,0 +1,7 @@
+
+> lanlink@0.1.0 lint
+> npm run lint -w apps/web
+
+
+> @lanlink/web@0.1.0 lint
+> eslint .

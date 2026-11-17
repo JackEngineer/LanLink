@@ -1,0 +1,20 @@
+{
+  "pid": 30696,
+  "at": "2026-11-17T12:41:15.8861814+00:00",
+  "settings": {
+    "download_dir": "\\\\?\\<USER_PROFILE>\\AppData\\Local\\LANLink\\LANLink\\data\\downloads",
+    "max_file_size": 2147483648
+  },
+  "transfer": {
+    "id": "5298ba91-b7f8-4bf8-a960-5616578afe56",
+    "peer_id": "0429418a",
+    "direction": "incoming",
+    "name": "mac-1GiB.bin",
+    "size": 1073741824,
+    "sha256": "9abc035488a85bdd2237e51ed32481c8bba1a326e2730145d1ac1971d52ff19e",
+    "offset": 188743680,
+    "status": "transferring",
+    "error": null,
+    "created_at": 1794919163338
+  }
+}

@@ -1,0 +1,16 @@
+
+> lanlink@0.1.0 test
+> npm run test -w apps/web
+
+
+> @lanlink/web@0.1.0 test
+> vitest run
+
+
+ RUN  v5.1.0 <repo>/apps/web
+
+
+ Test Files  3 passed (3)
+      Tests  24 passed (24)
+   Start at  20:24:49
+   Duration  362ms (tests 65%, import 27%, transform 7%, worker 2%)

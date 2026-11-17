@@ -1,0 +1,17 @@
+{
+  "transferId": "fe3a146c-7608-4c13-8f28-940854382031",
+  "transferRecordCount": 0,
+  "pid": 30696,
+  "downloadFiles": [null],
+  "spoolFiles": [null],
+  "at": "2026-11-17T12:31:51.4687869+00:00",
+  "message": {
+    "id": "f892529c-f79c-4624-85f9-68d6b9ab2702",
+    "peer_id": "0429418a",
+    "direction": "incoming",
+    "body": "Mac c076be2 超限拒收后聊天正常",
+    "created_at": 1794918645157,
+    "status": "sent"
+  },
+  "messageCount": 1
+}

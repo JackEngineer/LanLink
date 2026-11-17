@@ -1,0 +1,19 @@
+{
+  "incoming": {
+    "id": "4f4dba08-5ec6-41a2-b1ab-47033d8fa6e4",
+    "peer_id": "0429418a",
+    "direction": "incoming",
+    "body": "最终安装版已就绪：双向 1 GiB 文件及断点恢复验证通过。",
+    "created_at": 1794919581334,
+    "status": "sent"
+  },
+  "outgoing": {
+    "id": "acceb9d8-c7eb-4ac7-aef8-ed2bfd19271c",
+    "peer_id": "0429418a",
+    "direction": "outgoing",
+    "body": "Windows 已收到，最终安装版运行正常，聊天和文件传输均已恢复可用。",
+    "created_at": 1794919668769,
+    "status": "sent"
+  },
+  "at": "2026-11-17T12:47:49.7953575+00:00"
+}

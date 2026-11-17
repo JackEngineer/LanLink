@@ -1,0 +1,28 @@
+   Compiling lanlink-agent v0.1.0 (<worktree>/crates/agent)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.96s
+     Running unittests src/main.rs (<repo>/target/debug/build/lanlink-agent/b05ca75f7ab58f88/out/lanlink_agent-b05ca75f7ab58f88)
+
+running 3 tests
+test files::tests::cancel_preserves_completed_downloads_and_retriable_incoming_failures ... ok
+test files::tests::cancel_failed_outgoing_releases_snapshot_quota_even_after_revocation ... FAILED
+test network::tests::oversized_offer_rejects_transfer_and_keeps_the_session ... FAILED
+
+failures:
+
+---- files::tests::cancel_failed_outgoing_releases_snapshot_quota_even_after_revocation stdout ----
+Error: transfer is already finished
+
+---- network::tests::oversized_offer_rejects_transfer_and_keeps_the_session stdout ----
+
+thread 'network::tests::oversized_offer_rejects_transfer_and_keeps_the_session' panicked at crates/agent/src/network.rs:1518:44:
+oversized offer ended the session: Ok(Err(invalid file offer))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    files::tests::cancel_failed_outgoing_releases_snapshot_quota_even_after_revocation
+    network::tests::oversized_offer_rejects_transfer_and_keeps_the_session
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `-p lanlink-agent --bin lanlink-agent`

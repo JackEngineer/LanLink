@@ -1,0 +1,8 @@
+Artifacts: <isolated-run>
+Agent: installed Apple Silicon LANLink Agent
+Agent SHA-256: e67309b97229cf27a2b78b5cbd63b19763c841b35ab6fea2d089b0faa6c76776
+PASS two isolated Agents discovered each other through mDNS and paired with matching codes
+PASS new and existing over-limit offers rejected; completed SHA-256 and bidirectional chat ACK verified
+PASS below-limit file published with matching SHA-256
+PASS damaged source failed and receiver cancelled; retry and revoked chat denied; explicit cancel removed snapshot
+PASS all file failure checks against two real Agents
