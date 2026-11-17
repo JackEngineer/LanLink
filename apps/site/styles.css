@@ -1195,6 +1195,20 @@ details p a {
   font-size: 11px;
   color: #8a967f;
 }
+.filing {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 20px;
+  margin-top: 24px;
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--muted);
+  text-align: center;
+}
+.filing a:hover {
+  text-decoration: underline;
+}
 @keyframes appear {
   from {
     opacity: 0;

@@ -84,6 +84,7 @@ assert.ok(
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(ids.length, new Set(ids).size, 'Duplicate anchor ID');
 const localResources = new Set();
+const officialLinks = new Set(['https://beian.miit.gov.cn/']);
 for (const match of html.matchAll(/<(\w+)\b[^>]*?\b(href|src)="([^"]+)"[^>]*>/g)) {
   const [, tag, attribute, url] = match;
   if (url.startsWith('#')) {
@@ -92,8 +93,9 @@ for (const match of html.matchAll(/<(\w+)\b[^>]*?\b(href|src)="([^"]+)"[^>]*>/g)
     assert.equal(tag, 'a', `External runtime resource: ${url}`);
     const destination = new URL(url);
     assert.ok(
-      destination.origin === 'https://github.com' &&
-        /^\/JackEngineer\/LanLink(?:\/|$)/.test(destination.pathname),
+      (destination.origin === 'https://github.com' &&
+        /^\/JackEngineer\/LanLink(?:\/|$)/.test(destination.pathname)) ||
+        officialLinks.has(url),
       `Unexpected external destination: ${url}`,
     );
   } else {
