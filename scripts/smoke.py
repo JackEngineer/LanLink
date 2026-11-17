@@ -334,7 +334,7 @@ def check_discovery_lease(observer, advertiser, log):
     log("PASS A rediscovered B with the same device ID after restart")
 
 
-def pair(left, right):
+def pair(left, right, *, right_discovers_left=True):
     left_attempt_id = left.request("POST", f"/devices/{right.id}/pair")["id"]
     left_attempt = wait_for("A pairing attempt", lambda: find(left.get("/pairings"), left_attempt_id),
                             bool, left.timeout)
@@ -357,8 +357,13 @@ def pair(left, right):
     left.change("POST", f"/pairings/{left_attempt_id}/confirm", {"accept": True})
     wait_for("B observes A approval", pending_on_right,
              lambda attempt: attempt is not None and attempt["remote_confirmed"], right.timeout)
-    require(left.peer(right)["paired"] is False and right.peer(left)["paired"] is False,
-            "One approval established trust")
+    right_peer = right.peer(left)
+    if not right_discovers_left:
+        require(right_peer is None, f"B already sees A without mDNS: {right_peer!r}")
+    else:
+        require(right_peer is not None and right_peer["paired"] is False,
+                "B lost its discovery record or trusted A after one approval")
+    require(left.peer(right)["paired"] is False, "A trusted B after one approval")
     deny_message(left, right, "Must reject after A-only approval")
     deny_message(right, left, "Must reject before B approves")
     right.change("POST", f"/pairings/{right_attempt['id']}/confirm", {"accept": True})
