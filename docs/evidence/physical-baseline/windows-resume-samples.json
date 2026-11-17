@@ -1,0 +1,62 @@
+[
+  {
+    "at": "2026-11-17T11:20:17.1922992+00:00",
+    "transfer": {
+      "id": "e1020e93-261b-4072-8c61-7c4c43078a9d",
+      "peer_id": "mac-baseline",
+      "direction": "outgoing",
+      "name": "windows-1024MiB.bin",
+      "size": 1073741824,
+      "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+      "offset": 0,
+      "status": "awaiting_accept",
+      "error": null,
+      "created_at": 1794914388419
+    }
+  },
+  {
+    "at": "2026-11-17T11:20:29.2945067+00:00",
+    "transfer": {
+      "id": "e1020e93-261b-4072-8c61-7c4c43078a9d",
+      "peer_id": "mac-baseline",
+      "direction": "outgoing",
+      "name": "windows-1024MiB.bin",
+      "size": 1073741824,
+      "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+      "offset": 4194304,
+      "status": "paused",
+      "error": null,
+      "created_at": 1794914388419
+    }
+  },
+  {
+    "at": "2026-11-17T11:21:55.8096580+00:00",
+    "transfer": {
+      "id": "e1020e93-261b-4072-8c61-7c4c43078a9d",
+      "peer_id": "mac-baseline",
+      "direction": "outgoing",
+      "name": "windows-1024MiB.bin",
+      "size": 1073741824,
+      "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+      "offset": 12582912,
+      "status": "transferring",
+      "error": null,
+      "created_at": 1794914388419
+    }
+  },
+  {
+    "transfer": {
+      "id": "e1020e93-261b-4072-8c61-7c4c43078a9d",
+      "peer_id": "mac-baseline",
+      "direction": "outgoing",
+      "name": "windows-1024MiB.bin",
+      "size": 1073741824,
+      "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+      "offset": 1073741824,
+      "status": "completed",
+      "error": null,
+      "created_at": 1794914388419
+    },
+    "at": "2026-11-17T11:23:42.3273502+00:00"
+  }
+]

@@ -27,3 +27,9 @@ Shell syntax, Python syntax, YAML parsing, Web lint and 13 frontend tests passed
 ## Remaining gate
 
 The final independent code review passed for the crates diff against `4c6aeb7`, SHA-256 `bd73f8dd9e7d6ed3af17530b58794e9f38b33b500994575f6aeb8cb0ad893e4b`. It covered the nine initial fixes, upload admission ownership, typed source failure with remote cancellation, stale pairing approval invalidation, and per-process discovery names. No remaining P1/P2 was found. The author and the root separately ran the final 27 Rust tests successfully; strict Clippy and formatting passed. The packaged binary then passed the complete same-host integration suite, including bilateral 1 GiB, verified resume offset, rejection, corruption and revocation. Physical Mac/Windows acceptance remains open regardless of review results.
+
+## Physical discovery correction and integration tests
+
+Physical Mac/Windows validation found that calling mDNS `verify` every 20 seconds with a 10-second deadline prematurely removed a healthy endpoint after missed multicast replies. The failing regression was committed before the one-line fix removing that forced deadline. Independent review of `fad384c` found no remaining P1/P2 in the bounded fix or test changes. The test retains its 25-second goodbye deadline and permits up to 135 seconds for Windows hard termination without goodbye. See [physical final evidence](../physical-final.md).
+
+The additional controlled IP migration test in `a128770` received independent review and real execution against the installed Mac binary. Review moved socket binding before advertisement; the final run also verified all owned processes exited. Only test scripts changed after the three-platform CI candidate `fad384c`; application and packaging source remained identical.

@@ -1,0 +1,22 @@
+{
+  "sample_definition": "Each sample requires at least one discovered address and the expected service port.",
+  "mac_observes_windows": {
+    "sample_start_utc": "2026-11-17T11:32:35.412415+00:00",
+    "sample_end_utc": "2026-11-17T11:36:40.140938+00:00",
+    "sample_span_seconds": 244.729,
+    "elapsed_last_sample_seconds": 244.758,
+    "sample_count": 123,
+    "missing_or_invalid": 0,
+    "sample_rows": "mac-discovery-samples.jsonl"
+  },
+  "windows_observes_mac": {
+    "sample_start_utc": "2026-11-17T11:41:39.1651633+00:00",
+    "sample_end_utc": "2026-11-17T11:45:40.6698989+00:00",
+    "sample_span_seconds": 241.505841,
+    "test_duration_seconds": 241.5091909,
+    "sample_count": 121,
+    "missing_or_invalid": 0,
+    "sample_rows": "windows-discovery-240s.jsonl",
+    "native_summary": "windows-discovery-summary.json"
+  }
+}

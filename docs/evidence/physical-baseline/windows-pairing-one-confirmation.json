@@ -1,0 +1,24 @@
+{
+  "pairings": [
+    {
+      "id": "5c28aeab-064d-4c26-80d1-6db1f6fc43d2",
+      "peer_id": "mac-baseline",
+      "peer_name": "macos 0429418a",
+      "code": "ce8b8 4d50b",
+      "local_confirmed": false,
+      "remote_confirmed": true,
+      "expires_at": 1794913934585
+    }
+  ],
+  "devices": [
+    {
+      "id": "mac-baseline",
+      "name": "macos 0429418a",
+      "platform": "macos",
+      "addresses": ["<MAC_LAN_IP>"],
+      "port": 38762,
+      "online": true,
+      "paired": false
+    }
+  ]
+}

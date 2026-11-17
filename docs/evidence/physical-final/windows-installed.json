@@ -1,0 +1,31 @@
+{
+  "pid": 33140,
+  "at": "2026-11-17T11:41:31.4213851+00:00",
+  "device": {
+    "id": "84652973…",
+    "name": "windows 84652973",
+    "platform": "windows"
+  },
+  "startupExists": false,
+  "run": 44074931608,
+  "devices": [
+    {
+      "id": "0429418a…",
+      "name": "macos 0429418a",
+      "platform": "macos",
+      "addresses": ["<MAC_LAN_IP>"],
+      "port": 38762,
+      "online": true,
+      "paired": true
+    }
+  ],
+  "health": {
+    "service": "lanlink",
+    "status": "ok",
+    "version": "0.1.0"
+  },
+  "candidate": "fad384cf32187928f260d99efec1bb10de19c873",
+  "artifact": 14325031838,
+  "exeSHA256": "057DB3721886E7D08562EED9560E14D92A431D9051C66BF43160693329570D1E",
+  "packageSHA256": "B2971887164A8FD358A12DBE0F499B54D4555533FF58D19824EDAEE85E941A46"
+}

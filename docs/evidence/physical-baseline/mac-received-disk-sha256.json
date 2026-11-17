@@ -1,0 +1,27 @@
+{
+  "method": "SHA-256 read from actual finalized macOS downloads using hashlib.file_digest",
+  "checked_at": "2026-11-17T11:32:21.788979+00:00",
+  "files": [
+    {
+      "transfer_id": "1102e7eb-80b5-4694-9064-a76ff1a2dd50",
+      "file": "1102e7eb-80b5-4694-9064-a76ff1a2dd50-windows-10MiB.bin",
+      "bytes": 10485760,
+      "sha256": "04875e27eb769abc55597ac75bf6a4bffd477304a29abb09d85278c560701be5",
+      "matches_sender": true
+    },
+    {
+      "transfer_id": "fbbc053f-61e1-4dad-b977-74cd48f7e90b",
+      "file": "fbbc053f-61e1-4dad-b977-74cd48f7e90b-windows-1024MiB.bin",
+      "bytes": 1073741824,
+      "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+      "matches_sender": true
+    },
+    {
+      "transfer_id": "e1020e93-261b-4072-8c61-7c4c43078a9d",
+      "file": "e1020e93-261b-4072-8c61-7c4c43078a9d-windows-1024MiB.bin",
+      "bytes": 1073741824,
+      "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+      "matches_sender": true
+    }
+  ]
+}

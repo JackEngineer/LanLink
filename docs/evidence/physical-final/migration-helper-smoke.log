@@ -1,0 +1,18 @@
+Source: real two-Agent same-host smoke summary after extracting shared helpers.
+Agent SHA-256: bea9e5ce87c6f251f4d5717120cbb05549a658264122e9b4c70f69c975e28547
+PASS health and identity persistence on Darwin
+PASS Host, session bootstrap, Origin, token and expired token guards
+PASS A discovered [redacted-device-id] through mDNS at [loopback-IP], [LAN-IP] port 58132
+PASS B discovered [redacted-device-id] through mDNS at [loopback-IP], [LAN-IP] port 58130
+PASS unpaired traffic rejection, matching pairing codes and bilateral approval
+PASS bidirectional durable ACK, history and trust after restart
+PASS stopped peer is shown offline
+PASS offline message retries delivered one receiver history row
+PASS accepted 1048576-byte transfer, disk and HTTP download SHA-256 6006ceec0b37cbf5e5626363e0c4ef813eb5cc146b738530dac545330cf8326a
+PASS reverse 1048576-byte transfer and SHA-256 6006ceec0b37cbf5e5626363e0c4ef813eb5cc146b738530dac545330cf8326a
+SKIP interruption and restart recovery (--resume-mib=0)
+PASS outgoing cancellation reached receiver without publication
+PASS receiver rejection prevents file publication
+PASS changed snapshot fails SHA-256 without publication; subsequent chat succeeds
+PASS revocation rejects local sends and blocks receipt during 5s
+PASS all selected checks against two real Agents on one host

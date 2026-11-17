@@ -1,0 +1,12 @@
+{
+  "mac_10MiB": {
+    "Path": "<USER_PROFILE>\\AppData\\Local\\LANLink\\LANLink\\data\\downloads\\3dc339bf-c9ec-46f6-ae2f-3c1e4c5497a6-mac-10MiB.bin",
+    "Hash": "52224E9CDEF8F53A8E80E160F6E3799D817D0790423F0041A72D124049A5BE99"
+  },
+  "mac_1GiB": {
+    "sha256": "9ABC035488A85BDD2237E51ED32481C8BBA1A326E2730145D1AC1971D52FF19E",
+    "length": 1073741824,
+    "verified": true,
+    "path": "<USER_PROFILE>/AppData/Local/LANLink/LANLink/data/downloads/384cdc33-4076-4b50-89c2-bb2b41125773-mac-1GiB.bin"
+  }
+}

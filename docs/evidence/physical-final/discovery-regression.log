@@ -1,0 +1,36 @@
+Installed baseline (baseline/installed-baseline.log)
+Agent SHA-256: 383d4358389f08a6a4b55386c4b58db0510410528489f32d70db4cc3b59106ba
+PASS A discovered B at [redacted-address] port 51088
+FAIL A lost B's advertised endpoint after 29.1s of mDNS silence: None
+
+Fixed release regression binary (fixed/fixed-candidate.log)
+Agent SHA-256: a58142a311fa00a6b4aa4df55105f282270560dfd238a2046f1e724544e33d13
+PASS A discovered B at [redacted-address], [redacted-address] port 51497
+PASS A kept B's advertised endpoint through 35s of mDNS silence
+PASS B's graceful shutdown removed its discovery record
+PASS A rediscovered B with the same device ID after restart
+PASS all selected checks against two real Agents on one host
+
+Independent review against installed baseline (test-review/baseline/local-network.log)
+Agent SHA-256: 383d4358389f08a6a4b55386c4b58db0510410528489f32d70db4cc3b59106ba
+PASS A discovered B at [redacted-address] port 52568
+FAIL A lost B's advertised endpoint after 29.1s of mDNS silence: None
+
+Independent review against fixed release regression binary (test-review/fixed/local-network.log)
+Agent SHA-256: a58142a311fa00a6b4aa4df55105f282270560dfd238a2046f1e724544e33d13
+PASS A discovered B at [redacted-address] port 52895
+PASS A kept B's advertised endpoint through 35s of mDNS silence
+PASS B's graceful shutdown removed its discovery record
+PASS A rediscovered B with the same device ID after restart
+PASS all selected checks against two real Agents on one host
+
+Workspace Rust suite with network access (build/tests-network-enabled.log)
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.08s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+The initial sandboxed run (build/tests.log) stopped after five network tests returned OS error 1, Operation not permitted.
+The network-enabled run completed the workspace suite.

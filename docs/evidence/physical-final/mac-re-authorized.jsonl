@@ -1,0 +1,4 @@
+{"time": "2026-11-17T11:55:55.423828+00:00", "method": "POST", "path": "/devices/84652973…/pair", "http_status": 200, "result": {"id": "f209a85a-7051-4ddf-9759-d5d0879b9c57"}}
+{"time": "2026-11-17T11:55:58.542441+00:00", "method": "GET", "path": "/pairings", "http_status": 200, "result": [{"id": "f209a85a-7051-4ddf-9759-d5d0879b9c57", "peer_id": "84652973…", "peer_name": "windows 84652973", "code": "1f3cf c9041", "local_confirmed": false, "remote_confirmed": false, "expires_at": 1794916675453}]}
+{"time": "2026-11-17T11:56:47.306173+00:00", "method": "POST", "path": "/pairings/f209a85a-7051-4ddf-9759-d5d0879b9c57/confirm", "http_status": 200, "result": {"ok": true}}
+{"time": "2026-11-17T11:57:37.129840+00:00", "method": "GET", "path": "/devices", "http_status": 200, "result": [{"id": "84652973…", "name": "windows 84652973", "platform": "windows", "addresses": ["<WINDOWS_LAN_IP>"], "port": 38762, "online": true, "paired": true}]}

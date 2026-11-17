@@ -1,0 +1,16 @@
+{
+  "observedUtc": "2026-11-17T19:52:38.7869208+08:00",
+  "pid": 32808,
+  "device": {
+    "id": "84652973…",
+    "name": "windows 84652973",
+    "platform": "windows"
+  },
+  "startRequestedUtc": "2026-11-17T19:52:35.3792662+08:00",
+  "health": {
+    "service": "lanlink",
+    "status": "ok",
+    "version": "0.1.0"
+  },
+  "exeSHA256": "057DB3721886E7D08562EED9560E14D92A431D9051C66BF43160693329570D1E"
+}

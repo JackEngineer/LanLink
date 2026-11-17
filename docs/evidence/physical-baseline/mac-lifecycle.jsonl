@@ -1,0 +1,3 @@
+{"time": "2026-11-17T11:17:21.427963+00:00", "event": "graceful_stop", "pid": 39297, "command": "/Applications/LANLink.app/Contents/MacOS/lanlink-agent --web-dir /Applications/LANLink.app/Contents/Resources/web"}
+{"time": "2026-11-17T11:18:13.994987+00:00", "event": "http_offline_confirmed", "connect_errno": 61}
+{"time": "2026-11-17T11:20:29.164807+00:00", "event": "receiver_killed_after_partial_transfer", "pid": 55081, "transfer_id": "e1020e93-261b-4072-8c61-7c4c43078a9d", "last_api_offset": 4194304, "durable_offset": 4194304, "part_size": 4194304, "final_published": false}

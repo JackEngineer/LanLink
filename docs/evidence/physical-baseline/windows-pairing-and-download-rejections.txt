@@ -1,0 +1,17 @@
+unpaired-rejection.txt:
+HTTP 400 
+{
+  "error": "device is not paired"
+}
+
+single-confirm-rejection.txt:
+HTTP 400 
+{
+  "error": "device is not paired"
+}
+
+premature-download-rejection.txt:
+HTTP 400 
+{
+  "error": "file is not complete"
+}

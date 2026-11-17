@@ -1,0 +1,13 @@
+Source: isolated migration test summary, test-only commit a1287706f3a87817a2f2676116fcb0416b7b513b.
+Agent SHA-256: bea9e5ce87c6f251f4d5717120cbb05549a658264122e9b4c70f69c975e28547
+Scope: one Mac, real mDNS, TCP, Noise sessions, and SQLite; interface settings untouched
+PASS bilateral pairing and ACK 35ee6ea1-f9fa-40af-b582-89c9c916bf4a via ('[LAN-IP]', 58577), forwarded connections=1
+PASS ('[LAN-IP]', 58577) refused TCP and B reported the authenticated peer offline
+PASS A removed the old mDNS endpoint and retained trust in B
+PASS A stored offline message 3d2cd40d-d514-4fc2-ba9d-0884e30d3738 as pending
+PASS A discovered the same B at ('[loopback-IP]', 58577) and the old endpoint still refused TCP
+PASS original PIDs (66693, 66694) and pairing retained. ACK 3d2cd40d-d514-4fc2-ba9d-0884e30d3738 via ('[loopback-IP]', 58577), forwarded connections=1
+PASS B stored exactly one copy of 3d2cd40d-d514-4fc2-ba9d-0884e30d3738 in SQLite after shutdown
+PASS automatic reconnection and delivery after peer IP migration
+PASS isolated Agent PIDs 66693 and 66694 have exited
+PASS isolated dns-sd advertisement processes have exited
