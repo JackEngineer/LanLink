@@ -298,6 +298,40 @@ def discover(agent, peer):
     return row
 
 
+def check_discovery_lease(observer, advertiser, log):
+    observed = discover(observer, advertiser)
+    device_id = advertiser.id
+    addresses = set(observed["addresses"])
+    pid = advertiser.process.pid
+    silence_seconds = 35
+    log(f"PASS A discovered B at {', '.join(sorted(addresses))} port {observed['port']}")
+    os.kill(pid, signal.SIGSTOP)
+    try:
+        start = time.monotonic()
+        while True:
+            row = observer.peer(advertiser)
+            elapsed = time.monotonic() - start
+            require(row is not None and row["online"] and set(row["addresses"]) == addresses
+                    and row["port"] == observed["port"],
+                    f"A lost B's advertised endpoint after {elapsed:.1f}s of mDNS silence: {row!r}")
+            if elapsed >= silence_seconds:
+                break
+            time.sleep(min(0.25, silence_seconds - elapsed))
+    finally:
+        os.kill(pid, signal.SIGCONT)
+    log(f"PASS A kept B's advertised endpoint through {silence_seconds}s of mDNS silence")
+
+    advertiser.stop()
+    wait_for("B's mDNS goodbye to remove the discovery record", lambda: observer.peer(advertiser),
+             lambda row: row is None, observer.timeout)
+    log("PASS B's graceful shutdown removed its discovery record")
+
+    advertiser.start()
+    require(advertiser.id == device_id, "B device ID changed on restart")
+    discover(observer, advertiser)
+    log("PASS A rediscovered B with the same device ID after restart")
+
+
 def pair(left, right):
     left_attempt_id = left.request("POST", f"/devices/{right.id}/pair")["id"]
     left_attempt = wait_for("A pairing attempt", lambda: find(left.get("/pairings"), left_attempt_id),
@@ -456,6 +490,9 @@ def run(args, run_dir, log):
         left.start()
         right.start()
         require(left.id != right.id, "Fresh Agents share a device identity")
+        if args.discovery_lease:
+            check_discovery_lease(left, right, log)
+            return
         restart(left)
         log(f"PASS health and identity persistence on {platform.system()}")
 
@@ -621,6 +658,8 @@ def parse_args():
     parser.add_argument("--file-mib", type=int, default=10, help="Size of the accepted transfer in MiB")
     parser.add_argument("--resume-mib", type=int, default=64,
                         help="Size of the interrupted transfer in MiB. Use 1024 for 1 GiB, or 0 to skip.")
+    parser.add_argument("--discovery-lease", action="store_true",
+                        help="Run only the mDNS silence, goodbye, and restart checks (POSIX only)")
     args = parser.parse_args()
     args.agent = args.agent.resolve()
     if not args.agent.is_file():
@@ -641,6 +680,9 @@ def parse_args():
 
 def main():
     args = parse_args()
+    if args.discovery_lease and os.name != "posix":
+        print("SKIP mDNS silence check requires POSIX process suspension (SIGSTOP and SIGCONT)")
+        return 0
     run_dir = Path(tempfile.mkdtemp(prefix="lanlink-smoke-", dir=args.artifacts))
     with (run_dir / "summary.log").open("w", encoding="utf-8") as summary:
         def log(line):
