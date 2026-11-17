@@ -4,6 +4,7 @@ import type { Transfer } from './lanlink'
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 function mockFetch(...responses: Response[]) {
@@ -11,6 +12,37 @@ function mockFetch(...responses: Response[]) {
   for (const response of responses) fetchMock.mockResolvedValueOnce(response)
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
+}
+
+function mockUploadResponses(
+  ...responses: { status: number; body: unknown }[]
+) {
+  const send = vi.fn()
+  vi.stubGlobal(
+    'XMLHttpRequest',
+    class extends EventTarget {
+      upload = new EventTarget()
+      open = vi.fn()
+      setRequestHeader = vi.fn()
+      response: unknown
+      status = 0
+
+      send(data: FormData) {
+        send(data.get('file'))
+        const response = responses.shift()
+        this.status = response?.status ?? 500
+        this.response = response?.body
+        this.dispatchEvent(new Event('load'))
+        this.dispatchEvent(new Event('loadend'))
+      }
+    },
+  )
+  return send
+}
+
+const busyUpload = {
+  status: 400,
+  body: { error: 'another upload is in progress' },
 }
 
 describe('local Agent requests', () => {
@@ -151,4 +183,79 @@ describe('local Agent requests', () => {
     expect(sentFile.mock.calls[0][0]).toBe(file)
     expect(progress).toHaveBeenCalledExactlyOnceWith(50)
   })
+
+  it('retries the same File after the Agent refuses admission before reading it', async () => {
+    vi.useFakeTimers()
+    mockFetch(Response.json({ token: 'launch-token' }))
+    const file = new File(['sample'], 'sample.txt')
+    const transfer = { id: 'transfer-1', name: file.name }
+    const send = mockUploadResponses(busyUpload, {
+      status: 200,
+      body: transfer,
+    })
+    const result = api
+      .upload('peer', file, vi.fn(), new AbortController().signal)
+      .catch((error: unknown) => error)
+
+    await vi.runAllTimersAsync()
+    await expect(result).resolves.toEqual(transfer)
+    expect(send.mock.calls).toEqual([[file], [file]])
+  })
+
+  it('stops retrying when the Agent stays busy', async () => {
+    vi.useFakeTimers()
+    mockFetch(Response.json({ token: 'launch-token' }))
+    const send = mockUploadResponses(...Array(6).fill(busyUpload))
+    const result = expect(
+      api.upload(
+        'peer',
+        new File([], 'sample.txt'),
+        vi.fn(),
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow('another upload is in progress')
+
+    await vi.runAllTimersAsync()
+    await result
+    expect(send).toHaveBeenCalledTimes(5)
+  })
+
+  it('sends no second request when cancelled during an admission retry delay', async () => {
+    vi.useFakeTimers()
+    mockFetch(Response.json({ token: 'launch-token' }))
+    const send = mockUploadResponses(busyUpload)
+    const controller = new AbortController()
+    const cancelled = new Error('cancelled')
+    const result = api
+      .upload('peer', new File([], 'sample.txt'), vi.fn(), controller.signal)
+      .catch((error: unknown) => error)
+
+    await vi.advanceTimersByTimeAsync(0)
+    expect(send).toHaveBeenCalledTimes(1)
+    controller.abort(cancelled)
+    await expect(result).resolves.toBe(cancelled)
+    expect(vi.getTimerCount()).toBe(0)
+    expect(send).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    { status: 400, body: { error: 'file exceeds configured limit' } },
+    { status: 500, body: busyUpload.body },
+  ])(
+    'does not retry an unrelated failure with status $status',
+    async (response) => {
+      vi.useFakeTimers()
+      mockFetch(Response.json({ token: 'launch-token' }))
+      const send = mockUploadResponses(response)
+      await expect(
+        api.upload(
+          'peer',
+          new File([], 'sample.txt'),
+          vi.fn(),
+          new AbortController().signal,
+        ),
+      ).rejects.toThrow(response.body.error)
+      expect(send).toHaveBeenCalledTimes(1)
+    },
+  )
 })
