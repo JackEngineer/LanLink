@@ -1,0 +1,12 @@
+{
+  "source": "93a565d4693f5574da3493320068a890ec611138",
+  "run_id": 44085576200,
+  "artifact_id": 14329992213,
+  "outer_artifact_sha256": "f9db7e7a1b577c970f4eca1c0b92e2893a45b41256abc1cd45cbab8b23c8510a",
+  "package_sha256": "1f6929b13e5d30d81bdffe4a42f21dcae9173e29aa4dcab97a3df2f4d986cbe7",
+  "license_entries": [
+    "macos-x86_64-apple-darwin/LICENSE",
+    "macos-x86_64-apple-darwin/LANLink.app/Contents/Resources/LICENSE"
+  ],
+  "validation_scope": "CI build, tests and packaging only; no physical Intel Mac run."
+}

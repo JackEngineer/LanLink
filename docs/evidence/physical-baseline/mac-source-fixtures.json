@@ -1,0 +1,12 @@
+[
+  {
+    "file": "mac-10MiB.bin",
+    "size": 10485760,
+    "sha256": "52224e9cdef8f53a8e80e160f6e3799d817d0790423f0041a72d124049a5be99"
+  },
+  {
+    "file": "mac-1GiB.bin",
+    "size": 1073741824,
+    "sha256": "9abc035488a85bdd2237e51ed32481c8bba1a326e2730145d1ac1971d52ff19e"
+  }
+]

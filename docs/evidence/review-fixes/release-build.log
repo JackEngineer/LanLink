@@ -1,0 +1,5 @@
+   Compiling lanlink-protocol v0.1.0 (<worktree>/crates/protocol)
+   Compiling lanlink-store v0.1.0 (<worktree>/crates/store)
+   Compiling lanlink-transport v0.1.0 (<worktree>/crates/transport)
+   Compiling lanlink-agent v0.1.0 (<worktree>/crates/agent)
+    Finished `release` profile [optimized] target(s) in 10.75s

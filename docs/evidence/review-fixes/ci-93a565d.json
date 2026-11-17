@@ -1,0 +1,41 @@
+{
+  "source": "93a565d4693f5574da3493320068a890ec611138",
+  "run_id": 44085576200,
+  "url": "https://github.com/JackEngineer/LanLink/actions/runs/44085576200",
+  "jobs": [
+    {
+      "name": "verify (macos-15, aarch64-apple-darwin)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "verify (macos-15-intel, x86_64-apple-darwin)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "verify (windows-latest, x86_64-pc-windows-msvc)",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "intel_artifact": {
+    "id": 14329992213,
+    "name": "LANLink-x86_64-apple-darwin",
+    "size_in_bytes": 8692623,
+    "url": "https://api.github.com/repos/JackEngineer/LanLink/actions/artifacts/14329992213",
+    "archive_download_url": "https://api.github.com/repos/JackEngineer/LanLink/actions/artifacts/14329992213/zip",
+    "expired": false,
+    "created_at": "2026-11-17T12:57:35Z",
+    "expires_at": "2027-02-15T12:41:56Z",
+    "updated_at": "2026-11-17T12:57:35Z",
+    "digest": "sha256:f9db7e7a1b577c970f4eca1c0b92e2893a45b41256abc1cd45cbab8b23c8510a",
+    "workflow_run": {
+      "id": 44085576200,
+      "repository_id": 1461181145,
+      "head_repository_id": 1461181145,
+      "head_branch": "feature/mvp",
+      "head_sha": "93a565d4693f5574da3493320068a890ec611138"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "limitation": "No matching log lines observed; this alone does not prove no send loop.",
+  "transferId": "acdc7ab4-bc14-442d-9fa6-c90fb9b7c5f6",
+  "matchingLogLineCount": 0,
+  "lines": [],
+  "priorCommandFailure": "Empty pipeline did not create output file; subsequent Get-Content failed. File hash and chat assertions had succeeded."
+}

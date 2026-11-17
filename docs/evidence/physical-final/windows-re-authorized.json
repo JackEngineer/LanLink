@@ -1,0 +1,32 @@
+{
+  "devices": [
+    {
+      "id": "0429418a…",
+      "name": "macos 0429418a",
+      "platform": "macos",
+      "addresses": ["<MAC_LAN_IP>"],
+      "port": 38762,
+      "online": true,
+      "paired": true
+    }
+  ],
+  "at": "2026-11-17T11:57:26.1045109+00:00",
+  "messages": [
+    {
+      "id": "71e14106-0d94-4d64-b555-d23f758ece7a",
+      "peer_id": "0429418a…",
+      "direction": "outgoing",
+      "body": "Windows revoke probe 20261117 1154",
+      "created_at": 1794916451826,
+      "status": "sent"
+    },
+    {
+      "id": "80710141-b17b-4ccb-927e-b0b65573f41c",
+      "peer_id": "0429418a…",
+      "direction": "outgoing",
+      "body": "Windows 已完成双机验收，聊天和文件传输可用。",
+      "created_at": 1794916645064,
+      "status": "sent"
+    }
+  ]
+}

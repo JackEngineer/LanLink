@@ -1,0 +1,65 @@
+{
+  "time": "2026-11-17T12:47:59.268256+00:00",
+  "transfer_id": "791fdcc5-4afd-4bc2-8e4a-350af8a4e878",
+  "runtime_source": "c076be2",
+  "packaging_source": "93a565d",
+  "zip_sha256": "308ba729fd73a45594b8f52d6ba32b028942b15d839470d31a2dc7a3e1d22f55",
+  "exe_sha256": "08aeb1733f97acea4ddac9529ab29f968731eb811efc5dbfd27b30e0d4ddfa71",
+  "license_sha256": "81a5410c9ad45affe265862d391be61f6b2c27e5f323a23de4f785a48048f29b",
+  "license_uses_crlf": true,
+  "license_content_matches_root": true,
+  "payload_files": [
+    {
+      "path": "web/index.html",
+      "sha256": "2c9f524204ed34dba287f0b6d8fb26de4417445f13123752c4e56bee8b54f994",
+      "matches_tested_windows_package": true
+    },
+    {
+      "path": "web/assets/index--WWXw7dX.js",
+      "sha256": "46d64c041230ee30ab9cb11cb986cf7182b87a2ca780f9924139cd65b4cef0bf",
+      "matches_tested_windows_package": true
+    },
+    {
+      "path": "web/assets/index-DpOR2CvZ.css",
+      "sha256": "dba28b221ea6444248f2b732843aca38d2cdde890e285d84abe76ecfed2a220f",
+      "matches_tested_windows_package": true
+    },
+    {
+      "path": "Install.ps1",
+      "sha256": "ad54da45a5b9db00f0ae6605d349fe3ab4119396f38b696834c847f8abbddef4",
+      "matches_tested_windows_package": true
+    },
+    {
+      "path": "lanlink-agent.exe",
+      "sha256": "08aeb1733f97acea4ddac9529ab29f968731eb811efc5dbfd27b30e0d4ddfa71",
+      "matches_tested_windows_package": true
+    },
+    {
+      "path": "Launch.ps1",
+      "sha256": "52bc3161c1328c94ca399e5abe42abf7c31dc441c92fe2093e1faad31b01bde8",
+      "matches_tested_windows_package": true
+    },
+    {
+      "path": "Uninstall.ps1",
+      "sha256": "a1d45ba5ce66bde4b6af8c46ad33bc9b19a9e0cfaeafc8784ba6f25ed11f217c",
+      "matches_tested_windows_package": true
+    }
+  ],
+  "mac_web_comparison": [
+    {
+      "path": "web/index.html",
+      "byte_equal_to_mac": false,
+      "non_whitespace_content_equal": true,
+      "difference": "Windows HTML has CRLF and one extra blank line; script and stylesheet references are identical."
+    },
+    {
+      "path": "web/assets/index--WWXw7dX.js",
+      "byte_equal_to_mac": true
+    },
+    {
+      "path": "web/assets/index-DpOR2CvZ.css",
+      "byte_equal_to_mac": true
+    }
+  ],
+  "local_archive": "dist/windows-native-93a565d/LANLink-0.1.0-x86_64-pc-windows-msvc.zip"
+}

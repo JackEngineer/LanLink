@@ -1,0 +1,145 @@
+{
+  "mac_api_source": "Selected records from the Mac API capture",
+  "revoke": {
+    "time": "2026-11-17T11:53:34.611947+00:00",
+    "method": "DELETE",
+    "http_status": 200
+  },
+  "mac_local_message_after_revoke": {
+    "time": "2026-11-17T11:53:37.959566+00:00",
+    "method": "POST",
+    "http_status": 400
+  },
+  "mac_local_small_file_after_revoke": {
+    "time": "2026-11-17T11:54:10.009661+00:00",
+    "method": "POST",
+    "http_status": 400
+  },
+  "windows_stale_trust_probe": {
+    "old_trust_retained_at_start": true,
+    "message_id": "71e14106-0d94-4d64-b555-d23f758ece7a",
+    "message_status": "pending",
+    "file_transfer_id": "f172998b-d346-4b3a-969b-9dbd160a3f44",
+    "file_transfer_status": "awaiting_accept",
+    "file_transfer_offset": 0,
+    "seconds_observed_without_ack": 10.10239,
+    "sources": ["windows-revoke-probe-observation.jsonl", "windows-revoke-probe-summary.json"]
+  },
+  "mac_before_restart": {
+    "sample_count": 8,
+    "sample_span_seconds": 14.107,
+    "samples": [
+      {
+        "time": "2026-11-17T11:54:14.187785+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:54:16.224970+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:54:18.235079+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:54:20.241904+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:54:22.254378+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:54:24.268470+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:54:26.286926+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:54:28.295282+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      }
+    ]
+  },
+  "mac_restarted_using_same_installed_agent": true,
+  "mac_graceful_stop_utc": "2026-11-17T11:54:50.853Z",
+  "mac_local_message_after_restart": {
+    "time": "2026-11-17T11:55:11.052220+00:00",
+    "method": "POST",
+    "http_status": 400
+  },
+  "mac_after_restart": {
+    "sample_count": 8,
+    "sample_span_seconds": 14.089,
+    "samples": [
+      {
+        "time": "2026-11-17T11:55:14.551769+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:55:16.586668+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:55:18.592943+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:55:20.604313+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:55:22.609460+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:55:24.622535+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:55:26.637285+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      },
+      {
+        "time": "2026-11-17T11:55:28.640706+00:00",
+        "paired": false,
+        "matching_message_count": 0,
+        "matching_transfer_count": 0
+      }
+    ]
+  },
+  "windows_after_mac_restart_source": "windows-revoke-after-mac-restart.json",
+  "windows_cancelled_probe_source": "windows-revoke-probe-cancelled.json"
+}

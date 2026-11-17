@@ -1,0 +1,69 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.44s
+     Running unittests src/main.rs (target/debug/build/lanlink-agent/b05ca75f7ab58f88/out/lanlink_agent-b05ca75f7ab58f88)
+
+running 13 tests
+test discovery::tests::unicode_device_name_fits_mdns_without_changing_full_name ... ok
+test discovery::tests::removed_devices_release_discovery_capacity_and_names_stay_bounded ... ok
+test files::tests::unaccepted_and_out_of_order_fragments_do_not_write ... ok
+test network::tests::cancelling_pending_pairing_releases_confirmation_state ... ok
+test http::tests::escaped_message_over_wire_limit_is_rejected_before_persistence ... ok
+test http::tests::tiny_upload_succeeds_with_less_than_maximum_file_size_free ... ok
+test files::tests::shorter_acknowledged_file_fails_without_silent_reset ... ok
+test network::tests::invalid_outbox_and_lost_source_do_not_disconnect_healthy_session ... ok
+test network::tests::stale_pairing_approvals_cannot_use_a_fresh_grant ... ok
+test network::tests::authenticated_sessions_release_handshake_slots_and_have_separate_limit ... ok
+test files::tests::restart_fails_missing_and_truncated_outgoing_snapshots ... ok
+test files::tests::fragment_checkpoint_recovery_and_no_clobber_publication ... ok
+test network::tests::lost_source_cancellation_replays_after_restart ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.10s
+
+     Running unittests src/lib.rs (target/debug/build/lanlink-protocol/bf2edd70360b1486/out/lanlink_protocol-bf2edd70360b1486)
+
+running 3 tests
+test tests::names_are_safe_on_both_platforms ... ok
+test tests::fragments_fit_noise_and_roundtrip ... ok
+test tests::network_timestamps_must_be_representable_by_clients ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/build/lanlink-store/755152023ef36884/out/lanlink_store-755152023ef36884)
+
+running 8 tests
+test tests::concurrent_upload_reservations_cannot_exceed_quota ... ok
+test tests::quota_includes_upload_reservations ... ok
+test tests::upload_reservations_grow_atomically_to_actual_size ... ok
+test tests::failed_outgoing_quota_tracks_snapshot_bytes ... ok
+test tests::completed_download_quota_tracks_files_without_rewriting_history ... ok
+test tests::durable_dedup_outbox_and_revoke ... ok
+test tests::restart_fails_legacy_unencodable_outbox_without_losing_valid_messages ... ok
+test tests::upload_owns_its_transfer_slot_until_conversion ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src/lib.rs (target/debug/build/lanlink-transport/804ebb64fa38d5b3/out/lanlink_transport-804ebb64fa38d5b3)
+
+running 3 tests
+test tests::commitment_binds_session_role_nonce ... ok
+test tests::encrypted_roundtrip ... ok
+test tests::interrupted_receive_preserves_partial_frame ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+   Doc-tests lanlink_protocol
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests lanlink_store
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests lanlink_transport
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

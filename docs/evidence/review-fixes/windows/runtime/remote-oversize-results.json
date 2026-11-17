@@ -1,0 +1,26 @@
+[
+  {
+    "id": "bae1e8e8-785c-4fff-a2e2-3ae8a8c316cf",
+    "peer_id": "0429418a",
+    "direction": "incoming",
+    "name": "queue-beta-64MiB.bin",
+    "size": 67108864,
+    "sha256": "281e519df3077b557c6b03f5da83c4e8d397219259615dd7c3308f89cae8f2a6",
+    "offset": 0,
+    "status": "rejected",
+    "error": "file exceeds configured limit",
+    "created_at": 1794917910073
+  },
+  {
+    "id": "acdc7ab4-bc14-442d-9fa6-c90fb9b7c5f6",
+    "peer_id": "0429418a",
+    "direction": "outgoing",
+    "name": "windows-10MiB.bin",
+    "size": 10485760,
+    "sha256": "04875e27eb769abc55597ac75bf6a4bffd477304a29abb09d85278c560701be5",
+    "offset": 0,
+    "status": "rejected",
+    "error": null,
+    "created_at": 1794918479771
+  }
+]

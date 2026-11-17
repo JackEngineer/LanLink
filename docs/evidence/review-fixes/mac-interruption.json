@@ -1,0 +1,10 @@
+{
+  "time": "2026-11-17T12:32:41.628119+00:00",
+  "pid": 76455,
+  "transfer_id": "bcbed60c-1ac8-42fb-b5de-2413377f6ee2",
+  "api_offset_before_kill": 4194304,
+  "stored_offset": 4194304,
+  "part_bytes": 4194304,
+  "final_absent": true,
+  "status": "transferring"
+}

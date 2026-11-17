@@ -1,0 +1,8 @@
+{
+  "time": "2026-11-17T11:51:32.696279+00:00",
+  "transfer_id": "5bcdc711-6c71-4a35-bd8d-e5831e259205",
+  "size": 1073741824,
+  "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+  "method": "independent receiver disk read",
+  "match": true
+}

@@ -1,4 +1,5 @@
 # Local API contract
+
 All routes use `/api/v1`. JSON response arrays are bare arrays. Errors use `{ "error": "human readable reason" }`. UI and API share the exact loopback origin. Mutations require `X-LANLink-Token` from `GET /api/v1/session` and exact Origin. GET session requires same-origin fetch header. WS supplies token using `Sec-WebSocket-Protocol` values `lanlink` and token. WS sends `{ "type": "changed" }` to invalidate caches and clients refetch after reconnect.
 
 - GET health -> `{status:"ok",version:"0.1.0"}`
@@ -26,4 +27,4 @@ Device = `{id:string,name:string,platform:string}`.
 Peer = Device & `{addresses:string[],port:number,online:boolean,paired:boolean}`.
 Pairing = `{id:string,peer_id:string,peer_name:string,code:string,local_confirmed:boolean,remote_confirmed:boolean,expires_at:number}`. Timestamp in epoch milliseconds.
 Message = `{id:string,peer_id:string,direction:"incoming"|"outgoing",body:string,created_at:number,status:"sending"|"sent"|"pending"|"failed"}`.
-Transfer = `{id:string,peer_id:string,direction:"incoming"|"outgoing",name:string,size:number,sha256:string,offset:number,status:"offered"|"awaiting_accept"|"transferring"|"paused"|"completed"|"rejected"|"cancelled"|"failed",error:string|null,created_at:number}`.
+Transfer = `{id:string,peer_id:string,direction:"incoming"|"outgoing",name:string,size:number,sha256:string,offset:number,status:"offered"|"awaiting_accept"|"transferring"|"paused"|"completed"|"rejected"|"cancelled"|"failed",error:string|null,failure_kind?:"source_unavailable"|null,created_at:number}`.

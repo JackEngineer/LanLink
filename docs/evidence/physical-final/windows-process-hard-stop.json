@@ -1,0 +1,10 @@
+{
+  "httpUnavailable": true,
+  "pidAlive": false,
+  "restarted": false,
+  "exitObservedUtc": "2026-11-17T11:50:16.3573428+00:00",
+  "candidate": "fad384cf32187928f260d99efec1bb10de19c873",
+  "stopRequestedUtc": "2026-11-17T11:50:16.3084087+00:00",
+  "pid": 33140,
+  "exeSHA256": "057DB3721886E7D08562EED9560E14D92A431D9051C66BF43160693329570D1E"
+}

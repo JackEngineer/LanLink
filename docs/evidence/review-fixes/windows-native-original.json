@@ -1,0 +1,17 @@
+{
+  "time": "2026-11-17T12:44:39.975017+00:00",
+  "transfer": {
+    "id": "215dbbd4-38d2-4555-98e6-5cd702eca5a8",
+    "peer_id": "84652973",
+    "direction": "incoming",
+    "name": "LANLink-0.1.0-x86_64-pc-windows-msvc.zip",
+    "size": 4091226,
+    "sha256": "1b2be96360c7227339e9cc696af8b6e70c412ec9e5acd162873b01af2497ec7f",
+    "offset": 4091226,
+    "status": "completed",
+    "error": null,
+    "created_at": 1794919210300
+  },
+  "zip_sha256": "1b2be96360c7227339e9cc696af8b6e70c412ec9e5acd162873b01af2497ec7f",
+  "exe_sha256": "08aeb1733f97acea4ddac9529ab29f968731eb811efc5dbfd27b30e0d4ddfa71"
+}

@@ -1,0 +1,63 @@
+{
+  "time": "2026-11-17T12:43:08.425285+00:00",
+  "packaging_source": "93a565d",
+  "runtime_source": "c076be2",
+  "unchanged_installed_payload": [
+    {
+      "path": "Contents/Info.plist",
+      "sha256": "7f3ce59e5dfcb5f46bbbab683f342ae4f20a677d08ab4fcfba8ba492d404b20d",
+      "match": true
+    },
+    {
+      "path": "Contents/MacOS/LANLink",
+      "sha256": "974b7fad13008d665accddf2127418832ec954b86fe20ea12194ee95c2f3b4e6",
+      "match": true
+    },
+    {
+      "path": "Contents/MacOS/lanlink-agent",
+      "sha256": "e67309b97229cf27a2b78b5cbd63b19763c841b35ab6fea2d089b0faa6c76776",
+      "match": true
+    },
+    {
+      "path": "Contents/Resources/uninstall.sh",
+      "sha256": "c4fc533dcb72bec23691c1fca4d2307589315f77c4a7413e31c5fc3ce9a13009",
+      "match": true
+    },
+    {
+      "path": "Contents/Resources/login-start.sh",
+      "sha256": "ea2d2567b0a6831fe2a4141d7ddb2fea6bea877342f6fc5de78ac30fdbade180",
+      "match": true
+    },
+    {
+      "path": "Contents/Resources/stop.sh",
+      "sha256": "eea49310450d631a7e4c6993746433fc29f04f11106000626a13d048420868f9",
+      "match": true
+    },
+    {
+      "path": "Contents/Resources/web/index.html",
+      "sha256": "8b1d359b330707b547dbb2ab42ea0f0792c775460cd4a20b69ee4b6668c006e4",
+      "match": true
+    },
+    {
+      "path": "Contents/Resources/web/assets/index--WWXw7dX.js",
+      "sha256": "46d64c041230ee30ab9cb11cb986cf7182b87a2ca780f9924139cd65b4cef0bf",
+      "match": true
+    },
+    {
+      "path": "Contents/Resources/web/assets/index-DpOR2CvZ.css",
+      "sha256": "dba28b221ea6444248f2b732843aca38d2cdde890e285d84abe76ecfed2a220f",
+      "match": true
+    }
+  ],
+  "license_sha256": "1ddaf714461686fbdcfbdaa7bdc8d7b0d033af8d196a4c185efea47ccb971d96",
+  "artifacts": {
+    "dist/LANLink-0.1.0-aarch64-apple-darwin.zip": "bd20894b7beb4dbfeed1f8fc7cd5047f06ed0add1ff734aaed725dae60117731",
+    "dist/macos-aarch64-apple-darwin/LANLink-0.1.0-aarch64-apple-darwin.pkg": "ef48e2616c848e1badc6649a4c27970b9ae3f1d4d996ce8a31c281a415074987"
+  },
+  "final_app_comparison": {
+    "file_count": 14,
+    "expanded_pkg_differences": 0,
+    "installed_app_differences": 0,
+    "license_present_in_all": true
+  }
+}

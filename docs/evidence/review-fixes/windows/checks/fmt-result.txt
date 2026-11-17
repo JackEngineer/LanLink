@@ -1,0 +1,1 @@
+cargo fmt --all -- --check 在c076be2检查流水线中退出0且无输出。原Tee-Object空管线未创建fmt.log；checks-passed.json是在检查LASTEXITCODE成功后生成。本文件为归档说明，不是伪造的原始命令输出。

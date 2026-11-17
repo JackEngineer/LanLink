@@ -1,0 +1,11 @@
+[
+  {
+    "id": "mac-baseline",
+    "name": "macos 0429418a",
+    "platform": "macos",
+    "addresses": [],
+    "port": 0,
+    "online": true,
+    "paired": true
+  }
+]

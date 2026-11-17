@@ -1,0 +1,117 @@
+{
+  "mac_api_source": "Selected records from the Mac API capture",
+  "mac_message_observations": [
+    {
+      "time": "2026-11-17T11:51:01.726152+00:00",
+      "http_status": 200,
+      "endpoint": "/messages",
+      "records": [
+        {
+          "id": "b37ee4f3-571f-4de7-b45a-4453be213272",
+          "direction": "incoming",
+          "status": "sent"
+        },
+        {
+          "id": "3e3f182e-2dfa-415e-bd38-c79c84340670",
+          "direction": "outgoing",
+          "status": "sent"
+        }
+      ]
+    },
+    {
+      "time": "2026-11-17T11:52:32.499359+00:00",
+      "http_status": 200,
+      "endpoint": "/messages",
+      "records": [
+        {
+          "id": "b37ee4f3-571f-4de7-b45a-4453be213272",
+          "direction": "incoming",
+          "status": "sent"
+        },
+        {
+          "id": "3e3f182e-2dfa-415e-bd38-c79c84340670",
+          "direction": "outgoing",
+          "status": "sent"
+        }
+      ]
+    }
+  ],
+  "mac_transfer_observations": [
+    {
+      "time": "2026-11-17T11:43:44.122655+00:00",
+      "http_status": 200,
+      "endpoint": "/transfers",
+      "records": [
+        {
+          "id": "5bcdc711-6c71-4a35-bd8d-e5831e259205",
+          "direction": "incoming",
+          "size": 1073741824,
+          "offset": 0,
+          "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+          "status": "offered"
+        }
+      ]
+    },
+    {
+      "time": "2026-11-17T11:46:41.120140+00:00",
+      "http_status": 200,
+      "endpoint": "/transfers",
+      "records": [
+        {
+          "id": "5bcdc711-6c71-4a35-bd8d-e5831e259205",
+          "direction": "incoming",
+          "size": 1073741824,
+          "offset": 960495616,
+          "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+          "status": "transferring"
+        },
+        {
+          "id": "6e2bc2ed-86bb-418c-86af-577d2ce792b4",
+          "direction": "outgoing",
+          "size": 1073741824,
+          "offset": 793772032,
+          "sha256": "9abc035488a85bdd2237e51ed32481c8bba1a326e2730145d1ac1971d52ff19e",
+          "status": "transferring"
+        }
+      ]
+    },
+    {
+      "time": "2026-11-17T11:49:27.665248+00:00",
+      "http_status": 200,
+      "endpoint": "/transfers",
+      "records": [
+        {
+          "id": "5bcdc711-6c71-4a35-bd8d-e5831e259205",
+          "direction": "incoming",
+          "size": 1073741824,
+          "offset": 1073741824,
+          "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+          "status": "completed"
+        },
+        {
+          "id": "6e2bc2ed-86bb-418c-86af-577d2ce792b4",
+          "direction": "outgoing",
+          "size": 1073741824,
+          "offset": 1073741824,
+          "sha256": "9abc035488a85bdd2237e51ed32481c8bba1a326e2730145d1ac1971d52ff19e",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "mac_received_disk_check": {
+    "source": "mac-final-file-hash.json",
+    "time": "2026-11-17T11:51:32.696279+00:00",
+    "transfer_id": "5bcdc711-6c71-4a35-bd8d-e5831e259205",
+    "size": 1073741824,
+    "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859"
+  },
+  "windows_received_disk_check": {
+    "source": "windows-received-1GiB-disk-verified.json",
+    "transfer_id": "6e2bc2ed-86bb-418c-86af-577d2ce792b4",
+    "size": 1073741824,
+    "sha256": "9abc035488a85bdd2237e51ed32481c8bba1a326e2730145d1ac1971d52ff19e"
+  },
+  "windows_message_source": "windows-messages.json",
+  "windows_transfer_source": "windows-transfers-latest.json"
+}

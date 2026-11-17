@@ -1,0 +1,13 @@
+Artifacts: /private/tmp/lanlink-tests/lanlink-smoke-c46zhuj_
+PASS health and identity persistence on Darwin
+PASS Host, session bootstrap, Origin, token and expired token guards
+PASS A discovered a7120563229229d86f34fbeb14d213e2f5152f3f5368bc47207021910ce839fd through mDNS at <LAN_IP> port 49252
+PASS B discovered 89f39a83273e175509b024130e77d8de93e1613595df5619ac9cfd9870a11cdc through mDNS at 127.0.0.1, <LAN_IP> port 49250
+PASS unpaired traffic rejection, matching pairing codes and bilateral approval
+PASS bidirectional durable ACK, history and trust after restart
+PASS offline message retries delivered one receiver history row
+PASS accepted 10485760-byte transfer, disk and HTTP download SHA-256 16f2bb6fdf0435a8d7a49f70e4258fcd6784c27d02d34c9b947de148c63cd261
+PASS 67108864-byte transfer automatically completed after preserving durable byte 1048576 and published SHA-256 6dc5d3d6dad59c2650f8b3aa1717bfc593d8a649575315a75b1b2ffc0e8b401e
+PASS outgoing cancellation reached receiver without publication
+PASS revocation rejects local sends and blocks receipt during 5s
+PASS all selected checks against two real Agents on one host

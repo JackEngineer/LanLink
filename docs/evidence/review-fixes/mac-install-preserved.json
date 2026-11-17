@@ -1,0 +1,13 @@
+{
+  "source_commit": "c076be2e17670a27791d00eb5b46ff90322dd551",
+  "installed_agent_sha256": "e67309b97229cf27a2b78b5cbd63b19763c841b35ab6fea2d089b0faa6c76776",
+  "health": {
+    "service": "lanlink",
+    "status": "ok",
+    "version": "0.1.0"
+  },
+  "same_identity": true,
+  "same_settings": true,
+  "paired": true,
+  "preserved_transfers": 15
+}

@@ -1,0 +1,57 @@
+{
+  "startup-enabled": {
+    "arguments": "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File \"<USER_PROFILE>\\AppData\\Local\\Programs\\LANLink/Launch.ps1\" -BackgroundOnly",
+    "workingDirectory": "<USER_PROFILE>\\AppData\\Local\\Programs\\LANLink",
+    "target": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "startupExists": true,
+    "health": {
+      "service": "lanlink",
+      "status": "ok",
+      "version": "0.1.0"
+    }
+  },
+  "startup-disabled": {
+    "startupExists": false,
+    "health": {
+      "service": "lanlink",
+      "status": "ok",
+      "version": "0.1.0"
+    }
+  },
+  "uninstalled": {
+    "menuRemoved": true,
+    "startupRemoved": true,
+    "dbSHA256": "66B282B7FBCC9DF759B4E769003144E2D55B7EA2CC9D857158A94A7D676FF548",
+    "dbRetained": true,
+    "agentStopped": true,
+    "installRemoved": true,
+    "downloadSHA256": "9ABC035488A85BDD2237E51ED32481C8BBA1A326E2730145D1AC1971D52FF19E",
+    "downloadLength": 1073741824,
+    "httpUnavailable": true,
+    "previousPid": 32872
+  },
+  "reinstall-check": {
+    "pid": 33672,
+    "downloadSHA256": "9ABC035488A85BDD2237E51ED32481C8BBA1A326E2730145D1AC1971D52FF19E",
+    "device": {
+      "id": "windows-baseline",
+      "name": "windows 84652973",
+      "platform": "windows"
+    },
+    "health": {
+      "service": "lanlink",
+      "status": "ok",
+      "version": "0.1.0"
+    },
+    "startupExists": false,
+    "exeSHA256": "3A64F7EFF9214FFD8563CE581087DD649F52285E5761920E35CE8B3D3A9B3B49"
+  },
+  "preservation-comparison": {
+    "changedTransfers": [],
+    "paired": true,
+    "messagesChecked": 4,
+    "missingMessages": [],
+    "sameIdentity": true,
+    "transfersChecked": 8
+  }
+}

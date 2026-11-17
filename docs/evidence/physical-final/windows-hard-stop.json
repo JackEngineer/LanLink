@@ -1,0 +1,53 @@
+{
+  "windows_hard_stop_utc": "2026-11-17T11:50:16.357Z",
+  "mac_source": "Selected rows from 29 Mac discovery samples",
+  "total_mac_samples": 29,
+  "online_samples_before_first_offline": 28,
+  "first_penultimate_and_last_mac_samples": [
+    {
+      "time": "2026-11-17T11:50:57.347526+00:00",
+      "seconds_after_process_exit": 40.990526,
+      "online": true,
+      "address_count": 1,
+      "service_port_available": true,
+      "paired": true
+    },
+    {
+      "time": "2026-11-17T11:51:51.628834+00:00",
+      "seconds_after_process_exit": 95.271834,
+      "online": true,
+      "address_count": 1,
+      "service_port_available": true,
+      "paired": true
+    },
+    {
+      "time": "2026-11-17T11:51:53.639229+00:00",
+      "seconds_after_process_exit": 97.282229,
+      "online": false,
+      "address_count": 0,
+      "service_port_available": false,
+      "paired": true
+    }
+  ],
+  "mac_queued_message": {
+    "source": "Mac API capture",
+    "id": "e4fb5702-28fc-4f73-8319-860f46f1b3b1",
+    "time": "2026-11-17T11:52:06.528216+00:00",
+    "initial_status": "pending"
+  },
+  "windows_process_stop_source": "windows-process-hard-stop.json",
+  "windows_restart": {
+    "restarted_at_utc": "2026-11-17T11:52:35.379Z",
+    "new_pid": 32808,
+    "message_id": "e4fb5702-28fc-4f73-8319-860f46f1b3b1",
+    "message_status": "sent",
+    "matching_windows_history_rows": 1,
+    "preexisting_messages_retained": 6,
+    "preexisting_transfers_retained": 13,
+    "installed_agent_sha256_unchanged": true,
+    "sources": [
+      "windows-hardstop-recovery-identity.json",
+      "windows-hardstop-preservation-check.json"
+    ]
+  }
+}

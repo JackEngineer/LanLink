@@ -1,0 +1,5 @@
+    Checking lanlink-protocol v0.1.0 (<WORKSPACE>/crates/protocol)
+    Checking lanlink-store v0.1.0 (<WORKSPACE>/crates/store)
+    Checking lanlink-transport v0.1.0 (<WORKSPACE>/crates/transport)
+    Checking lanlink-agent v0.1.0 (<WORKSPACE>/crates/agent)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.32s

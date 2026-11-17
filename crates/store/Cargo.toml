@@ -2,8 +2,14 @@
 name = "lanlink-store"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 [dependencies]
 anyhow.workspace = true
 sqlx.workspace = true
 serde_json.workspace = true
 lanlink-protocol.workspace = true
+serde.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

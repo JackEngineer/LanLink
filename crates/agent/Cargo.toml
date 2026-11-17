@@ -2,6 +2,7 @@
 name = "lanlink-agent"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 [dependencies]
 anyhow.workspace = true
 tokio.workspace = true
@@ -25,5 +26,7 @@ clap = { version = "4", features = ["derive"] }
 directories = "6"
 fs2 = "0.4"
 futures-util = "0.3"
+tokio-util = { version = "0.7", features = ["io"] }
+percent-encoding = "2"
 [dev-dependencies]
 tempfile = "3"

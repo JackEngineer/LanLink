@@ -1,0 +1,240 @@
+{
+  "before_windows_restart": {
+    "device": {
+      "id": "windows-baseline",
+      "name": "windows 84652973",
+      "platform": "windows"
+    },
+    "devices": [
+      {
+        "id": "mac-baseline",
+        "name": "macos 0429418a",
+        "platform": "macos",
+        "addresses": [],
+        "port": 0,
+        "online": false,
+        "paired": true
+      }
+    ],
+    "messages?peer_id=mac-baseline": [
+      {
+        "id": "3a5c4f3d-7ef4-4cf3-908d-ff7b37e3370e",
+        "peer_id": "mac-baseline",
+        "direction": "outgoing",
+        "body": "Windows→Mac physical QA 20261117 1111",
+        "created_at": 1794913904023,
+        "status": "sent"
+      },
+      {
+        "id": "b9eff9fa-194c-45e5-99fd-9fbbb90ca915",
+        "peer_id": "mac-baseline",
+        "direction": "incoming",
+        "body": "Mac→Windows physical QA 20261117 1112",
+        "created_at": 1794913920182,
+        "status": "sent"
+      },
+      {
+        "id": "65d742c0-658f-4d06-967f-618218699b68",
+        "peer_id": "mac-baseline",
+        "direction": "outgoing",
+        "body": "Windows offline persistence QA 20261117 1117",
+        "created_at": 1794914255068,
+        "status": "pending"
+      }
+    ],
+    "transfers": [
+      {
+        "id": "3dc339bf-c9ec-46f6-ae2f-3c1e4c5497a6",
+        "peer_id": "mac-baseline",
+        "direction": "incoming",
+        "name": "mac-10MiB.bin",
+        "size": 10485760,
+        "sha256": "52224e9cdef8f53a8e80e160f6e3799d817d0790423f0041a72d124049a5be99",
+        "offset": 10485760,
+        "status": "completed",
+        "error": null,
+        "created_at": 1794913920333
+      },
+      {
+        "id": "1102e7eb-80b5-4694-9064-a76ff1a2dd50",
+        "peer_id": "mac-baseline",
+        "direction": "outgoing",
+        "name": "windows-10MiB.bin",
+        "size": 10485760,
+        "sha256": "04875e27eb769abc55597ac75bf6a4bffd477304a29abb09d85278c560701be5",
+        "offset": 10485760,
+        "status": "completed",
+        "error": null,
+        "created_at": 1794913966313
+      },
+      {
+        "id": "384cdc33-4076-4b50-89c2-bb2b41125773",
+        "peer_id": "mac-baseline",
+        "direction": "incoming",
+        "name": "mac-1GiB.bin",
+        "size": 1073741824,
+        "sha256": "9abc035488a85bdd2237e51ed32481c8bba1a326e2730145d1ac1971d52ff19e",
+        "offset": 1073741824,
+        "status": "completed",
+        "error": null,
+        "created_at": 1794913968428
+      },
+      {
+        "id": "fbbc053f-61e1-4dad-b977-74cd48f7e90b",
+        "peer_id": "mac-baseline",
+        "direction": "outgoing",
+        "name": "windows-1024MiB.bin",
+        "size": 1073741824,
+        "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+        "offset": 1073741824,
+        "status": "completed",
+        "error": null,
+        "created_at": 1794913976217
+      }
+    ]
+  },
+  "after_windows_restart_while_mac_offline": {
+    "health": {
+      "service": "lanlink",
+      "status": "ok",
+      "version": "0.1.0"
+    },
+    "device": {
+      "id": "windows-baseline",
+      "name": "windows 84652973",
+      "platform": "windows"
+    },
+    "devices": [
+      {
+        "id": "mac-baseline",
+        "name": "macos 0429418a",
+        "platform": "macos",
+        "addresses": [],
+        "port": 0,
+        "online": false,
+        "paired": true
+      }
+    ],
+    "messages?peer_id=mac-baseline": [
+      {
+        "id": "3a5c4f3d-7ef4-4cf3-908d-ff7b37e3370e",
+        "peer_id": "mac-baseline",
+        "direction": "outgoing",
+        "body": "Windows→Mac physical QA 20261117 1111",
+        "created_at": 1794913904023,
+        "status": "sent"
+      },
+      {
+        "id": "b9eff9fa-194c-45e5-99fd-9fbbb90ca915",
+        "peer_id": "mac-baseline",
+        "direction": "incoming",
+        "body": "Mac→Windows physical QA 20261117 1112",
+        "created_at": 1794913920182,
+        "status": "sent"
+      },
+      {
+        "id": "65d742c0-658f-4d06-967f-618218699b68",
+        "peer_id": "mac-baseline",
+        "direction": "outgoing",
+        "body": "Windows offline persistence QA 20261117 1117",
+        "created_at": 1794914255068,
+        "status": "pending"
+      }
+    ],
+    "transfers": [
+      {
+        "id": "3dc339bf-c9ec-46f6-ae2f-3c1e4c5497a6",
+        "peer_id": "mac-baseline",
+        "direction": "incoming",
+        "name": "mac-10MiB.bin",
+        "size": 10485760,
+        "sha256": "52224e9cdef8f53a8e80e160f6e3799d817d0790423f0041a72d124049a5be99",
+        "offset": 10485760,
+        "status": "completed",
+        "error": null,
+        "created_at": 1794913920333
+      },
+      {
+        "id": "1102e7eb-80b5-4694-9064-a76ff1a2dd50",
+        "peer_id": "mac-baseline",
+        "direction": "outgoing",
+        "name": "windows-10MiB.bin",
+        "size": 10485760,
+        "sha256": "04875e27eb769abc55597ac75bf6a4bffd477304a29abb09d85278c560701be5",
+        "offset": 10485760,
+        "status": "completed",
+        "error": null,
+        "created_at": 1794913966313
+      },
+      {
+        "id": "384cdc33-4076-4b50-89c2-bb2b41125773",
+        "peer_id": "mac-baseline",
+        "direction": "incoming",
+        "name": "mac-1GiB.bin",
+        "size": 1073741824,
+        "sha256": "9abc035488a85bdd2237e51ed32481c8bba1a326e2730145d1ac1971d52ff19e",
+        "offset": 1073741824,
+        "status": "completed",
+        "error": null,
+        "created_at": 1794913968428
+      },
+      {
+        "id": "fbbc053f-61e1-4dad-b977-74cd48f7e90b",
+        "peer_id": "mac-baseline",
+        "direction": "outgoing",
+        "name": "windows-1024MiB.bin",
+        "size": 1073741824,
+        "sha256": "9674bda70c01181b475879a0bd0ea2847d55335fb592fff65f423f4e36d5d859",
+        "offset": 1073741824,
+        "status": "completed",
+        "error": null,
+        "created_at": 1794913976217
+      }
+    ]
+  },
+  "after_mac_restart": {
+    "device": {
+      "id": "windows-baseline",
+      "name": "windows 84652973",
+      "platform": "windows"
+    },
+    "at": "2026-11-17T11:19:12.8344284+00:00",
+    "messages": [
+      {
+        "id": "3a5c4f3d-7ef4-4cf3-908d-ff7b37e3370e",
+        "peer_id": "mac-baseline",
+        "direction": "outgoing",
+        "body": "Windows→Mac physical QA 20261117 1111",
+        "created_at": 1794913904023,
+        "status": "sent"
+      },
+      {
+        "id": "b9eff9fa-194c-45e5-99fd-9fbbb90ca915",
+        "peer_id": "mac-baseline",
+        "direction": "incoming",
+        "body": "Mac→Windows physical QA 20261117 1112",
+        "created_at": 1794913920182,
+        "status": "sent"
+      },
+      {
+        "id": "65d742c0-658f-4d06-967f-618218699b68",
+        "peer_id": "mac-baseline",
+        "direction": "outgoing",
+        "body": "Windows offline persistence QA 20261117 1117",
+        "created_at": 1794914255068,
+        "status": "sent"
+      }
+    ],
+    "devices": [
+      {
+        "id": "mac-baseline",
+        "name": "macos 0429418a",
+        "platform": "macos",
+        "addresses": ["<MAC_LAN_IP>"],
+        "port": 38762,
+        "online": true,
+        "paired": true
+      }
+    ]
+  }
+}

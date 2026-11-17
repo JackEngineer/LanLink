@@ -1,0 +1,5 @@
+Agent SHA-256 724bde1cdf3f96eb3491839139f5f08f5adfb44fcc8fb2b611b39c8b1bbd3dc5
+PASS two isolated Agent processes paired through mDNS
+PASS new and existing over-limit offers rejected, completed SHA-256 preserved, bidirectional chat ACK
+PASS below-limit file published with matching SHA-256
+PASS failed source cannot retry, explicit cancel removes nine owned bytes after revocation

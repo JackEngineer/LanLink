@@ -1,0 +1,30 @@
+
+> lanlink@0.1.0 build
+> npm run build -w apps/web
+
+
+> @lanlink/web@0.1.0 build
+> tsc -b && vite build
+
+vite v7.3.8 building client environment for production...
+transforming...
+✓ 1638 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.44 kB │ gzip:  0.29 kB
+dist/assets/index-DpOR2CvZ.css   20.20 kB │ gzip:  5.45 kB
+dist/assets/index--WWXw7dX.js   297.76 kB │ gzip: 92.93 kB
+✓ built in 974ms
+   Compiling lanlink-store v0.1.0 (<repo>/crates/store)
+   Compiling lanlink-agent v0.1.0 (<repo>/crates/agent)
+    Finished `release` profile [optimized] target(s) in 11.99s
+dist/macos-aarch64-apple-darwin/LANLink.app/Contents/Info.plist: OK
+dist/macos-aarch64-apple-darwin/LANLink.app/Contents/MacOS/lanlink-agent: replacing existing signature
+write: Permission denied
+write: Permission denied
+write: Permission denied
+write: Permission denied
+pkgbuild: Adding component at <repo>/dist/macos-aarch64-apple-darwin/LANLink.app
+pkgbuild: Wrote package to dist/macos-aarch64-apple-darwin/LANLink-0.1.0-aarch64-apple-darwin.pkg
+e3fce72de547cfcc7e41c1ca9e3305f811b39212622bce9f30a41f84fb2d7d7a  dist/macos-aarch64-apple-darwin/LANLink-0.1.0-aarch64-apple-darwin.pkg
+9e4d4eceb8892f72c6f92f04ef069b77516a73fd02269550ef4a2b141625a0b8  dist/LANLink-0.1.0-aarch64-apple-darwin.zip

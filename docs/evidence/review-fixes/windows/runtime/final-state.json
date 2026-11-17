@@ -1,0 +1,11 @@
+{
+  "pid": 31824,
+  "health": {
+    "service": "lanlink",
+    "status": "ok",
+    "version": "0.1.0"
+  },
+  "startupExists": false,
+  "max_file_size": 2147483648,
+  "paired": true
+}

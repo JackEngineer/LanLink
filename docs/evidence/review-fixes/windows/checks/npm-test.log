@@ -1,0 +1,16 @@
+
+> lanlink@0.1.0 test
+> npm run test -w apps/web
+
+
+> @lanlink/web@0.1.0 test
+> vitest run
+
+
+ RUN  v5.1.0 <WINDOWS_SOURCE>/apps/web
+
+
+ Test Files  3 passed (3)
+      Tests  24 passed (24)
+   Start at  20:16:45
+   Duration  1.07s (import 47%, tests 29%, transform 23%, worker 2%)

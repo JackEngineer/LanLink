@@ -1,0 +1,18 @@
+[
+  {
+    "id": "b37ee4f3-571f-4de7-b45a-4453be213272",
+    "peer_id": "0429418a…",
+    "direction": "outgoing",
+    "body": "Windows final fad384c",
+    "created_at": 1794915722982,
+    "status": "sent"
+  },
+  {
+    "id": "3e3f182e-2dfa-415e-bd38-c79c84340670",
+    "peer_id": "0429418a…",
+    "direction": "incoming",
+    "body": "Mac final fad384c：修复候选双机消息",
+    "created_at": 1794915861502,
+    "status": "sent"
+  }
+]

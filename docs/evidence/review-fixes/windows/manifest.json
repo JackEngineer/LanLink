@@ -1,0 +1,232 @@
+[
+  {
+    "file": "checks\\cargo-test.log",
+    "bytes": 11626,
+    "sha256": "7DE73C53B7CBBC9012139F46888B29B20617F0C1837AF9117F19F22B9A8D342E"
+  },
+  {
+    "file": "checks\\checks-passed.json",
+    "bytes": 213,
+    "sha256": "F6899FC84DFE58E71350BDEEB67630DBE65FDC4583E091356918AF2398DC304F"
+  },
+  {
+    "file": "checks\\clippy.log",
+    "bytes": 6581,
+    "sha256": "7B1FF8368687C7E9D6202ADE07E335CE02B8F8DB8BFED3AED15B2A14789C16FF"
+  },
+  {
+    "file": "checks\\fmt-result.txt",
+    "bytes": 243,
+    "sha256": "CF11781BDBFFA817B53F3274B6D62A310427AC70A07FDC9D7181162074BD73D5"
+  },
+  {
+    "file": "checks\\fmt.log",
+    "bytes": 0,
+    "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+  },
+  {
+    "file": "checks\\npm-lint.log",
+    "bytes": 99,
+    "sha256": "690200DB0C0B56D5E582C96F22ECBE24BED53207BB88B073BD8D27B3547E55A9"
+  },
+  {
+    "file": "checks\\npm-test.log",
+    "bytes": 304,
+    "sha256": "D832FD2A52BC0F1C64C5F73BAB6EB8BB727C5A7ECFC49550ACC346DAC26B3711"
+  },
+  {
+    "file": "checks\\package.log",
+    "bytes": 8321,
+    "sha256": "868237BC5C83A9AAFEDCC1155DE324F2D08196E3DA6349E45DB2589087C41D55"
+  },
+  {
+    "file": "package\\byte-comparison.json",
+    "bytes": 2287,
+    "sha256": "98B494260AA7797485BD160C80AE29519BF203C45DE70A155F6FB8B90733F2F0"
+  },
+  {
+    "file": "package\\package-transfer.json",
+    "bytes": 420,
+    "sha256": "0C8B93BC9283D3EA12686E7C43D4E24DEDE875BCFA423A620BBFBE0FEB4E130B"
+  },
+  {
+    "file": "package\\package.log",
+    "bytes": 849,
+    "sha256": "3FF15384C6C5D46B25025C909C779A23E67E95B381532C046D7FC7435D193488"
+  },
+  {
+    "file": "report.md",
+    "bytes": 4673,
+    "sha256": "5C70BFB72F8C20545E6339916FCDD5922FED64CC8D8BB4ECC639BF8688A19749"
+  },
+  {
+    "file": "runtime\\alpha-disk-verified.json",
+    "bytes": 241,
+    "sha256": "1F3FBD5208EC6F22564B4AF0FB44C2B7D0C41660B2E1DA245F71BD99E6383C0D"
+  },
+  {
+    "file": "runtime\\current-chat.png",
+    "bytes": 62793,
+    "sha256": "3F799D60422E287D2A642DD11FA8DAC5B50CD54A7D1F64608EAB580282C08ECA"
+  },
+  {
+    "file": "runtime\\current-transfers.png",
+    "bytes": 71895,
+    "sha256": "6CA65626CC968EBC39FB3FDBAE9A104A5D1B81DA17323617C47EC80187021CB3"
+  },
+  {
+    "file": "runtime\\existing-offer-low-limit.json",
+    "bytes": 849,
+    "sha256": "639DA52B2AE29F1FBC5931D7338E1924FF746779AA3009A273E469AB73D11F48"
+  },
+  {
+    "file": "runtime\\final-chat.png",
+    "bytes": 66993,
+    "sha256": "9FF5FAF8D7BAF9896D051E6F9CFD26075480D4AB4A273387B8DD0C1F71DF02E1"
+  },
+  {
+    "file": "runtime\\final-messages.json",
+    "bytes": 741,
+    "sha256": "3B58B50913A5D875314EA44685F9BD5D7256D2383CCCFE482863D228264CEE80"
+  },
+  {
+    "file": "runtime\\final-state.json",
+    "bytes": 193,
+    "sha256": "60FD4D761F13B3FF1CA30FA7ED2F50C57279F2A1BB4E3EC928BD9C37C45FF00A"
+  },
+  {
+    "file": "runtime\\installed-verified.json",
+    "bytes": 728,
+    "sha256": "F9D8F8BB957104F67285E651C2D9AFB0375BD18F30EE5C209FDBDC4B29683E1C"
+  },
+  {
+    "file": "runtime\\multi-offer-before.json",
+    "bytes": 857,
+    "sha256": "15284B8A825B5E1AA1EF76BD2303B3AAF89F05C5BFAE11CA92F7B6BA7EB7624C"
+  },
+  {
+    "file": "runtime\\oversize-log-check.json",
+    "bytes": 350,
+    "sha256": "4364A8964A45F8364A32ADDEB583F2DB35C257C6C3BA48DB8DAE5FD19E5349C4"
+  },
+  {
+    "file": "runtime\\oversize-preservation-and-chat.json",
+    "bytes": 766,
+    "sha256": "07826BCB924D9BB2574404BFA18FE6FAB78DA5FD20B38340154206384CEFA3EE"
+  },
+  {
+    "file": "runtime\\oversize-upload-error.txt",
+    "bytes": 122,
+    "sha256": "6CAB5D55C6D0974C32A7A6C131B073DD334465CC58737DDA041A36022D6D958C"
+  },
+  {
+    "file": "runtime\\remote-oversize-results.json",
+    "bytes": 865,
+    "sha256": "DF2E9C88E60B3B3139C00881026FBC9DEEC45ED9D5F45CE9C49CF310A1F173E5"
+  },
+  {
+    "file": "runtime\\resume-final.json",
+    "bytes": 405,
+    "sha256": "C176487C3EF7D42A955FD24F204E2999584B44A21CF28377F4E590A0F17D52A5"
+  },
+  {
+    "file": "runtime\\resume-logging-limitation.txt",
+    "bytes": 392,
+    "sha256": "C60311C4FB81230E8004032B8DAF13069313D14EC9B369BFEF0EDBB847CFE894"
+  },
+  {
+    "file": "runtime\\resume-paused.json",
+    "bytes": 770,
+    "sha256": "3388AC3824088475FFD483F1FD651944282D50E8793DA1A9156EA17EC0C2DE7C"
+  },
+  {
+    "file": "runtime\\resume-progress.jsonl",
+    "bytes": 6706,
+    "sha256": "33B74832F4EFECE92ECF57B9F97E4EB33E180652CADBCC66E0A97F63E72E7F4E"
+  },
+  {
+    "file": "runtime\\reverse-accept-failure-analysis.md",
+    "bytes": 1644,
+    "sha256": "48DCE357BA8ACFF1C32247E17D0D01E39C2BA5B6DAFD1F6A16B6B4E08C1A75F9"
+  },
+  {
+    "file": "runtime\\reverse-accept-failure-state.json",
+    "bytes": 658,
+    "sha256": "67CC9E54A540C18C2EB115A06CE2642E113714F87813EC350F7AF4AAE3D11004"
+  },
+  {
+    "file": "runtime\\reverse-disk-verified.json",
+    "bytes": 246,
+    "sha256": "A9DC3CFF4745196AFB4ABF7116D1251CF27EB4EA360AB8F0B82E6E2ED1613206"
+  },
+  {
+    "file": "runtime\\reverse-final.json",
+    "bytes": 398,
+    "sha256": "05EE33D9B73EEBB976D6AC9553150F7D1817178AEA59A8A4154501CCD617DCD9"
+  },
+  {
+    "file": "runtime\\reverse-hard-stop.json",
+    "bytes": 599,
+    "sha256": "CCCD46B0E0BF0A29880D4920E2EB9B7A12C32E41103AD49A333F48B63A3360D7"
+  },
+  {
+    "file": "runtime\\reverse-oversize-verified.json",
+    "bytes": 550,
+    "sha256": "BDF42737E9C8226EEE121BA8D9CA935E3E093E479C580E803638FAD8BE2E2B66"
+  },
+  {
+    "file": "runtime\\reverse-progress.jsonl",
+    "bytes": 6513,
+    "sha256": "5F3B5C2B04305C6202BABF0F33D8C66A6869FAB3839708642457F48D2A574B9E"
+  },
+  {
+    "file": "runtime\\reverse-restarted.json",
+    "bytes": 789,
+    "sha256": "19CF9D1327E14A5F0FD9B2261D3F5228BF8AA6B4CE170AC6383081749EF688C2"
+  },
+  {
+    "file": "runtime\\reverse-stop-disk.json",
+    "bytes": 493,
+    "sha256": "4180EBD27BD3CBB8A0C9AF000F5D5DFB388A3E5C5A7EAA889444F7DFCE93C3F7"
+  },
+  {
+    "file": "runtime\\settings-restored.json",
+    "bytes": 134,
+    "sha256": "9FBF31B1B7FCBD032ABDE88AAC68C274A6D01D32F3F54FE5525F3B906600B35E"
+  },
+  {
+    "file": "toolchain\\cargo-version.log",
+    "bytes": 40,
+    "sha256": "14EBDE55AD9B52D6DBC59FE3D3F331B804F925A7E16B4CA730EE2CA9CD212E2D"
+  },
+  {
+    "file": "toolchain\\download-evidence.json",
+    "bytes": 251,
+    "sha256": "1B9059C0C109895BE559A6C3E40DFD97B4E5B10FBAD4319D0ACB473DA0C1D4EB"
+  },
+  {
+    "file": "toolchain\\node24-download.json",
+    "bytes": 363,
+    "sha256": "04094695EA947AEE28FB0660674A099F9C1A0E2C0C106F9B510B6C93134D8D9F"
+  },
+  {
+    "file": "toolchain\\npm-build.log",
+    "bytes": 472,
+    "sha256": "4E29A0EF5C25F75C0CB15765C33440CAEAD1F04F3B7D4470266649B84D02B52F"
+  },
+  {
+    "file": "toolchain\\npm-ci.log",
+    "bytes": 767,
+    "sha256": "3EB267E341BD384FF4ED18383295EC6BF3C04662BF7F751CA94C9F92B442F17F"
+  },
+  {
+    "file": "toolchain\\preparation.md",
+    "bytes": 1778,
+    "sha256": "4B55ED2E005472FD5597DBE05E1A27C6F0AA23AEE2D56A6E32A88A9EEF8A4949"
+  },
+  {
+    "file": "toolchain\\rustc-version.log",
+    "bytes": 205,
+    "sha256": "9159F58C738DBEC3D216FBABDE2D1DF38B0C8AED2663231F8DC3AE33C84F34FC"
+  }
+]

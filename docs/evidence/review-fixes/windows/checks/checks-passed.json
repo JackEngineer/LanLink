@@ -1,0 +1,7 @@
+{
+  "candidate": "c076be2e17670a27791d00eb5b46ff90322dd551",
+  "at": "2026-11-17T12:20:39.0049036+00:00",
+  "rustc": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+  "checksPassed": true,
+  "node": "v24.22.3"
+}

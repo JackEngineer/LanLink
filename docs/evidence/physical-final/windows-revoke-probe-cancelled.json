@@ -1,0 +1,12 @@
+{
+  "id": "f172998b-d346-4b3a-969b-9dbd160a3f44",
+  "peer_id": "0429418a…",
+  "direction": "outgoing",
+  "name": "windows-10MiB.bin",
+  "size": 10485760,
+  "sha256": "04875e27eb769abc55597ac75bf6a4bffd477304a29abb09d85278c560701be5",
+  "offset": 0,
+  "status": "cancelled",
+  "error": null,
+  "created_at": 1794916452016
+}

@@ -3,6 +3,11 @@
 /apps/web/node_modules/
 /apps/web/dist/
 /.audit/*.todo.md
+/.audit/physical-state.json
 /.local/
 .DS_Store
 *.log
+!docs/evidence/**/*.log
+__pycache__/
+
+/dist/
