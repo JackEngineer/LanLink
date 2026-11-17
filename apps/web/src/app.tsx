@@ -1,11 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link2Off, Menu, RefreshCw } from 'lucide-react'
+import { Link2Off, Menu, RefreshCw, Smartphone } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api } from './api'
 import { Chat, PairPeer, StartChat } from './chat'
 import { DeviceIcon, InlineError, Modal } from './components'
 import { PairingDialog, PairingRequests, Sidebar } from './devices'
 import { platformName, type Peer } from './lanlink'
+import { MobileTransferDialog } from './mobile-transfer'
 import { SettingsPage } from './settings'
 import { Transfers } from './transfers'
 import {
@@ -40,6 +41,7 @@ export function App() {
     poll,
     view === 'chat' && Boolean(peer?.paired),
   )
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [revokePeerId, setRevokePeerId] = useState<string | null>(null)
   const agentAvailable = health.isSuccess
   const hasPairings = Boolean(pairings.data?.length)
@@ -123,6 +125,15 @@ export function App() {
               </div>
             )}
           </div>
+          <button
+            className="button button-small"
+            type="button"
+            aria-haspopup="dialog"
+            disabled={!agentAvailable}
+            onClick={() => setMobileOpen(true)}
+          >
+            <Smartphone size={16} aria-hidden="true" /> 手机互传
+          </button>
           {view === 'chat' && peer?.paired && (
             <button
               className="button button-small revoke-button"
@@ -202,6 +213,9 @@ export function App() {
             <StartChat />
           ))}
       </main>
+      {mobileOpen && (
+        <MobileTransferDialog onClose={() => setMobileOpen(false)} />
+      )}
       {activeDialog && (
         <PairingDialog
           key={activeDialog.id}

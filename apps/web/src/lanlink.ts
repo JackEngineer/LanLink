@@ -63,6 +63,27 @@ export interface Transfer {
   created_at: number
 }
 
+export interface MobileFile {
+  id: string
+  name: string
+  size: number
+  direction: 'to_computer' | 'to_mobile'
+}
+
+export interface MobileSession {
+  url: string
+  phase: 'inviting' | 'pending' | 'approved'
+  code: string | null
+  expires_at: number
+  max_file_size: number
+  files: MobileFile[]
+}
+
+export interface MobileState {
+  addresses: string[]
+  session: MobileSession | null
+}
+
 export interface Settings {
   download_dir: string
   max_file_size: number

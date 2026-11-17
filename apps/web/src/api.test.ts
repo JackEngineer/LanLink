@@ -50,6 +50,50 @@ const busyUpload = {
 }
 
 describe('local Agent requests', () => {
+  it('authenticates the desktop mobile snapshot before requesting its private URL', async () => {
+    const state = { addresses: ['192.168.1.2'], session: null }
+    const fetchMock = mockFetch(
+      Response.json({ token: 'launch-token' }),
+      Response.json(state),
+    )
+
+    await expect(api.mobile()).resolves.toEqual(state)
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/mobile',
+      expect.objectContaining({
+        headers: { 'X-LANLink-Token': 'launch-token' },
+        mode: 'same-origin',
+        credentials: 'same-origin',
+      }),
+    )
+  })
+
+  it('submits the six-digit mobile code with desktop mutation authentication', async () => {
+    const fetchMock = mockFetch(
+      Response.json({ token: 'launch-token' }),
+      Response.json({ addresses: [], session: null }),
+    )
+
+    await api.approveMobile('012345')
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/mobile/approve',
+      expect.objectContaining({
+        method: 'POST',
+        referrerPolicy: 'same-origin',
+        headers: new Headers({
+          'X-LANLink-Token': 'launch-token',
+          'Content-Type': 'application/json',
+        }),
+        body: JSON.stringify({ code: '012345' }),
+      }),
+    )
+    expect(api.mobileDownloadUrl('file /?#')).toBe(
+      '/api/v1/mobile/files/file%20%2F%3F%23',
+    )
+  })
+
   it('bootstraps a same-origin session before a mutation and authenticates the encoded request', async () => {
     const fetchMock = mockFetch(
       Response.json({ token: 'launch-token' }),

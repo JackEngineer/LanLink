@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="color-scheme" content="light" />
+    <title>手机互传 · LANLink</title>
+    <link rel="stylesheet" href="/mobile/style.css" />
+    <script type="module" src="/mobile/main.js"></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="brand">LANLink</p>
+        <h1>手机互传</h1>
+        <p>请让手机或平板和电脑连接同一个 Wi-Fi。</p>
+        <p class="warning">传输未加密，仅在可信 Wi-Fi 使用。</p>
+      </header>
+
+      <section class="card" aria-label="连接状态">
+        <p id="status" class="status" role="status">正在连接电脑…</p>
+        <p id="timer" class="subtle" hidden></p>
+        <div id="confirmation" hidden>
+          <p>请在电脑上输入以下 6 位确认码。</p>
+          <p class="code" id="code" aria-label="确认码"></p>
+        </div>
+        <p class="error" id="connection-error" role="alert" hidden></p>
+        <button type="button" id="retry" hidden>重新连接</button>
+      </section>
+
+      <div id="transfer" hidden>
+        <section class="card" aria-labelledby="send-heading">
+          <h2 id="send-heading">发送给电脑</h2>
+          <form id="upload">
+            <label for="file">选择文件</label>
+            <input id="file" type="file" required />
+            <p class="subtle" id="limit"></p>
+            <button type="submit" id="send" disabled>发送文件</button>
+            <div id="upload-progress" class="progress" hidden>
+              <progress
+                id="progress"
+                max="100"
+                aria-label="上传进度"
+              ></progress>
+              <span id="percentage" aria-hidden="true"></span>
+            </div>
+            <p class="error" id="upload-error" role="alert" hidden></p>
+            <p class="success" id="sent" role="status"></p>
+          </form>
+        </section>
+        <section class="card" aria-labelledby="inbox-heading">
+          <h2 id="inbox-heading">电脑发来的文件</h2>
+          <p id="empty" class="subtle">暂无文件。</p>
+          <ul id="files" aria-label="电脑发来的文件"></ul>
+        </section>
+      </div>
+
+      <noscript>请在浏览器中启用 JavaScript，再用电脑上的二维码连接。</noscript>
+    </main>
+  </body>
+</html>

@@ -1,6 +1,7 @@
 mod discovery;
 mod files;
 mod http;
+mod mobile;
 mod network;
 mod state;
 
@@ -152,12 +153,14 @@ async fn main() -> Result<()> {
         sessions: Arc::new(Semaphore::new(64)),
         uploads: Arc::new(Semaphore::new(1)),
         tcp_port,
+        mobile: Mutex::new(None),
         outbox: tokio::sync::Notify::new(),
     });
     sqlx::query("DELETE FROM uploads")
         .execute(&state.store.pool)
         .await?;
     files::recover(&state).await?;
+    mobile::recover(&state).await;
     for peer in args.peer {
         network::add_manual(&state, &peer).await?;
     }
@@ -186,11 +189,12 @@ async fn main() -> Result<()> {
     });
     println!("LANLink {VERSION} ready at {origin} (TCP {tcp_port})");
     tracing::info!(%origin, tcp_port, "agent started");
-    axum::serve(http, http::router(state, web_dir))
-        .with_graceful_shutdown(async {
+    axum::serve(http, http::router(state.clone(), web_dir))
+        .with_graceful_shutdown(async move {
             if let Err(error) = shutdown_signal().await {
                 tracing::warn!(%error, "shutdown signal listener failed");
             }
+            mobile::shutdown(&state).await;
             if let Some(mdns) = mdns
                 && let Ok(stopped) = mdns.shutdown()
                 && !matches!(

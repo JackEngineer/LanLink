@@ -4,6 +4,8 @@ LANLink 是面向 macOS 和 Windows 的开源局域网聊天与文件传输工�
 
 Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢复实测。[验收报告](docs/acceptance.md)
 
+从源码构建的版本提供手机和平板扫码传文件。手机和电脑连同一个可信 Wi‑Fi，电脑确认连接后即可双向收发，不用安装移动端 App。[扫码使用说明](docs/install.md#与手机或平板扫码传文件)
+
 ## 下载开发预览
 
 从 [GitHub Release v0.1.0-preview.1](https://github.com/JackEngineer/LanLink/releases/tag/v0.1.0-preview.1) 选择与你的电脑匹配的安装包。
@@ -40,6 +42,8 @@ cargo test --workspace
 ```
 
 双 Agent 集成脚本会启动隔离的数据目录，不使用已有用户数据。执行方式和实际结果见 [验收报告](docs/acceptance.md#可复现集成验证)。
+
+构建网页和 Agent 后，运行 `python3 scripts/mobile-smoke.py --agent target/debug/lanlink-agent --web-dir apps/web/dist`，可用本机局域网 IPv4 验证扫码会话的授权、双向文件和撤销。
 
 ## 构建安装包
 

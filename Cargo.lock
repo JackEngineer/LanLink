@@ -1095,6 +1095,7 @@ dependencies = [
  "fs2",
  "futures-util",
  "hex",
+ "if-addrs",
  "lanlink-protocol",
  "lanlink-store",
  "lanlink-transport",
@@ -1108,6 +1109,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "tokio-util",
+ "tower",
  "tower-http",
  "tracing",
  "tracing-appender",
@@ -2358,6 +2360,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
  "pin-project-lite",
  "tokio",
 ]

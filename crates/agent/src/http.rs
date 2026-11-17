@@ -1,6 +1,6 @@
 use crate::{
     files::{self, UploadGuard},
-    network,
+    mobile, network,
     state::State as App,
 };
 use anyhow::Context;
@@ -66,6 +66,7 @@ pub fn router(state: Arc<App>, web_dir: std::path::PathBuf) -> Router {
         .route("/api/v1/transfers/{id}/download", get(download))
         .route("/api/v1/settings", get(settings).patch(update_settings))
         .route("/api/v1/ws", get(events))
+        .merge(mobile::desktop_router(web_dir.clone()))
         .fallback_service(ServeDir::new(web_dir).append_index_html_on_directories(true))
         .layer(DefaultBodyLimit::max(
             (MAX_FILE_SIZE + 1024 * 1024) as usize,
@@ -379,22 +380,23 @@ async fn download(
     );
     let file = tokio::fs::File::open(files::download_path(&s, &t).await).await?;
     let body = Body::from_stream(tokio_util::io::ReaderStream::new(file));
+    Ok(attachment(&t.name, t.size, body))
+}
+
+pub fn attachment(name: &str, size: u64, body: Body) -> Response {
     let disposition = format!(
         "attachment; filename=\"download\"; filename*=UTF-8''{}",
-        percent_encoding::utf8_percent_encode(
-            &safe_name(&t.name),
-            percent_encoding::NON_ALPHANUMERIC
-        )
+        percent_encoding::utf8_percent_encode(&safe_name(name), percent_encoding::NON_ALPHANUMERIC)
     );
-    Ok((
+    (
         [
             (header::CONTENT_TYPE, "application/octet-stream".to_owned()),
             (header::CONTENT_DISPOSITION, disposition),
-            (header::CONTENT_LENGTH, t.size.to_string()),
+            (header::CONTENT_LENGTH, size.to_string()),
         ],
         body,
     )
-        .into_response())
+        .into_response()
 }
 async fn settings(State(s): State<Arc<App>>) -> Json<Settings> {
     Json(s.settings.read().await.clone())
