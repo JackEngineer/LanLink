@@ -359,6 +359,76 @@ mod tests {
         }
         Ok(())
     }
+
+    #[tokio::test]
+    async fn cancel_failed_outgoing_releases_snapshot_quota_even_after_revocation() -> Result<()> {
+        for revoked in [false, true] {
+            let root = tempfile::tempdir()?;
+            let state = test_state(root.path()).await?;
+            let mut t = transfer(10);
+            t.direction = Direction::Outgoing;
+            t.status = TransferStatus::AwaitingAccept;
+            state.store.reserve(&t).await?;
+            let path = spool_path(&state, &t);
+            let damaged = b"short";
+            fs::write(&path, damaged).await?;
+            recover(&state).await?;
+            assert!(source_failed(&state.store.transfer(&t.id).await?));
+            assert!(state.transfer_action(&t.id, "retry").await.is_err());
+            state
+                .store
+                .reserve_upload("other", DISK_QUOTA - damaged.len() as u64)
+                .await?;
+            assert!(state.store.reserve_upload("probe", 1).await.is_err());
+            if revoked {
+                state.revoke(&t.peer_id).await?;
+            }
+            state.transfer_action(&t.id, "cancel").await?;
+            assert_eq!(
+                state.store.transfer(&t.id).await?.status,
+                TransferStatus::Cancelled
+            );
+            assert!(!fs::try_exists(&path).await?);
+            state
+                .store
+                .reserve_upload("probe", damaged.len() as u64)
+                .await?;
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn cancel_preserves_completed_downloads_and_retriable_incoming_failures() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let state = test_state(root.path()).await?;
+        let mut completed = transfer(4);
+        completed.status = TransferStatus::Completed;
+        completed.offset = completed.size;
+        state.store.insert_transfer(&completed).await?;
+        let destination = download_path(&state, &completed).await;
+        fs::write(&destination, b"done").await?;
+        assert!(
+            state
+                .transfer_action(&completed.id, "cancel")
+                .await
+                .is_err()
+        );
+        assert_eq!(state.store.transfer(&completed.id).await?, completed);
+        assert_eq!(fs::read(destination).await?, b"done");
+
+        let mut failed = transfer(10);
+        failed.status = TransferStatus::Failed;
+        failed.offset = 5;
+        failed.error = Some("checksum mismatch".into());
+        state.store.insert_transfer(&failed).await?;
+        assert!(state.transfer_action(&failed.id, "cancel").await.is_err());
+        let (reopened, retrying) = state.store.receive_offer(&failed, true).await?;
+        assert!(retrying);
+        assert_eq!(reopened.status, TransferStatus::Offered);
+        assert_eq!(reopened.offset, 0);
+        assert!(reopened.error.is_none());
+        Ok(())
+    }
     #[tokio::test]
     async fn fragment_checkpoint_recovery_and_no_clobber_publication() -> Result<()> {
         let root = tempfile::tempdir()?;

@@ -1275,12 +1275,12 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn lost_source_cancellation_replays_after_restart() -> Result<()> {
-        let sender_root = tempfile::tempdir()?;
-        let receiver_root = tempfile::tempdir()?;
-        let mut sender = test_state(sender_root.path()).await?;
-        let mut receiver = test_state(receiver_root.path()).await?;
+    async fn paired_states(
+        sender_root: &std::path::Path,
+        receiver_root: &std::path::Path,
+    ) -> Result<(State, State, Device, Device)> {
+        let mut sender = test_state(sender_root).await?;
+        let mut receiver = test_state(receiver_root).await?;
         let sender_key = keypair()?;
         let receiver_key = keypair()?;
         sender.private = sender_key.private;
@@ -1297,6 +1297,25 @@ mod tests {
             .store
             .pin(sender_device.clone(), hex::encode(sender_key.public))
             .await?;
+        Ok((sender, receiver, sender_device, receiver_device))
+    }
+
+    async fn connect_to_test_peer(
+        state: Arc<State>,
+        address: std::net::SocketAddr,
+        peer: String,
+    ) -> Result<()> {
+        let permit = state.handshakes.clone().acquire_owned().await?;
+        let socket = TcpStream::connect(address).await?;
+        session(state, socket, true, false, Some(peer), None, permit).await
+    }
+
+    #[tokio::test]
+    async fn lost_source_cancellation_replays_after_restart() -> Result<()> {
+        let sender_root = tempfile::tempdir()?;
+        let receiver_root = tempfile::tempdir()?;
+        let (sender, receiver, sender_device, receiver_device) =
+            paired_states(sender_root.path(), receiver_root.path()).await?;
 
         let chunk = CHUNK_SIZE as u64;
         let source = Transfer {
@@ -1373,23 +1392,11 @@ mod tests {
         let listener = TcpListener::bind("127.0.0.1:0").await?;
         let address = listener.local_addr()?;
         let listen_task = tokio::spawn(listen(sender.clone(), listener));
-        let receiver_task = {
-            let receiver = receiver.clone();
-            tokio::spawn(async move {
-                let permit = receiver.handshakes.clone().acquire_owned().await?;
-                let socket = TcpStream::connect(address).await?;
-                session(
-                    receiver,
-                    socket,
-                    true,
-                    false,
-                    Some(sender_device.id),
-                    None,
-                    permit,
-                )
-                .await
-            })
-        };
+        let receiver_task = tokio::spawn(connect_to_test_peer(
+            receiver.clone(),
+            address,
+            sender_device.id,
+        ));
         timeout(Duration::from_secs(5), async {
             loop {
                 let cancelled =
@@ -1432,6 +1439,113 @@ mod tests {
             tokio::fs::read(files::download_path(&receiver, &downloaded).await).await?,
             b"healthy"
         );
+        receiver_task.abort();
+        listen_task.abort();
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn oversized_offer_rejects_transfer_and_keeps_the_session() -> Result<()> {
+        let sender_root = tempfile::tempdir()?;
+        let receiver_root = tempfile::tempdir()?;
+        let (sender, mut receiver, sender_device, receiver_device) =
+            paired_states(sender_root.path(), receiver_root.path()).await?;
+
+        let chunk = CHUNK_SIZE as u64;
+        let oversized = Transfer {
+            id: Uuid::new_v4().to_string(),
+            peer_id: receiver_device.id.clone(),
+            direction: Direction::Outgoing,
+            name: "oversized.bin".into(),
+            size: chunk + 1,
+            sha256: "a".repeat(64),
+            offset: 0,
+            status: TransferStatus::AwaitingAccept,
+            failure_kind: None,
+            error: None,
+            created_at: now_ms(),
+        };
+        let paused = Transfer {
+            id: Uuid::new_v4().to_string(),
+            offset: chunk,
+            status: TransferStatus::Paused,
+            ..oversized.clone()
+        };
+        let lost_receipt = Transfer {
+            id: Uuid::new_v4().to_string(),
+            ..oversized.clone()
+        };
+        for outgoing in [&oversized, &paused, &lost_receipt] {
+            sender.store.insert_transfer(outgoing).await?;
+            tokio::fs::File::create(files::spool_path(&sender, outgoing))
+                .await?
+                .set_len(outgoing.size)
+                .await?;
+        }
+        let partial = Transfer {
+            peer_id: sender_device.id.clone(),
+            direction: Direction::Incoming,
+            ..paused.clone()
+        };
+        let partial_path = files::spool_path(&receiver, &partial);
+        receiver.store.reserve(&partial).await?;
+        tokio::fs::File::create(&partial_path)
+            .await?
+            .set_len(chunk)
+            .await?;
+        let completed = Transfer {
+            id: lost_receipt.id.clone(),
+            offset: lost_receipt.size,
+            status: TransferStatus::Completed,
+            ..partial.clone()
+        };
+        receiver.store.insert_transfer(&completed).await?;
+        let destination = files::download_path(&receiver, &completed).await;
+        tokio::fs::write(&destination, b"published").await?;
+        receiver.settings.get_mut().max_file_size = chunk;
+
+        let sender = Arc::new(sender);
+        let receiver = Arc::new(receiver);
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let listen_task = tokio::spawn(listen(sender.clone(), listener));
+        let mut receiver_task = tokio::spawn(connect_to_test_peer(
+            receiver.clone(),
+            address,
+            sender_device.id,
+        ));
+        tokio::select! {
+            result = &mut receiver_task => panic!("oversized offer ended the session: {result:?}"),
+            result = timeout(Duration::from_secs(5), async {
+                while sender.store.transfer(&oversized.id).await?.status != TransferStatus::Rejected
+                    || sender.store.transfer(&paused.id).await?.status != TransferStatus::Rejected
+                    || sender.store.transfer(&lost_receipt.id).await?.status != TransferStatus::Completed
+                {
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+                assert!(!receiver.store.transfer_exists(&oversized.id).await?);
+                assert_eq!(receiver.store.transfer(&partial.id).await?.status, TransferStatus::Rejected);
+                assert!(!tokio::fs::try_exists(partial_path).await?);
+                assert!(!tokio::fs::try_exists(files::spool_path(&sender, &oversized)).await?);
+                assert_eq!(receiver.store.transfer(&completed.id).await?, completed);
+                assert_eq!(tokio::fs::read(destination).await?, b"published");
+                let message = Message {
+                    id: Uuid::new_v4().to_string(),
+                    peer_id: receiver_device.id,
+                    direction: Direction::Outgoing,
+                    body: "chat after the oversized offer".into(),
+                    created_at: now_ms(),
+                    status: MessageStatus::Pending,
+                };
+                sender.store.insert_message(&message).await?;
+                sender.outbox.notify_waiters();
+                while sender.store.message(&message.id).await?.status != MessageStatus::Sent {
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+                assert_eq!(receiver.store.message(&message.id).await?.body, message.body);
+                Ok::<_, anyhow::Error>(())
+            }) => result??,
+        }
         receiver_task.abort();
         listen_task.abort();
         Ok(())
