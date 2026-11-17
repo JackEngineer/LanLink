@@ -51,6 +51,8 @@ readlink -f /var/www/lanlink/current
 
 模板只包含 HTTP，方便先检查域名路由。正式上线前，使用该服务器现有的证书工具申请并安装对应域名证书，建立单独的 `listen 443 ssl` 站点，保留模板中的 `root`、静态文件规则和安全头。把 80 端口站点改成跳转到固定的正式 HTTPS 域名；若证书续期使用 HTTP 验证，保留相应验证路径。确认续期机制有效。仅在 HTTPS 正常并确定域名范围后配置 HSTS。
 
+如果 Nginx 由带文件系统沙箱的服务管理器运行，先确认服务允许写入的日志目录。为 LANLink 创建独立日志文件时，沿用允许写入的目录，不放宽服务沙箱。主机终端中的 `nginx -t` 不包含服务的挂载限制；Linux 上可在已核实 master 的挂载命名空间内使用 `nsenter` 复验配置。
+
 本站没有客户端路由。未知路径必须返回 404，不要设置 `try_files ... /index.html` 这类 SPA 兜底。HTML 不缓存，CSS 与 SVG 缓存五分钟，更新后不会被一年期 `immutable` 缓存锁住。若在站点层修改响应头，注意 Nginx `add_header` 的继承规则，继续保留模板里的安全头。
 
 ## 4. 切换、检查配置并重载
@@ -65,6 +67,8 @@ sudo "$NGINX_BIN" -c "$NGINX_CONF" -s reload
 ```
 
 每条命令成功后再执行下一条。若配置检查失败，停止发布，恢复本次配置修改与原 `current` 指向，再重新检查；不要 reload。重载前核对目标配置的 pid 文件确实指向已确认的 master。不要直接执行 `systemctl reload nginx`，它可能操作另一个实例。只有已经确认服务单元与目标实例一致时，才能使用该服务管理方式。
+
+reload 命令成功只表示已发送信号。继续检查目标 master 的新 worker 启动时间、错误日志和真实 HTTPS 响应，再判定新配置已生效。[官网上线验收记录](website-acceptance.md)保留了本次沙箱日志目录问题及修正结果。
 
 ```sh
 curl -I https://example.com/
