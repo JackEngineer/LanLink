@@ -1,4 +1,5 @@
 # LANLink v0.1.0 contract
+
 Build a local-only React TypeScript Vite Tailwind Zustand TanStack Query UI and Rust Agent for macOS and Windows. UI binds 127.0.0.1:38761. TCP defaults to 38762 with fallback announced by mDNS _lanlink._tcp.local. Use tokio, axum, mdns-sd, snow Noise, serde, sqlx SQLite, sha2, uuid and tracing.
 Persistent device identity. Discovery advertises ID, name, OS and actual port. Pairing requires both users to compare a security code and approve. Pinned keys authenticate subsequent encrypted sessions. Revoke immediately prevents further messages/files. Reject unauthorized application traffic and non-local HTTP/WS requests; validate Origin and Host.
 Messages have globally unique IDs, durable receiver ACK, deduplication, per-device history, pending/sending/sent/failed statuses and retry after reconnection. Files require per-transfer receiver acceptance, streamed chunks default 1MiB, 2GiB configurable cap, progress, cancellation, retry/resume, SHA256, bounded disk usage, atomic safe finalization, safe filenames and no overwrites. Noise transport frames must respect snow's 65535-byte maximum even for logical 1MiB chunks.

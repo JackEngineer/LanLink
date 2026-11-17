@@ -1,0 +1,20 @@
+Candidate built on Apple Silicon macOS 27.0, 2026-11-17.
+
+Verified source commit: a15025c0407bd668fa3b1378393964f1984645b0
+Source base: 4c6aeb7efc66c38dc853e08f24ee998103ad626c
+SHA-256 of git diff 4c6aeb7 a15025c -- crates:
+bd73f8dd9e7d6ed3af17530b58794e9f38b33b500994575f6aeb8cb0ad893e4b
+
+Packaged and installed lanlink-agent SHA-256:
+383d4358389f08a6a4b55386c4b58db0510410528489f32d70db4cc3b59106ba
+Apple Silicon PKG SHA-256:
+c5f3e161a8ec6439b40a0de043b7bba705ffa79e67f9ea7a08ba7185656693e3
+Apple Silicon ZIP SHA-256:
+4957fb5324786c115f495019e5ece8eec0e63ddf0880f46a7d11f80f4e0508da
+
+Exact smoke invocation from repository root:
+python3 scripts/smoke.py --agent dist/macos-aarch64-apple-darwin/LANLink.app/Contents/MacOS/lanlink-agent --web-dir dist/macos-aarch64-apple-darwin/LANLink.app/Contents/Resources/web --artifacts /tmp/lanlink-tests --file-mib 1024 --resume-mib 1024 --file-timeout 300
+
+mac-release-hash-bound.log records the binary digest itself before starting Agents.
+mac-native.log independently checks the installed binary digest and signature.
+Native Windows and physical two-machine tests were not executed.

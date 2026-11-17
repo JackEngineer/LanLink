@@ -1,0 +1,18 @@
+Artifacts: /private/tmp/lanlink-tests/lanlink-smoke-jiby531f
+PASS health and identity persistence on Darwin
+PASS Host, session bootstrap, Origin, token and expired token guards
+PASS A discovered 4fc327e30e6a4b680b23f0d2601649c75a9bb738d33238bcf9ebe0af563eba4d through mDNS at <LAN_IP> port 57562
+PASS B discovered 6f5440e417909e60d67e45565ff9d6241217396520aec91e0464699b0b9c3432 through mDNS at 127.0.0.1, <LAN_IP> port 57560
+PASS unpaired traffic rejection, matching pairing codes and bilateral approval
+FAIL A got incorrect mDNS fields for B: {'id': '4fc327e30e6a4b680b23f0d2601649c75a9bb738d33238bcf9ebe0af563eba4d', 'name': 'QA B jiby531f', 'platform': 'macos', 'addresses': [], 'port': 0, 'online': True, 'paired': True}
+Traceback (most recent call last):
+  File "<WORKSPACE>/scripts/smoke.py", line 651, in main
+    run(args, run_dir, log)
+  File "<WORKSPACE>/scripts/smoke.py", line 484, in run
+    require(discover(left, right)["paired"] and discover(right, left)["paired"],
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "<WORKSPACE>/scripts/smoke.py", line 294, in discover
+    require(row["name"] == peer.name and row["platform"] == peer.device["platform"]
+  File "<WORKSPACE>/scripts/smoke.py", line 36, in require
+    raise CheckFailed(reason)
+CheckFailed: A got incorrect mDNS fields for B: {'id': '4fc327e30e6a4b680b23f0d2601649c75a9bb738d33238bcf9ebe0af563eba4d', 'name': 'QA B jiby531f', 'platform': 'macos', 'addresses': [], 'port': 0, 'online': True, 'paired': True}

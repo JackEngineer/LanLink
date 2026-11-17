@@ -1,0 +1,16 @@
+Artifacts: /private/tmp/lanlink-tests/lanlink-smoke-mz23ngqa
+PASS health and identity persistence on Darwin
+PASS Host, session bootstrap, Origin, token and expired token guards
+FAIL Timed out waiting for B mDNS discovery of A. Last value: None
+Traceback (most recent call last):
+  File "<WORKSPACE>/scripts/smoke.py", line 652, in main
+    run(args, run_dir, log)
+  File "<WORKSPACE>/scripts/smoke.py", line 467, in run
+    right_discovery = discover(right, left)
+                      ^^^^^^^^^^^^^^^^^^^^^
+  File "<WORKSPACE>/scripts/smoke.py", line 292, in discover
+    row = wait_for(f"{agent.label} mDNS discovery of {peer.label}", lambda: agent.peer(peer),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<WORKSPACE>/scripts/smoke.py", line 47, in wait_for
+    raise CheckFailed(f"Timed out waiting for {description}. Last value: {last!r}")
+CheckFailed: Timed out waiting for B mDNS discovery of A. Last value: None

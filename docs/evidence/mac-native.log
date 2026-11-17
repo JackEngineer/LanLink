@@ -1,0 +1,17 @@
+$ codesign --verify --deep --strict --verbose=2 /Applications/LANLink.app
+--prepared:/Applications/LANLink.app/Contents/MacOS/lanlink-agent
+--validated:/Applications/LANLink.app/Contents/MacOS/lanlink-agent
+/Applications/LANLink.app: valid on disk
+/Applications/LANLink.app: satisfies its Designated Requirement
+$ shasum -a 256 /Applications/LANLink.app/Contents/MacOS/lanlink-agent
+383d4358389f08a6a4b55386c4b58db0510410528489f32d70db4cc3b59106ba  /Applications/LANLink.app/Contents/MacOS/lanlink-agent
+PASS health {"service": "lanlink", "status": "ok", "version": "0.1.0"}
+$ bash /Applications/LANLink.app/Contents/Resources/stop.sh
+$ bash /Applications/LANLink.app/Contents/Resources/login-start.sh enable
+PASS health {"service": "lanlink", "status": "ok", "version": "0.1.0"}
+PASS login startup preserved device identity
+$ bash /Applications/LANLink.app/Contents/Resources/uninstall.sh
+LANLink Agent stopped and login startup disabled. Move /Applications/LANLink.app to Trash to remove the app.
+Device identity, paired devices, messages and received files are retained in the Agent data directory.
+PASS uninstall helper stopped local HTTP service
+PASS login startup disabled; SQLite and installed application retained

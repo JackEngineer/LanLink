@@ -1,0 +1,20 @@
+Artifacts: /private/tmp/lanlink-tests/lanlink-smoke-wma77q6o
+Agent: <WORKSPACE>/dist/macos-aarch64-apple-darwin/LANLink.app/Contents/MacOS/lanlink-agent
+Agent SHA-256: 383d4358389f08a6a4b55386c4b58db0510410528489f32d70db4cc3b59106ba
+Web root: <WORKSPACE>/dist/macos-aarch64-apple-darwin/LANLink.app/Contents/Resources/web
+PASS health and identity persistence on Darwin
+PASS Host, session bootstrap, Origin, token and expired token guards
+PASS A discovered cbbcf23e9ba372be2b9e1a5d363dd7fa5dd2c0b948ddf75161b0de1bcb7856e5 through mDNS at 127.0.0.1 port 49390
+PASS B discovered 14a07b6687763e0901b4fb780ba66a5d1b21e6633d2860aae8e91e161ee3efba through mDNS at 127.0.0.1 port 49388
+PASS unpaired traffic rejection, matching pairing codes and bilateral approval
+PASS bidirectional durable ACK, history and trust after restart
+PASS stopped peer is shown offline
+PASS offline message retries delivered one receiver history row
+PASS accepted 1073741824-byte transfer, disk and HTTP download SHA-256 2c565f1854d8a6a140ac087e44b954ec95e9b85bbbd20ed6833e154b80e827e0
+PASS reverse 1073741824-byte transfer and SHA-256 2c565f1854d8a6a140ac087e44b954ec95e9b85bbbd20ed6833e154b80e827e0
+PASS 1073741824-byte transfer automatically resumed from verified durable byte 3145728 and published SHA-256 813bc77a99b3fcd2c852c2165cff1a782350c7567be2d90a5c6a20112b3aa9f2
+PASS outgoing cancellation reached receiver without publication
+PASS receiver rejection prevents file publication
+PASS changed snapshot fails SHA-256 without publication; subsequent chat succeeds
+PASS revocation rejects local sends and blocks receipt during 5s
+PASS all selected checks against two real Agents on one host

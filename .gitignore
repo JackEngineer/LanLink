@@ -6,3 +6,7 @@
 /.local/
 .DS_Store
 *.log
+!docs/evidence/*.log
+__pycache__/
+
+/dist/
