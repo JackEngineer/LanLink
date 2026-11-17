@@ -11,7 +11,10 @@
     "lint": "npm run lint -w apps/web",
     "test": "npm run test -w apps/web",
     "format": "prettier --write apps/web/src docs",
-    "format:check": "prettier --check apps/web/src docs"
+    "format:check": "prettier --check apps/web/src docs",
+    "site:build": "node apps/site/build.mjs",
+    "site:check": "npm run site:build && node apps/site/check.mjs",
+    "site:package": "npm run site:check && node apps/site/build.mjs --package"
   },
   "devDependencies": {
     "prettier": "^3.6.2"

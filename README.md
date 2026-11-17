@@ -57,6 +57,7 @@ Intel Mac 构建先安装对应 target，再执行 `bash scripts/macos/package.s
 
 ## 工程结构
 
+- `apps/site` 保存独立官网，运行 `npm run site:package` 生成静态发布包。腾讯云 Nginx 部署见[官网部署指南](docs/website-deploy.md)。
 - `apps/web` 保存 React、TypeScript、Tailwind、Zustand 和 TanStack Query 前端。
 - `crates/protocol` 定义共享协议和数据模型。
 - `crates/store` 管理 SQLite 持久化。

@@ -1,0 +1,41 @@
+{
+  "tag": "v0.1.0-preview.1",
+  "releaseUrl": "https://github.com/JackEngineer/LanLink/releases/tag/v0.1.0-preview.1",
+  "checksumsUrl": "https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/SHA256SUMS",
+  "downloads": [
+    {
+      "platform": "macos-apple-silicon",
+      "label": "Mac · Apple Silicon",
+      "artifacts": [
+        {
+          "format": "PKG",
+          "url": "https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-aarch64-apple-darwin.pkg"
+        },
+        {
+          "format": "ZIP",
+          "url": "https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-aarch64-apple-darwin.zip"
+        }
+      ]
+    },
+    {
+      "platform": "macos-intel",
+      "label": "Mac · Intel",
+      "artifacts": [
+        {
+          "format": "ZIP",
+          "url": "https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-x86_64-apple-darwin.zip"
+        }
+      ]
+    },
+    {
+      "platform": "windows-x64",
+      "label": "Windows · x64",
+      "artifacts": [
+        {
+          "format": "ZIP",
+          "url": "https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-x86_64-pc-windows-msvc.zip"
+        }
+      ]
+    }
+  ]
+}
