@@ -512,6 +512,13 @@ async fn ready(state: &Arc<State>, conn: &mut Connection, peer: &str, session: &
                             if matches!(
                                 t.status,
                                 TransferStatus::Transferring | TransferStatus::Paused
+                            ) {
+                                let settings = state.settings.read().await;
+                                files::enforce_incoming_limit(state, &mut t, &settings).await?;
+                            }
+                            if matches!(
+                                t.status,
+                                TransferStatus::Transferring | TransferStatus::Paused
                             ) && t.offset == t.size
                                 && verifying.insert(t.id.clone())
                             {
@@ -586,9 +593,7 @@ async fn ready(state: &Arc<State>, conn: &mut Connection, peer: &str, session: &
                         }) => {
                             ensure!(Uuid::parse_str(&id)?.to_string() == id, "noncanonical UUID");
                             ensure!(
-                                size <= state.settings.read().await.max_file_size
-                                    && valid_id(&sha256)
-                                    && name.chars().count() <= 120,
+                                valid_id(&sha256) && name.chars().count() <= 120,
                                 "invalid file offer"
                             );
                             let offer = Transfer {
@@ -604,14 +609,27 @@ async fn ready(state: &Arc<State>, conn: &mut Connection, peer: &str, session: &
                                 error: None,
                                 created_at,
                             };
-                            let (t, reopened) = state.store.receive_offer(&offer, retry).await?;
-                            if reopened {
-                                files::remove_partial(state, &t).await?;
-                                incoming_offsets.remove(&t.id);
-                                verifying.remove(&t.id);
+                            let settings = state.settings.read().await;
+                            if let Some((mut t, reopened)) = state
+                                .store
+                                .receive_offer(&offer, retry, settings.max_file_size)
+                                .await?
+                            {
+                                files::enforce_incoming_limit(state, &mut t, &settings).await?;
+                                if reopened {
+                                    files::remove_partial(state, &t).await?;
+                                    incoming_offsets.remove(&t.id);
+                                    verifying.remove(&t.id);
+                                }
+                                response = Some(transfer_state(&t));
+                                state.changed();
+                            } else {
+                                response = Some(Control::TransferState {
+                                    id: offer.id,
+                                    status: TransferStatus::Rejected,
+                                    offset: 0,
+                                });
                             }
-                            response = Some(transfer_state(&t));
-                            state.changed();
                         }
                         Frame::Control(Control::TransferState { id, status, offset }) => {
                             let mut t = state.store.transfer(&id).await?;
@@ -653,12 +671,12 @@ async fn ready(state: &Arc<State>, conn: &mut Connection, peer: &str, session: &
                                     TransferStatus::Rejected
                                     | TransferStatus::Cancelled
                                     | TransferStatus::Failed => {
-                                        t.status = status;
-                                        sent_chunks.remove(&t.id);
-                                        state.store.save_transfer(&t).await?;
                                         if status != TransferStatus::Failed {
                                             files::remove_partial(state, &t).await?;
                                         }
+                                        t.status = status;
+                                        sent_chunks.remove(&t.id);
+                                        state.store.save_transfer(&t).await?;
                                     }
                                     TransferStatus::Offered | TransferStatus::AwaitingAccept => {}
                                 }
@@ -692,6 +710,8 @@ async fn ready(state: &Arc<State>, conn: &mut Connection, peer: &str, session: &
                                 t.direction == Direction::Incoming,
                                 "file data targeted an outgoing transfer"
                             );
+                            let settings = state.settings.read().await;
+                            files::enforce_incoming_limit(state, &mut t, &settings).await?;
                             if t.status.terminal()
                                 || offset < t.offset
                                 || (t.offset == t.size && verifying.contains(&t.id))
@@ -783,11 +803,13 @@ async fn verify_transfer(
     let _guard = gate.lock().await;
     state.authorized(&peer, &session).await?;
     let mut current = state.store.transfer(&t.id).await?;
+    let settings = state.settings.read().await;
+    files::enforce_incoming_limit(&state, &mut current, &settings).await?;
     if current.status.terminal() {
         return Ok::<(), anyhow::Error>(());
     }
     let result = match hash {
-        Ok(hash) if hash == t.sha256 => files::publish(&state, &mut current).await,
+        Ok(hash) if hash == t.sha256 => files::publish(&state, &mut current, &settings).await,
         Ok(_) => Err(anyhow::anyhow!("SHA-256 mismatch")),
         Err(error) => Err(error),
     };
@@ -1526,7 +1548,6 @@ mod tests {
                 assert!(!receiver.store.transfer_exists(&oversized.id).await?);
                 assert_eq!(receiver.store.transfer(&partial.id).await?.status, TransferStatus::Rejected);
                 assert!(!tokio::fs::try_exists(partial_path).await?);
-                assert!(!tokio::fs::try_exists(files::spool_path(&sender, &oversized)).await?);
                 assert_eq!(receiver.store.transfer(&completed.id).await?, completed);
                 assert_eq!(tokio::fs::read(destination).await?, b"published");
                 let message = Message {
@@ -1543,6 +1564,7 @@ mod tests {
                     tokio::time::sleep(Duration::from_millis(10)).await;
                 }
                 assert_eq!(receiver.store.message(&message.id).await?.body, message.body);
+                assert!(!tokio::fs::try_exists(files::spool_path(&sender, &oversized)).await?);
                 Ok::<_, anyhow::Error>(())
             }) => result??,
         }

@@ -37,11 +37,11 @@ pub fn spool_path(state: &State, t: &Transfer) -> PathBuf {
     ))
 }
 pub async fn download_path(state: &State, t: &Transfer) -> PathBuf {
-    Path::new(&state.settings.read().await.download_dir).join(format!(
-        "{}-{}",
-        t.id,
-        safe_name(&t.name)
-    ))
+    let settings = state.settings.read().await;
+    download_path_in(&settings, t)
+}
+fn download_path_in(settings: &Settings, t: &Transfer) -> PathBuf {
+    Path::new(&settings.download_dir).join(format!("{}-{}", t.id, safe_name(&t.name)))
 }
 pub async fn sync_dir(path: &Path) -> Result<()> {
     #[cfg(unix)]
@@ -73,6 +73,37 @@ pub async fn remove_partial(state: &State, t: &Transfer) -> Result<()> {
         Err(e) => return Err(e.into()),
     }
     Ok(())
+}
+pub async fn enforce_incoming_limit(
+    state: &State,
+    t: &mut Transfer,
+    settings: &Settings,
+) -> Result<bool> {
+    if t.size <= settings.max_file_size
+        || matches!(
+            t.status,
+            TransferStatus::Completed | TransferStatus::Rejected | TransferStatus::Cancelled
+        )
+    {
+        return Ok(false);
+    }
+    let dest = download_path_in(settings, t);
+    if t.offset == t.size
+        && matches!(
+            t.status,
+            TransferStatus::Transferring | TransferStatus::Paused
+        )
+        && matches_download(&dest, t).await?
+    {
+        record_completion(state, t, &dest).await?;
+    } else {
+        remove_partial(state, t).await?;
+        t.status = TransferStatus::Rejected;
+        t.error = Some("file exceeds configured limit".into());
+        state.store.save_transfer(t).await?;
+    }
+    state.changed();
+    Ok(true)
 }
 pub async fn hash_file(path: &Path) -> Result<String> {
     let mut file = File::open(path).await?;
@@ -166,24 +197,34 @@ pub async fn finalize(state: &State, t: &mut Transfer) -> Result<()> {
         fs::metadata(&path).await?.len() == t.size && hash_file(&path).await? == t.sha256,
         "SHA-256 mismatch"
     );
-    publish(state, t).await
+    let settings = state.settings.read().await;
+    publish(state, t, &settings).await
 }
-pub async fn publish(state: &State, t: &mut Transfer) -> Result<()> {
+pub async fn publish(state: &State, t: &mut Transfer, settings: &Settings) -> Result<()> {
     let path = spool_path(state, t);
-    let dest = download_path(state, t).await;
+    let dest = download_path_in(settings, t);
     match fs::hard_link(&path, &dest).await {
         Ok(()) => {}
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-            ensure!(
-                fs::metadata(&dest).await?.len() == t.size && hash_file(&dest).await? == t.sha256,
-                "destination collision"
-            );
+            ensure!(matches_download(&dest, t).await?, "destination collision");
         }
         Err(e) => return Err(e).context("atomic file publication failed"),
     }
+    record_completion(state, t, &dest).await
+}
+async fn matches_download(dest: &Path, t: &Transfer) -> Result<bool> {
+    match fs::metadata(dest).await {
+        Ok(metadata) => Ok(metadata.is_file()
+            && metadata.len() == t.size
+            && hash_file(dest).await? == t.sha256),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(e.into()),
+    }
+}
+async fn record_completion(state: &State, t: &mut Transfer, dest: &Path) -> Result<()> {
     OpenOptions::new()
         .write(true)
-        .open(&dest)
+        .open(dest)
         .await?
         .sync_all()
         .await?;
@@ -197,6 +238,7 @@ pub async fn publish(state: &State, t: &mut Transfer) -> Result<()> {
 pub async fn recover(state: &State) -> Result<()> {
     state.store.recover_messages().await?;
     let transfers = state.store.transfers().await?;
+    let settings = state.settings.read().await.clone();
     for mut t in transfers.clone() {
         if t.status == TransferStatus::Completed
             || (t.direction == Direction::Incoming && t.status == TransferStatus::Failed)
@@ -217,6 +259,9 @@ pub async fn recover(state: &State) -> Result<()> {
                 TransferStatus::Transferring | TransferStatus::Paused
             )
         {
+            if enforce_incoming_limit(state, &mut t, &settings).await? {
+                continue;
+            }
             let path = spool_path(state, &t);
             match OpenOptions::new().write(true).open(&path).await {
                 Ok(file) if file.metadata().await?.len() >= t.offset => {
@@ -422,11 +467,49 @@ mod tests {
         failed.error = Some("checksum mismatch".into());
         state.store.insert_transfer(&failed).await?;
         assert!(state.transfer_action(&failed.id, "cancel").await.is_err());
-        let (reopened, retrying) = state.store.receive_offer(&failed, true).await?;
+        let (reopened, retrying) = state
+            .store
+            .receive_offer(&failed, true, MAX_FILE_SIZE)
+            .await?
+            .context("retry did not reopen the incoming offer")?;
         assert!(retrying);
         assert_eq!(reopened.status, TransferStatus::Offered);
         assert_eq!(reopened.offset, 0);
         assert!(reopened.error.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn cancel_keeps_outgoing_reservation_when_cleanup_fails() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let state = test_state(root.path()).await?;
+        for status in [TransferStatus::AwaitingAccept, TransferStatus::Failed] {
+            let mut t = transfer(4);
+            t.status = status;
+            t.direction = Direction::Outgoing;
+            state.store.reserve(&t).await?;
+            let path = spool_path(&state, &t);
+            fs::create_dir(&path).await?;
+            assert!(state.transfer_action(&t.id, "cancel").await.is_err());
+            assert_eq!(state.store.transfer(&t.id).await?, t);
+            assert!(
+                state
+                    .store
+                    .reserve_upload("other", DISK_QUOTA)
+                    .await
+                    .is_err()
+            );
+            fs::remove_dir(&path).await?;
+            fs::write(&path, b"send").await?;
+            state.transfer_action(&t.id, "cancel").await?;
+            assert_eq!(
+                state.store.transfer(&t.id).await?.status,
+                TransferStatus::Cancelled
+            );
+            assert!(!fs::try_exists(path).await?);
+            state.store.reserve_upload("other", DISK_QUOTA).await?;
+            state.store.release_upload("other").await?;
+        }
         Ok(())
     }
     #[tokio::test]
@@ -481,6 +564,73 @@ mod tests {
         assert_eq!(t.status, TransferStatus::Completed);
         assert_eq!(fs::read(&dest).await?, bytes);
         assert!(!spool_path(&state, &t).exists());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn recovery_applies_lowered_limit_without_losing_a_published_download() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let state = test_state(root.path()).await?;
+        let bytes = b"fully received";
+        state.settings.write().await.max_file_size = bytes.len() as u64 - 1;
+        for published in [false, true] {
+            let mut t = transfer(bytes.len() as u64);
+            t.offset = t.size;
+            t.sha256 = hex::encode(Sha256::digest(bytes));
+            state.store.reserve(&t).await?;
+            let partial = spool_path(&state, &t);
+            let destination = download_path(&state, &t).await;
+            fs::write(&partial, bytes).await?;
+            if published {
+                fs::hard_link(&partial, &destination).await?;
+            }
+            recover(&state).await?;
+            assert!(!fs::try_exists(partial).await?);
+            let stored = state.store.transfer(&t.id).await?;
+            if published {
+                assert_eq!(stored.status, TransferStatus::Completed);
+                assert_eq!(fs::read(destination).await?, bytes);
+            } else {
+                assert_eq!(stored.status, TransferStatus::Rejected);
+                assert!(!fs::try_exists(destination).await?);
+            }
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn oversized_partial_keeps_quota_when_cleanup_fails() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let state = test_state(root.path()).await?;
+        state.settings.write().await.max_file_size = 1;
+        let settings = state.settings.read().await;
+        let mut partial = transfer(4);
+        partial.status = TransferStatus::Paused;
+        state.store.reserve(&partial).await?;
+        let path = spool_path(&state, &partial);
+        fs::create_dir(&path).await?;
+        assert!(
+            enforce_incoming_limit(&state, &mut partial, &settings)
+                .await
+                .is_err()
+        );
+        assert_eq!(state.store.transfer(&partial.id).await?, partial);
+        assert!(
+            state
+                .store
+                .reserve_upload("other", DISK_QUOTA)
+                .await
+                .is_err()
+        );
+        fs::remove_dir(&path).await?;
+        fs::write(&path, b"a").await?;
+        assert!(enforce_incoming_limit(&state, &mut partial, &settings).await?);
+        assert_eq!(
+            state.store.transfer(&partial.id).await?.status,
+            TransferStatus::Rejected
+        );
+        assert!(!fs::try_exists(path).await?);
+        state.store.reserve_upload("other", DISK_QUOTA).await?;
         Ok(())
     }
     #[tokio::test]

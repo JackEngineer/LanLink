@@ -390,7 +390,12 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
         }
         Ok(())
     }
-    pub async fn receive_offer(&self, offer: &Transfer, retry: bool) -> Result<(Transfer, bool)> {
+    pub async fn receive_offer(
+        &self,
+        offer: &Transfer,
+        retry: bool,
+        max_file_size: u64,
+    ) -> Result<Option<(Transfer, bool)>> {
         let mut tx = self.pool.begin().await?;
         let row: Option<String> = sqlx::query_scalar("SELECT value FROM transfers WHERE id=?")
             .bind(&offer.id)
@@ -407,13 +412,16 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
                     && existing.sha256 == offer.sha256,
                 "conflicting transfer ID"
             );
-            if !retry || existing.status != TransferStatus::Failed {
-                return Ok((existing, false));
+            if offer.size > max_file_size || !retry || existing.status != TransferStatus::Failed {
+                return Ok(Some((existing, false)));
             }
             existing.status = TransferStatus::Offered;
             existing.offset = 0;
             existing.error = None;
             reopened = Some(existing);
+        }
+        if offer.size > max_file_size {
+            return Ok(None);
         }
         let rows: Vec<String> = sqlx::query_scalar("SELECT value FROM transfers")
             .fetch_all(&mut *tx)
@@ -442,7 +450,7 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
-        Ok((t, retrying))
+        Ok(Some((t, retrying)))
     }
 
     async fn reserved_bytes(&self, t: &Transfer, settings: Option<&Settings>) -> Result<u64> {
@@ -615,11 +623,16 @@ mod tests {
         }
         store.reserve_upload("upload", 32).await?;
         let mut offer = transfer("offer", Direction::Incoming, 1, TransferStatus::Offered);
-        assert!(store.receive_offer(&offer, false).await.is_err());
+        assert!(
+            store
+                .receive_offer(&offer, false, MAX_FILE_SIZE)
+                .await
+                .is_err()
+        );
         let mut existing = store.transfer("0").await?;
         assert_eq!(
-            store.receive_offer(&existing, false).await?,
-            (existing.clone(), false)
+            store.receive_offer(&existing, false, MAX_FILE_SIZE).await?,
+            Some((existing.clone(), false))
         );
         existing.status = TransferStatus::Transferring;
         store.reserve(&existing).await?;
@@ -634,6 +647,22 @@ mod tests {
         );
         store.finish_upload(&upload).await?;
         assert_eq!(store.transfer("upload").await?, upload);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn oversized_offer_still_checks_identity_before_rejection() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let store = Store::open(&dir.path().join("test.sqlite3")).await?;
+        let existing = transfer("offer", Direction::Incoming, 4, TransferStatus::Paused);
+        store.insert_transfer(&existing).await?;
+        let mut conflicting = existing.clone();
+        conflicting.peer_id = "different peer".into();
+        assert!(store.receive_offer(&conflicting, false, 1).await.is_err());
+        conflicting.peer_id = existing.peer_id.clone();
+        conflicting.sha256 = "b".repeat(64);
+        assert!(store.receive_offer(&conflicting, false, 1).await.is_err());
+        assert_eq!(store.transfer(&existing.id).await?, existing);
         Ok(())
     }
     #[tokio::test]
