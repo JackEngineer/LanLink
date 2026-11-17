@@ -18,6 +18,7 @@ lanlink-store.workspace = true
 lanlink-transport.workspace = true
 axum = { version = "0.8", features = ["ws", "multipart"] }
 mdns-sd = "0.21"
+if-addrs = "0.15"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"
@@ -26,7 +27,8 @@ clap = { version = "4", features = ["derive"] }
 directories = "6"
 fs2 = "0.4"
 futures-util = "0.3"
-tokio-util = { version = "0.7", features = ["io"] }
+tokio-util = { version = "0.7", features = ["io", "rt"] }
 percent-encoding = "2"
-[dev-dependencies]
 tempfile = "3"
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }

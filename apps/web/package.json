@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@rc-component/qrcode": "2.0.0",
     "@tanstack/react-query": "^5.90.0",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",

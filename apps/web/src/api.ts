@@ -2,6 +2,8 @@ import type {
   Device,
   Health,
   Message,
+  MobileFile,
+  MobileState,
   Pairing,
   Peer,
   Settings,
@@ -34,6 +36,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     response = await fetch(base + path, {
       credentials: 'same-origin',
       mode: 'same-origin',
+      referrerPolicy: 'same-origin',
       cache: 'no-store',
       ...init,
     })
@@ -108,7 +111,13 @@ async function upload(
   const token = await sessionToken(signal)
   for (let attempt = 0; ; attempt += 1) {
     try {
-      return await uploadOnce(peerId, file, token, onProgress, signal)
+      return await uploadFile<Transfer>(
+        `/transfers?${peerQuery(peerId)}`,
+        file,
+        token,
+        onProgress,
+        signal,
+      )
     } catch (error) {
       const delay = busyRetryDelays[attempt]
       if (!(error instanceof UploadBusyError) || delay === undefined)
@@ -119,18 +128,18 @@ async function upload(
   }
 }
 
-function uploadOnce(
-  peerId: string,
+function uploadFile<T>(
+  path: string,
   file: File,
   token: string,
   onProgress: (progress: number) => void,
   signal: AbortSignal,
-): Promise<Transfer> {
+): Promise<T> {
   signal.throwIfAborted()
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    xhr.open('POST', `${base}/transfers?${peerQuery(peerId)}`)
+    xhr.open('POST', base + path)
     xhr.responseType = 'json'
     xhr.setRequestHeader(tokenHeader, token)
 
@@ -191,6 +200,29 @@ export const api = {
   transferAction: (id: string, action: TransferAction) =>
     mutate<Ok>('POST', `/transfers/${pathId(id)}/${action}`),
   downloadUrl: (id: string) => `${base}/transfers/${pathId(id)}/download`,
+  mobile: async (signal?: AbortSignal) =>
+    request<MobileState>('/mobile', {
+      headers: { [tokenHeader]: await sessionToken(signal) },
+      signal,
+    }),
+  startMobile: (address: string) =>
+    mutate<MobileState>('POST', '/mobile', { address }),
+  approveMobile: (code: string) =>
+    mutate<MobileState>('POST', '/mobile/approve', { code }),
+  endMobile: () => mutate<MobileState>('DELETE', '/mobile'),
+  uploadMobile: async (
+    file: File,
+    onProgress: (progress: number) => void,
+    signal: AbortSignal,
+  ) =>
+    uploadFile<MobileFile>(
+      '/mobile/files',
+      file,
+      await sessionToken(signal),
+      onProgress,
+      signal,
+    ),
+  mobileDownloadUrl: (id: string) => `${base}/mobile/files/${pathId(id)}`,
   settings: () => request<Settings>('/settings'),
   saveSettings: (maxFileSize: number) =>
     mutate<Settings>('PATCH', '/settings', { max_file_size: maxFileSize }),

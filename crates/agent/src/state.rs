@@ -51,6 +51,7 @@ pub struct State {
     pub sessions: Arc<Semaphore>,
     pub uploads: Arc<Semaphore>,
     pub tcp_port: u16,
+    pub mobile: Mutex<Option<Arc<crate::mobile::Session>>>,
     pub outbox: tokio::sync::Notify,
 }
 impl State {
@@ -263,6 +264,7 @@ pub async fn test_state(root: &std::path::Path) -> Result<State> {
         sessions: Arc::new(Semaphore::new(64)),
         uploads: Arc::new(Semaphore::new(1)),
         tcp_port: 0,
+        mobile: Mutex::new(None),
         outbox: tokio::sync::Notify::new(),
     })
 }

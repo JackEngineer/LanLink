@@ -28,3 +28,20 @@ Peer = Device & `{addresses:string[],port:number,online:boolean,paired:boolean}`
 Pairing = `{id:string,peer_id:string,peer_name:string,code:string,local_confirmed:boolean,remote_confirmed:boolean,expires_at:number}`. Timestamp in epoch milliseconds.
 Message = `{id:string,peer_id:string,direction:"incoming"|"outgoing",body:string,created_at:number,status:"sending"|"sent"|"pending"|"failed"}`.
 Transfer = `{id:string,peer_id:string,direction:"incoming"|"outgoing",name:string,size:number,sha256:string,offset:number,status:"offered"|"awaiting_accept"|"transferring"|"paused"|"completed"|"rejected"|"cancelled"|"failed",error:string|null,failure_kind?:"source_unavailable"|null,created_at:number}`.
+
+## Browser file transfer
+
+The desktop API opens one temporary HTTP listener on a selected LAN IPv4 address. The desktop routes use `/api/v1`. The temporary listener serves only the `/mobile/` page, its assets and its file transfer API.
+
+| Desktop route            | Request                | Response                                                          |
+| ------------------------ | ---------------------- | ----------------------------------------------------------------- |
+| `GET /mobile`            | `X-LANLink-Token`      | Interface addresses and current session                           |
+| `POST /mobile`           | `{address}`            | Starts a session and returns the desktop state                    |
+| `POST /mobile/approve`   | `{code}`               | Approves a matching pending session and returns the desktop state |
+| `DELETE /mobile`         |                        | Ends the session and returns the desktop state                    |
+| `POST /mobile/files`     | Multipart `file`       | Metadata for the file available to the mobile browser             |
+| `GET /mobile/files/{id}` | Same-origin navigation | Attachment for a file received from the mobile browser            |
+
+Desktop state is `{addresses,session}`. `session` is null or includes `url` and the mobile state fields. The QR URL carries the one-use invite in its fragment. Mobile state includes `{phase,code,expires_at,max_file_size,files}`. `expires_at` is epoch milliseconds and `max_file_size` is in bytes. The phases are `inviting`, `pending` and `approved`. Each file is `{id,name,size,direction}`, with direction `to_computer` or `to_mobile`.
+
+On the temporary listener, `POST /mobile/claim` with `{invite}` establishes a browser credential as a cookie and returns mobile state. `GET /mobile/state` reads that state using the cookie. After desktop approval, `POST /mobile/files` accepts multipart `file` and `GET /mobile/files/{id}` serves an attachment staged for the mobile browser. Mobile writes require the temporary listener's exact Origin. Ending the session or reaching its expiry invalidates the credential.
