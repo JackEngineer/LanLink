@@ -27,16 +27,31 @@ describe('transfer actions', () => {
     ).toEqual(['cancel'])
   })
 
-  it('allows outgoing retries and lets the receiver cancel a paused transfer', () => {
+  it('allows retry and cancel for paused or retryable failed outgoing transfers', () => {
     expect(
       transferActions({ direction: 'outgoing', status: 'paused' }),
     ).toEqual(['retry', 'cancel'])
     expect(
       transferActions({ direction: 'outgoing', status: 'failed' }),
-    ).toEqual(['retry'])
+    ).toEqual(['retry', 'cancel'])
+  })
+
+  it('allows only cancel for an outgoing transfer whose source is unavailable', () => {
+    const sourceUnavailable = {
+      direction: 'outgoing',
+      status: 'failed',
+      failure_kind: 'source_unavailable',
+    } as const
+    expect(transferActions(sourceUnavailable)).toEqual(['cancel'])
+  })
+
+  it('only lets the receiver cancel a paused transfer', () => {
     expect(
       transferActions({ direction: 'incoming', status: 'paused' }),
     ).toEqual(['cancel'])
+    expect(
+      transferActions({ direction: 'incoming', status: 'failed' }),
+    ).toEqual([])
   })
 
   it.each<TransferStatus>(['completed', 'rejected', 'cancelled'])(
