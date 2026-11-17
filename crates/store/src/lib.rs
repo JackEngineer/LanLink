@@ -266,16 +266,22 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
         let rows: Vec<String> = sqlx::query_scalar("SELECT value FROM transfers")
             .fetch_all(&mut *tx)
             .await?;
+        ensure!(rows.len() < 10_000, "transfer history limit reached");
+        let mut active = 0;
         let mut used: u64 =
             sqlx::query_scalar::<_, i64>("SELECT COALESCE(SUM(size),0) FROM uploads")
                 .fetch_one(&mut *tx)
                 .await? as u64;
         for row in rows {
             let t: Transfer = serde_json::from_str(&row)?;
+            if !t.status.terminal() {
+                active += 1;
+            }
             if reserves_space(&t) {
                 used = used.checked_add(t.size).context("quota overflow")?;
             }
         }
+        ensure!(active < 32, "too many pending transfers");
         ensure!(
             used.checked_add(size).is_some_and(|n| n <= DISK_QUOTA),
             "storage quota exceeded"
@@ -331,14 +337,9 @@ CREATE INDEX IF NOT EXISTS transfers_peer ON transfers(peer);",
             );
             return Ok(existing);
         }
-        if self
-            .transfers()
-            .await?
-            .iter()
-            .filter(|t| !t.status.terminal())
-            .count()
-            >= 32
-        {
+        let transfers = self.transfers().await?;
+        ensure!(transfers.len() < 10_000, "transfer history limit reached");
+        if transfers.iter().filter(|t| !t.status.terminal()).count() >= 32 {
             bail!("too many pending transfers");
         }
         self.insert_transfer(offer).await?;

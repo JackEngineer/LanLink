@@ -135,6 +135,7 @@ pub enum Control {
         size: u64,
         sha256: String,
         created_at: i64,
+        retry: bool,
     },
     TransferState {
         id: String,
@@ -209,11 +210,14 @@ pub fn valid_id(id: &str) -> bool {
             .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
 }
 pub fn safe_name(name: &str) -> String {
-    let clean: String = name
+    let mut clean: String = name
         .chars()
         .filter(|c| !c.is_control() && !"/\\<>:\"|?*".contains(*c))
         .take(120)
         .collect();
+    while clean.len() > 180 {
+        clean.pop();
+    }
     let clean = clean.trim().trim_matches('.').trim();
     let stem = clean.split('.').next().unwrap_or("").to_uppercase();
     let reserved = matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")

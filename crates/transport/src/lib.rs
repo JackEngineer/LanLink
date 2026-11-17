@@ -207,4 +207,41 @@ mod tests {
         server.await??;
         Ok(())
     }
+    #[tokio::test]
+    async fn interrupted_receive_preserves_partial_frame() -> Result<()> {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+        let address = listener.local_addr()?;
+        let a = keypair()?;
+        let b = keypair()?;
+        let server = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await?;
+            Connection::connect(socket, &b.private, false, false).await
+        });
+        let socket = TcpStream::connect(address).await?;
+        let mut client = Connection::connect(socket, &a.private, true, false).await?;
+        let mut server = server.await??;
+        let plain = Frame::Control(Control::Ping)
+            .encode()
+            .map_err(anyhow::Error::msg)?;
+        let mut encrypted = vec![0; plain.len() + 16];
+        let n = client
+            .noise
+            .lock()
+            .await
+            .write_message(&plain, &mut encrypted)?;
+        let prefix = (n as u16).to_be_bytes();
+        client.writer.write_all(&prefix[..1]).await?;
+        assert!(
+            timeout(Duration::from_millis(20), server.recv())
+                .await
+                .is_err()
+        );
+        client.writer.write_all(&prefix[1..]).await?;
+        client.writer.write_all(&encrypted).await?;
+        assert!(matches!(
+            timeout(Duration::from_secs(1), server.recv_control()).await??,
+            Control::Ping
+        ));
+        Ok(())
+    }
 }
