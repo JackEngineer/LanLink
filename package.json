@@ -1,0 +1,13 @@
+{
+  "name": "lanlink", "version": "0.1.0", "private": true,
+  "workspaces": ["apps/web"],
+  "scripts": {
+    "dev": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/web",
+    "lint": "npm run lint -w apps/web",
+    "test": "npm run test -w apps/web",
+    "format": "prettier --write apps/web/src docs",
+    "format:check": "prettier --check apps/web/src docs"
+  },
+  "devDependencies": {"prettier": "^3.6.2"}
+}

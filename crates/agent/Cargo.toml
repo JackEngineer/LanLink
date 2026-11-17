@@ -1,0 +1,29 @@
+[package]
+name = "lanlink-agent"
+version.workspace = true
+edition.workspace = true
+[dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+sha2.workspace = true
+hex.workspace = true
+snow.workspace = true
+sqlx.workspace = true
+lanlink-protocol.workspace = true
+lanlink-store.workspace = true
+lanlink-transport.workspace = true
+axum = { version = "0.8", features = ["ws", "multipart"] }
+mdns-sd = "0.21"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+tower-http = { version = "0.6", features = ["fs", "limit"] }
+clap = { version = "4", features = ["derive"] }
+directories = "6"
+fs2 = "0.4"
+futures-util = "0.3"
+[dev-dependencies]
+tempfile = "3"

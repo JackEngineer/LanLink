@@ -1,0 +1,8 @@
+/target/
+/node_modules/
+/apps/web/node_modules/
+/apps/web/dist/
+/.audit/*.todo.md
+/.local/
+.DS_Store
+*.log

@@ -1,0 +1,3 @@
+ts	phase	decision	why	evidence	result
+2026-11-17T09:30:00Z	frame	Initialize an empty Git repository and sequence seven verified milestones	User requires a real offline cross-platform product	docs/brief.md	Git initialized; implementation open
+2026-11-17T09:31:00Z	environment	Install temporary official Rust toolchain	No cargo or rustc on PATH	/tmp/lanlink-tools/rustup-init	In progress

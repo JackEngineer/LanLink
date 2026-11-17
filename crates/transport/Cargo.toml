@@ -1,0 +1,13 @@
+[package]
+name = "lanlink-transport"
+version.workspace = true
+edition.workspace = true
+[dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+snow.workspace = true
+sha2.workspace = true
+hex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+lanlink-protocol.workspace = true
