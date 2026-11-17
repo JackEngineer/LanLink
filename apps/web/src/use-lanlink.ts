@@ -105,51 +105,66 @@ export function useAgentConnection(): LiveConnection {
   return connection
 }
 
-const activeUploads = new Map<string, AbortController>()
+let activeUpload: { id: string; controller: AbortController } | undefined
 
 export function useFileUploads() {
   const client = useQueryClient()
 
-  async function startUpload(
+  async function processUploads() {
+    if (activeUpload) return
+
+    const { updateUpload, removeUpload } = useUi.getState()
+    for (;;) {
+      const next = useUi
+        .getState()
+        .uploads.find(({ status }) => status === 'queued')
+      if (!next) return
+
+      const { id, peerId, file } = next
+      const controller = new AbortController()
+      activeUpload = { id, controller }
+      updateUpload(id, { status: 'uploading' })
+
+      try {
+        const transfer = await api.upload(
+          peerId,
+          file,
+          (progress) => updateUpload(id, { progress }),
+          controller.signal,
+        )
+        client.setQueryData<Transfer[]>(agentKeys.transfers, (current = []) => [
+          ...current.filter(({ id }) => id !== transfer.id),
+          transfer,
+        ])
+        removeUpload(id)
+      } catch (error) {
+        if (controller.signal.aborted) {
+          removeUpload(id)
+        } else {
+          updateUpload(id, { status: 'failed', error: errorMessage(error) })
+        }
+      } finally {
+        void client.invalidateQueries({ queryKey: agentKeys.transfers })
+        activeUpload = undefined
+      }
+    }
+  }
+
+  function startUpload(
     peerId: string,
     file: File,
     id: string = crypto.randomUUID(),
   ) {
-    if (activeUploads.has(id)) return
+    const { uploads, putUpload } = useUi.getState()
+    if (uploads.some((item) => item.id === id && item.status !== 'failed'))
+      return
 
-    const { putUpload, updateUpload, removeUpload } = useUi.getState()
-    const controller = new AbortController()
-    activeUploads.set(id, controller)
-    putUpload({ id, peerId, file, progress: 0, status: 'uploading' })
-
-    try {
-      const transfer = await api.upload(
-        peerId,
-        file,
-        (progress) => updateUpload(id, { progress }),
-        controller.signal,
-      )
-      client.setQueryData<Transfer[]>(agentKeys.transfers, (current = []) => [
-        ...current.filter(({ id }) => id !== transfer.id),
-        transfer,
-      ])
-      removeUpload(id)
-      void client.invalidateQueries({ queryKey: agentKeys.transfers })
-    } catch (error) {
-      if (controller.signal.aborted) {
-        removeUpload(id)
-      } else {
-        updateUpload(id, { status: 'failed', error: errorMessage(error) })
-      }
-      void client.invalidateQueries({ queryKey: agentKeys.transfers })
-    } finally {
-      activeUploads.delete(id)
-    }
+    putUpload({ id, peerId, file, progress: 0, status: 'queued' })
+    void processUploads()
   }
 
   function dismissUpload(id: string) {
-    const controller = activeUploads.get(id)
-    if (controller) controller.abort()
+    if (activeUpload?.id === id) activeUpload.controller.abort()
     else useUi.getState().removeUpload(id)
   }
 

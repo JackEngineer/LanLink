@@ -231,7 +231,12 @@ export function UploadRows({
             <div className="file-name" title={item.file.name}>
               {item.file.name}
             </div>
-            {item.status === 'uploading' ? (
+            {item.status === 'queued' && (
+              <p className="file-details">
+                等待上传 · {formatBytes(item.file.size)}
+              </p>
+            )}
+            {item.status === 'uploading' && (
               <FileProgress
                 value={item.progress}
                 label={`${item.file.name} 上传进度`}
@@ -241,7 +246,8 @@ export function UploadRows({
                     : `正在上传到本地服务 · ${formatBytes(item.file.size)}`
                 }
               />
-            ) : (
+            )}
+            {item.status === 'failed' && (
               <p className="file-error" role="alert">
                 {item.error}
               </p>
@@ -252,7 +258,7 @@ export function UploadRows({
               className="button button-small"
               type="button"
               disabled={!agentAvailable}
-              onClick={() => void startUpload(item.peerId, item.file, item.id)}
+              onClick={() => startUpload(item.peerId, item.file, item.id)}
             >
               重试上传
             </button>

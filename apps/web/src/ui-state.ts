@@ -7,7 +7,7 @@ interface Upload {
   peerId: string
   file: File
   progress: number
-  status: 'uploading' | 'failed'
+  status: 'queued' | 'uploading' | 'failed'
   error?: string
 }
 

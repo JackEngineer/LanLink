@@ -169,7 +169,7 @@ export function Chat({
     const oversized: string[] = []
     for (const file of files) {
       if (file.size > maxFileSize) oversized.push(file.name)
-      else void startUpload(peer.id, file)
+      else startUpload(peer.id, file)
     }
     if (files.length > 0 && oversized.length === 0) {
       useUi.getState().setView('transfers')
