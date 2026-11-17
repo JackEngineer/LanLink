@@ -38,6 +38,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
     })
   } catch {
+    init?.signal?.throwIfAborted()
     throw new Error('无法连接到 LANLink 本地服务。')
   }
 
@@ -48,8 +49,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json()
 }
 
-async function sessionToken(): Promise<string> {
-  const session = await request<unknown>('/session')
+async function sessionToken(signal?: AbortSignal): Promise<string> {
+  const session = await request<unknown>('/session', { signal })
   if (
     !session ||
     typeof session !== 'object' ||
@@ -104,7 +105,7 @@ async function upload(
   signal: AbortSignal,
 ): Promise<Transfer> {
   signal.throwIfAborted()
-  const token = await sessionToken()
+  const token = await sessionToken(signal)
   for (let attempt = 0; ; attempt += 1) {
     try {
       return await uploadOnce(peerId, file, token, onProgress, signal)

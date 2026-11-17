@@ -242,6 +242,34 @@ describe('local Agent requests', () => {
     expect(send).toHaveBeenCalledTimes(1)
   })
 
+  it('aborts the session request if cancelled before sending the multipart body', async () => {
+    const fetchMock = vi.fn<typeof fetch>((_path, options) => {
+      return new Promise((_, reject) => {
+        const signal = options?.signal
+        signal?.addEventListener('abort', () => reject(signal.reason), {
+          once: true,
+        })
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const send = mockUploadResponses()
+    const controller = new AbortController()
+    const upload = api.upload(
+      'peer',
+      new File([], 'sample.txt'),
+      vi.fn(),
+      controller.signal,
+    )
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
+      '/api/v1/session',
+      expect.objectContaining({ signal: controller.signal }),
+    )
+
+    controller.abort()
+    await expect(upload).rejects.toBe(controller.signal.reason)
+    expect(send).not.toHaveBeenCalled()
+  })
+
   it.each([
     { status: 400, body: { error: 'file exceeds configured limit' } },
     { status: 500, body: busyUpload.body },
