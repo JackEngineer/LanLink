@@ -156,8 +156,13 @@ impl State {
         let initial = self.store.transfer(id).await?;
         let gate = self.gate(&initial.peer_id).await;
         let _guard = gate.lock().await;
-        self.store.trusted(&initial.peer_id).await?;
         let mut t = self.store.transfer(id).await?;
+        let discard_failed = action == "cancel"
+            && t.direction == Direction::Outgoing
+            && t.status == TransferStatus::Failed;
+        if !discard_failed {
+            self.store.trusted(&t.peer_id).await?;
+        }
         match action {
             "accept" => {
                 ensure!(
@@ -186,10 +191,17 @@ impl State {
                 self.store.save_transfer(&t).await?;
             }
             "cancel" => {
-                ensure!(!t.status.terminal(), "transfer is already finished");
+                ensure!(
+                    discard_failed || !t.status.terminal(),
+                    "transfer is already finished"
+                );
+                crate::files::remove_partial(self, &t).await?;
+                if discard_failed {
+                    t.failure_kind = None;
+                    t.error = None;
+                }
                 t.status = TransferStatus::Cancelled;
                 self.store.save_transfer(&t).await?;
-                crate::files::remove_partial(self, &t).await?;
             }
             "retry" => {
                 ensure!(
