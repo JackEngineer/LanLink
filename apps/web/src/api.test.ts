@@ -15,7 +15,7 @@ function mockFetch(...responses: Response[]) {
 }
 
 function mockUploadResponses(
-  ...responses: { status: number; body: unknown }[]
+  ...responses: ({ status: number; body: unknown } | 'network-error')[]
 ) {
   const send = vi.fn()
   vi.stubGlobal(
@@ -30,9 +30,13 @@ function mockUploadResponses(
       send(data: FormData) {
         send(data.get('file'))
         const response = responses.shift()
-        this.status = response?.status ?? 500
-        this.response = response?.body
-        this.dispatchEvent(new Event('load'))
+        if (response === 'network-error') {
+          this.dispatchEvent(new Event('error'))
+        } else {
+          this.status = response?.status ?? 500
+          this.response = response?.body
+          this.dispatchEvent(new Event('load'))
+        }
         this.dispatchEvent(new Event('loadend'))
       }
     },
@@ -247,7 +251,7 @@ describe('local Agent requests', () => {
       vi.useFakeTimers()
       mockFetch(Response.json({ token: 'launch-token' }))
       const send = mockUploadResponses(response)
-      await expect(
+      const result = expect(
         api.upload(
           'peer',
           new File([], 'sample.txt'),
@@ -255,7 +259,24 @@ describe('local Agent requests', () => {
           new AbortController().signal,
         ),
       ).rejects.toThrow(response.body.error)
+      await Promise.all([result, vi.runAllTimersAsync()])
       expect(send).toHaveBeenCalledTimes(1)
     },
   )
+
+  it('does not repeat a POST whose connection failed without an Agent response', async () => {
+    vi.useFakeTimers()
+    mockFetch(Response.json({ token: 'launch-token' }))
+    const send = mockUploadResponses('network-error')
+    const result = expect(
+      api.upload(
+        'peer',
+        new File([], 'sample.txt'),
+        vi.fn(),
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow('上传中断')
+    await Promise.all([result, vi.runAllTimersAsync()])
+    expect(send).toHaveBeenCalledTimes(1)
+  })
 })

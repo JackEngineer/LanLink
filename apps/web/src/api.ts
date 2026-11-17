@@ -80,6 +80,23 @@ const pathId = encodeURIComponent
 const peerQuery = (id: string) =>
   new URLSearchParams({ peer_id: id }).toString()
 
+class UploadBusyError extends Error {}
+
+const busyRetryDelays = [50, 150, 400, 900]
+
+function waitForUploadRetry(delay: number, signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted()
+  return new Promise((resolve) => {
+    const finish = () => {
+      clearTimeout(timer)
+      signal.removeEventListener('abort', finish)
+      resolve()
+    }
+    const timer = setTimeout(finish, delay)
+    signal.addEventListener('abort', finish, { once: true })
+  })
+}
+
 async function upload(
   peerId: string,
   file: File,
@@ -88,6 +105,26 @@ async function upload(
 ): Promise<Transfer> {
   signal.throwIfAborted()
   const token = await sessionToken()
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await uploadOnce(peerId, file, token, onProgress, signal)
+    } catch (error) {
+      const delay = busyRetryDelays[attempt]
+      if (!(error instanceof UploadBusyError) || delay === undefined)
+        throw error
+      onProgress(0)
+      await waitForUploadRetry(delay, signal)
+    }
+  }
+}
+
+function uploadOnce(
+  peerId: string,
+  file: File,
+  token: string,
+  onProgress: (progress: number) => void,
+  signal: AbortSignal,
+): Promise<Transfer> {
   signal.throwIfAborted()
 
   return new Promise((resolve, reject) => {
@@ -115,7 +152,13 @@ async function upload(
       if (xhr.status >= 200 && xhr.status < 300 && xhr.response) {
         resolve(xhr.response)
       } else {
-        reject(responseError(xhr.response, xhr.status))
+        const error = responseError(xhr.response, xhr.status)
+        if (
+          xhr.status === 400 &&
+          error.message === 'another upload is in progress'
+        )
+          reject(new UploadBusyError(error.message))
+        else reject(error)
       }
     })
 
