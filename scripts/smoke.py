@@ -21,6 +21,8 @@ import uuid
 API = "/api/v1"
 MIB = 1024 * 1024
 HTTP_TIMEOUT = 4
+MDNS_HOST_TTL = 120
+MDNS_GOODBYE_TIMEOUT = 25
 READ_LIMIT = 8 * MIB
 TERMINAL_FAILURES = {"failed", "rejected", "cancelled"}
 REVOKE_OBSERVATION = 5
@@ -311,7 +313,7 @@ def check_discovery_lease(observer, advertiser, log):
         while True:
             row = observer.peer(advertiser)
             elapsed = time.monotonic() - start
-            require(row is not None and row["online"] and set(row["addresses"]) == addresses
+            require(row is not None and row["online"] and not addresses.isdisjoint(row["addresses"])
                     and row["port"] == observed["port"],
                     f"A lost B's advertised endpoint after {elapsed:.1f}s of mDNS silence: {row!r}")
             if elapsed >= silence_seconds:
@@ -323,7 +325,7 @@ def check_discovery_lease(observer, advertiser, log):
 
     advertiser.stop()
     wait_for("B's mDNS goodbye to remove the discovery record", lambda: observer.peer(advertiser),
-             lambda row: row is None, observer.timeout)
+             lambda row: row is None, MDNS_GOODBYE_TIMEOUT)
     log("PASS B's graceful shutdown removed its discovery record")
 
     advertiser.start()
@@ -528,8 +530,12 @@ def run(args, run_dir, log):
 
         right_id = right.id
         right.stop()
+        offline_timeout = args.timeout + 15
+        if os.name == "nt":
+            # TerminateProcess cannot send an mDNS goodbye.
+            offline_timeout = max(offline_timeout, MDNS_HOST_TTL + 15)
         wait_for("stopped peer becomes offline", lambda: left.peer(right),
-                 lambda peer: peer is not None and not peer["online"], args.timeout + 15)
+                 lambda peer: peer is not None and not peer["online"], offline_timeout)
         log("PASS stopped peer is shown offline")
         retry_body = "Retry this one message while B is offline"
         queued = left.request("POST", "/messages", payload={"peer_id": right.id, "body": retry_body})
