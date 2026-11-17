@@ -2,13 +2,21 @@
 
 ## 取得开发预览包
 
-打开[开发预览构建](https://github.com/JackEngineer/LanLink/actions/runs/44085576200)，从 Artifacts 下载与 CPU 匹配的归档，解压后取得 LANLink ZIP。选择 `aarch64-apple-darwin` 对应 Apple Silicon Mac，`x86_64-apple-darwin` 对应 Intel Mac，或 `x86_64-pc-windows-msvc` 对应 Windows x64。GitHub 可能要求登录后下载构建产物；LANLink 运行时不需要账号。
+从 [GitHub Release v0.1.0-preview.1](https://github.com/JackEngineer/LanLink/releases/tag/v0.1.0-preview.1) 选择与你的电脑匹配的安装包。
 
-上述归档由 CI 构建。交付时提供的 Mac 和 Windows 原生安装包及其实际测试哈希见[当前验收报告](review-fixes.md)。不同构建环境生成的包哈希可能不同。尚未创建正式 Release。
+| 平台                        | 下载包                                                                                                                                                                                                                                               |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Apple Silicon Mac（M 系列） | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-aarch64-apple-darwin.zip) 或 [PKG](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-aarch64-apple-darwin.pkg) |
+| Intel Mac                   | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-x86_64-apple-darwin.zip)                                                                                                                              |
+| Windows x64                 | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-x86_64-pc-windows-msvc.zip)                                                                                                                           |
+
+在 Mac 上可通过苹果菜单中的「关于本机」确认芯片或处理器型号。Apple Silicon 的 ZIP 和 PKG 两种格式任选其一。
+
+安装包校验值见 [SHA256SUMS](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/SHA256SUMS)。Intel Mac 包的验证范围为 CI 构建与测试。实机测试范围见[验收报告](review-fixes.md)。
 
 ## macOS
 
-1. 下载与 CPU 架构匹配的开发版 ZIP 或 PKG。
+1. 按上表下载与本机匹配的开发预览包。
 2. 安装 PKG，或将 ZIP 中的 `LANLink.app` 放到 `/Applications`。
 3. 打开 LANLink。启动器会运行后台 Agent 并打开本机浏览器。
 4. 将两台电脑连接到同一受信任局域网。

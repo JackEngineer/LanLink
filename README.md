@@ -2,7 +2,19 @@
 
 LANLink 是面向 macOS 和 Windows 的开源局域网聊天与文件传输工具。每台设备运行 Rust Agent，浏览器访问本机 React 界面。运行时不需要公网服务或第三方账号。
 
-当前为 v0.1.0 开发预览。Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢复实测。[取得安装包](docs/install.md#取得开发预览包)，或查看 [验收报告](docs/acceptance.md)中的包哈希、已测范围和限制。
+Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢复实测。[验收报告](docs/acceptance.md)
+
+## 下载开发预览
+
+从 [GitHub Release v0.1.0-preview.1](https://github.com/JackEngineer/LanLink/releases/tag/v0.1.0-preview.1) 选择与你的电脑匹配的安装包。
+
+| 平台                        | 下载包                                                                                                                                                                                                                                               |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Apple Silicon Mac（M 系列） | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-aarch64-apple-darwin.zip) 或 [PKG](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-aarch64-apple-darwin.pkg) |
+| Intel Mac                   | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-x86_64-apple-darwin.zip)                                                                                                                              |
+| Windows x64                 | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-x86_64-pc-windows-msvc.zip)                                                                                                                           |
+
+下载后按[安装指南](docs/install.md)操作。安装包校验值见 [SHA256SUMS](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/SHA256SUMS)。
 
 ## 开发运行
 
