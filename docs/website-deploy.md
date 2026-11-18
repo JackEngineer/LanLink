@@ -17,7 +17,7 @@ tar -tzf dist/lanlink-website.tar.gz
 shasum -a 256 dist/lanlink-website.tar.gz
 ```
 
-部署包根目录包含 `index.html`、`styles.css` 和 `assets/lanlink.svg`，没有多余的 `site` 目录层级。检查命令会验证实际构建产物的本地资源、锚点和下载链接，并与 `apps/site/release.json`、README、安装指南比较。升级预览版本时，一起更新这些来源，再重新构建。
+部署包根目录包含 `index.html`、`styles.css` 和 `assets/`。检查命令会验证实际构建产物的本地资源、锚点和下载链接，并与 `apps/site/release.json`、README、安装指南比较。升级预览版本时，一起更新这些来源，再重新构建。
 
 ## 2. 上传到独立发布目录
 
@@ -79,11 +79,12 @@ reload 命令成功只表示已发送信号。继续检查目标 master 的新 w
 ```sh
 curl -I https://example.com/
 curl -I https://example.com/styles.css
-curl -I https://example.com/assets/lanlink.svg
+curl -I https://example.com/assets/lanlink.png
+curl -I https://example.com/assets/demo-request.webp
 curl -I https://example.com/this-path-must-not-exist
 ```
 
-前三个路径应返回 200，未知路径应返回 404。确认 HTTPS 证书、内容类型、缓存和安全头。浏览器检查桌面与手机布局、锚点、FAQ、三个平台的四个下载链接，以及安装指南和校验值链接。验证其他既有站点仍可访问。
+首页和静态资源应返回 200，未知路径应返回 404。确认 HTTPS 证书、内容类型、缓存和安全头。浏览器检查桌面与手机布局、锚点、FAQ、三个平台的四个下载链接，以及安装指南和校验值链接。验证其他既有站点仍可访问。
 
 ## 5. 回滚
 
