@@ -493,11 +493,25 @@ fn extract(archive: &Path, destination: &Path) -> Result<PathBuf> {
     let system =
         PathBuf::from(std::env::var_os("SystemRoot").context("missing Windows system directory")?);
     let powershell = system.join("System32/WindowsPowerShell/v1.0/powershell.exe");
-    ensure!(background(&powershell, archive.parent().unwrap())
-        .args(["-NoProfile", "-NonInteractive", "-Command", "$ErrorActionPreference = 'Stop'; Expand-Archive -LiteralPath $env:LANLINK_UPDATE_ZIP -DestinationPath $env:LANLINK_UPDATE_DIR"])
+    let command = concat!(
+        "$ErrorActionPreference = 'Stop'; ",
+        "Add-Type -AssemblyName System.IO.Compression.FileSystem; ",
+        "[System.IO.Compression.ZipFile]::ExtractToDirectory(",
+        "$env:LANLINK_UPDATE_ZIP, $env:LANLINK_UPDATE_DIR)"
+    );
+    let output = background(&powershell, archive.parent().unwrap())
+        .args(["-NoProfile", "-NonInteractive", "-Command", command])
         .env("LANLINK_UPDATE_ZIP", archive)
         .env("LANLINK_UPDATE_DIR", destination)
-        .status()?.success(), "could not extract update");
+        .stderr(Stdio::piped())
+        .output()
+        .context("could not start Windows package extraction")?;
+    ensure!(
+        output.status.success(),
+        "could not extract update ({}): {}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr).trim()
+    );
     ensure!(
         destination.join("Launch.ps1").is_file(),
         "Windows release launcher is missing"
