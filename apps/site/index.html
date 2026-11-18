@@ -81,8 +81,9 @@
             <div class="showcase-content">
               <section class="mode-view" id="view-desktop" aria-label="电脑互传演示">
                 <fieldset class="transfer-demo">
-                  <legend class="sr-only">选择传输阶段</legend>
-                  <input class="sr-only" id="transfer-request" type="radio" name="phase" checked />
+                  <legend class="sr-only">选择传输演示方式</legend>
+                  <input class="sr-only" id="transfer-overview" type="radio" name="phase" checked />
+                  <input class="sr-only" id="transfer-request" type="radio" name="phase" />
                   <input class="sr-only" id="transfer-delivered" type="radio" name="phase" />
                   <div class="transfer-layout">
                     <div class="endpoint endpoint-source">{{requestScreen}}</div>
@@ -93,20 +94,41 @@
                     </div>
                     <div class="endpoint endpoint-destination">{{receiveScreen}}</div>
                   </div>
+                  <div class="scroll-route" aria-hidden="true">
+                    <span>Mac</span>
+                    <div class="scroll-track">
+                      <span class="scroll-file">
+                        文件
+                        <img src="./assets/arrow-right.svg" alt="" width="16" height="16" />
+                      </span>
+                    </div>
+                    <span>Windows</span>
+                  </div>
                   <div class="transfer-controls">
                     <div class="transfer-steps">
+                      <label for="transfer-overview">
+                        <span class="manual-label">查看全程</span>
+                        <span class="scroll-label">跟随滚动</span>
+                      </label>
                       <label for="transfer-request">发送请求</label>
                       <label for="transfer-delivered">对方接收</label>
                     </div>
                     <div class="transfer-description">
+                      <p class="phase-overview">
+                        <span class="manual-label">Mac 发出请求，Windows 确认后接收文件。</span>
+                        <span class="scroll-label">向下滚动，看文件从 Mac 传到 Windows。</span>
+                      </p>
                       <p class="phase-request">选择文件发出请求，接收方同意后才开始传输。</p>
                       <p class="phase-delivered">传完后，在接收端的传输列表里找到文件。</p>
                     </div>
                   </div>
                 </fieldset>
-                <p class="capture-credit">
-                  界面来自 Mac 和 Windows 的验收截图，各自展示一个传输阶段。
-                </p>
+                <div class="showcase-foot">
+                  <p class="capture-credit">
+                    界面来自 Mac 和 Windows 的验收截图，各自展示一个传输阶段。
+                  </p>
+                  <a class="skip-experience" href="#download">跳到下载</a>
+                </div>
               </section>
 
               <section class="mode-view" id="view-mobile" aria-label="手机扫码流程">

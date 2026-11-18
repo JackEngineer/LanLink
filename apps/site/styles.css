@@ -296,6 +296,7 @@ section[id] {
 #mode-desktop:checked ~ .showcase-shell label[for='mode-desktop'],
 #mode-mobile:checked ~ .showcase-shell label[for='mode-mobile'],
 #mode-chat:checked ~ .showcase-shell label[for='mode-chat'],
+#transfer-overview:checked ~ .transfer-controls label[for='transfer-overview'],
 #transfer-request:checked ~ .transfer-controls label[for='transfer-request'],
 #transfer-delivered:checked ~ .transfer-controls label[for='transfer-delivered'] {
   color: #133b93;
@@ -305,6 +306,7 @@ section[id] {
 #mode-desktop:focus-visible ~ .showcase-shell label[for='mode-desktop'],
 #mode-mobile:focus-visible ~ .showcase-shell label[for='mode-mobile'],
 #mode-chat:focus-visible ~ .showcase-shell label[for='mode-chat'],
+#transfer-overview:focus-visible ~ .transfer-controls label[for='transfer-overview'],
 #transfer-request:focus-visible ~ .transfer-controls label[for='transfer-request'],
 #transfer-delivered:focus-visible ~ .transfer-controls label[for='transfer-delivered'] {
   outline: 3px solid #d7e6ff;
@@ -387,6 +389,7 @@ section[id] {
 }
 .transfer-steps {
   border-radius: 0.8rem;
+  flex-wrap: wrap;
 }
 .transfer-steps label {
   border-radius: 0.55rem;
@@ -395,18 +398,32 @@ section[id] {
   color: #eff5ff;
   font-size: 0.91rem;
 }
+.phase-overview,
 .phase-request,
 .phase-delivered {
   display: none;
 }
+#transfer-overview:checked ~ .transfer-controls .phase-overview,
 #transfer-request:checked ~ .transfer-controls .phase-request,
 #transfer-delivered:checked ~ .transfer-controls .phase-delivered {
   display: block;
 }
-.capture-credit {
+.showcase-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
   margin-top: 0.8rem;
+}
+.capture-credit {
   color: #d9e5ff;
   font-size: 0.75rem;
+}
+.scroll-label,
+.scroll-route,
+.skip-experience {
+  display: none;
 }
 .alternate-layout {
   display: grid;
@@ -603,6 +620,9 @@ section[id] {
     padding-inline: 0.27rem;
     text-align: center;
   }
+  .transfer-steps label {
+    padding-inline: 0.44rem;
+  }
   .alternate-layout {
     min-height: 0;
     grid-template-columns: minmax(0, 1fr);
@@ -650,19 +670,143 @@ section[id] {
     padding-inline: 0.75rem;
   }
 }
-@supports (animation-timeline: view()) {
-  @media (min-width: 701px) and (prefers-reduced-motion: no-preference) {
-    .showcase {
-      animation: showcase-expand linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 78%;
+@property --handoff-progress {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+@supports (view-timeline-name: --handoff) and (animation-range: exit-crossing 0px exit-crossing 1px) {
+  @media (min-width: 920px) and (min-height: 700px) and (prefers-reduced-motion: no-preference) {
+    .experience {
+      --handoff-top: 1.65rem;
+      --handoff-travel: clamp(14rem, 39svh, 23rem);
+      --handoff-range: exit-crossing 0px exit-crossing var(--handoff-travel);
+      view-timeline-name: --handoff;
+      view-timeline-inset: var(--handoff-top) 0;
     }
-    @keyframes showcase-expand {
+    .experience::after {
+      display: block;
+      height: var(--handoff-travel);
+      content: '';
+    }
+    .showcase {
+      position: sticky;
+      top: var(--handoff-top);
+    }
+    #view-desktop .screen :is(.screen-open, .screen-fallback) > img {
+      max-height: min(34svh, 16rem);
+    }
+    .transfer-route .route-packet,
+    .manual-label {
+      display: none;
+    }
+    .scroll-label,
+    .skip-experience {
+      display: inline;
+    }
+    .skip-experience {
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 650;
+    }
+    .skip-experience:focus-visible {
+      outline-color: #e1ebff;
+    }
+    .scroll-route {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 1.9rem;
+      min-height: 2.5rem;
+      margin-top: 1rem;
+      color: #e1ebff;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .scroll-track {
+      position: relative;
+      height: 3px;
+      border-radius: 2rem;
+      background: #b0cbff59;
+    }
+    .scroll-track::before {
+      display: block;
+      width: var(--handoff-progress);
+      height: 100%;
+      border-radius: inherit;
+      background: #e0edff;
+      box-shadow: 0 0 1rem #93b9ff;
+      content: '';
+    }
+    .scroll-file {
+      position: absolute;
+      top: 50%;
+      left: var(--handoff-progress);
+      display: flex;
+      align-items: center;
+      gap: 0.28rem;
+      padding: 0.28rem 0.5rem;
+      transform: translate(-50%, -50%);
+      border-radius: 0.45rem;
+      color: #153b93;
+      background: #fff;
+      box-shadow: 0 0 1.35rem #749eff;
+    }
+    .transfer-controls {
+      margin-top: 0.8rem;
+    }
+    #transfer-delivered:checked ~ .scroll-route {
+      --handoff-progress: 100%;
+    }
+    .transfer-demo:has(#transfer-overview:checked) .scroll-route {
+      animation: file-handoff linear both;
+      animation-timeline: --handoff;
+      animation-range: var(--handoff-range);
+    }
+    .transfer-demo:has(#transfer-overview:checked) .endpoint-destination .screen {
+      animation: receive-focus linear both;
+      animation-timeline: --handoff;
+      animation-range: var(--handoff-range);
+    }
+    body::before {
+      position: fixed;
+      z-index: 2;
+      inset: 0 0 auto;
+      height: 3px;
+      transform-origin: left;
+      background: var(--blue);
+      pointer-events: none;
+      content: '';
+      animation: reading-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+    @keyframes file-handoff {
+      0%,
+      10% {
+        --handoff-progress: 0%;
+      }
+      90%,
+      100% {
+        --handoff-progress: 100%;
+      }
+    }
+    @keyframes receive-focus {
+      0%,
+      74% {
+        border-color: #9ab2e9;
+        box-shadow: 0 17px 38px -27px #021039;
+      }
+      100% {
+        border-color: #e1ebff;
+        box-shadow: 0 0 30px #a6c7ff9c;
+      }
+    }
+    @keyframes reading-progress {
       from {
-        scale: 0.955;
+        transform: scaleX(0);
       }
       to {
-        scale: 1;
+        transform: scaleX(1);
       }
     }
   }
