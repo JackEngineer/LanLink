@@ -2,17 +2,17 @@
 
 ## 取得开发预览包
 
-从 [GitHub Release v0.2.0-preview.1](https://github.com/JackEngineer/LanLink/releases/tag/v0.2.0-preview.1) 选择与你的电脑匹配的安装包。
+从 [LANLink 官网 v0.2.0-preview.1](https://lanlink.heyyami.com/#download) 选择与你的电脑匹配的安装包。
 
-| 平台                        | 下载包                                                                                                                                                                                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Apple Silicon Mac（M 系列） | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-aarch64-apple-darwin.zip) 或 [PKG](https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-aarch64-apple-darwin.pkg) |
-| Intel Mac                   | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-x86_64-apple-darwin.zip)                                                                                                                              |
-| Windows x64                 | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-x86_64-pc-windows-msvc.zip)                                                                                                                           |
+| 平台                        | 下载包                                                                                                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Apple Silicon Mac（M 系列） | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0-preview.1/LANLink-0.2.0-aarch64-apple-darwin.zip) 或 [PKG](https://lanlink.heyyami.com/downloads/v0.2.0-preview.1/LANLink-0.2.0-aarch64-apple-darwin.pkg) |
+| Intel Mac                   | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0-preview.1/LANLink-0.2.0-x86_64-apple-darwin.zip)                                                                                                          |
+| Windows x64                 | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0-preview.1/LANLink-0.2.0-x86_64-pc-windows-msvc.zip)                                                                                                       |
 
 在 Mac 上可通过苹果菜单中的「关于本机」确认芯片或处理器型号。Apple Silicon 的 ZIP 和 PKG 两种格式任选其一。
 
-安装包校验值见 [SHA256SUMS](https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/SHA256SUMS)。Intel Mac 包的验证范围为 CI 构建与测试。实机测试范围见[验收报告](review-fixes.md)。
+安装包校验值见 [SHA256SUMS](https://lanlink.heyyami.com/downloads/v0.2.0-preview.1/SHA256SUMS)。Intel Mac 包的验证范围为 CI 构建与测试。实机测试范围见[验收报告](review-fixes.md)。
 
 ## macOS
 

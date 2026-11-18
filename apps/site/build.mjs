@@ -43,14 +43,13 @@ if (args[0] === '--package') {
         <div class="platform-kicker"><span>DESKTOP APP</span><span>0${index + 1}</span></div>
         <div class="platform-icon" aria-hidden="true"></div>
         <h3>${escape(download.label)}</h3>
-        <div class="artifact-links">${download.artifacts.map((artifact) => `<a class="artifact-link" href="${escape(artifact.url)}" aria-label="下载 ${escape(download.label)} ${escape(artifact.format)}">下载 ${escape(artifact.format)} <span aria-hidden="true">↓</span></a>`).join('')}</div>
+        <div class="artifact-links">${download.artifacts.map((artifact) => `<a class="artifact-link" href="${escape(artifact.url)}" download aria-label="下载 ${escape(download.label)} ${escape(artifact.format)}">下载 ${escape(artifact.format)} <span aria-hidden="true">↓</span></a>`).join('')}</div>
       </article>`,
     )
     .join('\n      ');
   let html = await readFile(resolve(source, 'index.html'), 'utf8');
   for (const [slot, value] of Object.entries({
     releaseTag: escape(release.tag),
-    releaseUrl: escape(release.releaseUrl),
     checksumsUrl: escape(release.checksumsUrl),
     downloadCards,
   })) {

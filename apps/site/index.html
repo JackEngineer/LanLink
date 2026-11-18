@@ -226,7 +226,7 @@
             </div>
             <div class="release-status">
               <span class="preview-pill"><span class="status-dot"></span> 开发预览</span
-              ><a href="{{releaseUrl}}">{{releaseTag}} <span aria-hidden="true">↗</span></a>
+              ><span class="release-version">{{releaseTag}}</span>
               <p>适合愿意尝试并反馈的用户。</p>
             </div>
           </div>
@@ -242,7 +242,8 @@
               <div class="download-links">
                 <a href="https://github.com/JackEngineer/LanLink/blob/main/docs/install.md"
                   >安装指南 <span aria-hidden="true">↗</span></a
-                ><a href="{{checksumsUrl}}">SHA-256 校验值 <span aria-hidden="true">↗</span></a
+                ><a href="{{checksumsUrl}}" download
+                  >SHA-256 校验值 <span aria-hidden="true">↓</span></a
                 ><a href="https://github.com/JackEngineer/LanLink/blob/main/docs/acceptance.md"
                   >查看验收范围 <span aria-hidden="true">↗</span></a
                 >

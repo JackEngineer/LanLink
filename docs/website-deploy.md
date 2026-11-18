@@ -1,6 +1,6 @@
 # 在已有腾讯云服务器上部署 LANLink 官网
 
-官网是独立静态站点，构建产物为 `dist/site`，部署包为 `dist/lanlink-website.tar.gz`。它不运行 Agent，不连接本机 API，也不使用 `apps/web` 的应用构建产物。下载链接指向 GitHub Release。
+官网是独立静态站点，构建产物为 `dist/site`，部署包为 `dist/lanlink-website.tar.gz`。它不运行 Agent，不连接本机 API，也不使用 `apps/web` 的应用构建产物。安装包和校验文件通过官网的版本化路径 `/downloads/<版本>/` 提供。
 
 本文使用已有 Nginx 的 Linux 服务器和独立域名。示例中的 `NGINX_BIN` 与 `NGINX_CONF` 必须先按实际进程修改；如果 master 使用 `-p`，后续每条命令也要带相同前缀参数。所有 `example.com`、SSH 主机和发布目录标识都必须替换。实际发布前先确认服务器、域名、现有站点清单和发布授权。不要覆盖已有站点配置、默认站点或其他应用目录。
 
@@ -42,6 +42,10 @@ readlink -f /var/www/lanlink/current
 ```
 
 首次部署时 `current` 尚不存在，最后一条命令可能没有输出。确认 Nginx 工作进程可以读取新目录。不要递归更改 `/var/www` 或其他站点的权限。
+
+在切换 `current` 前，将现有站点的 `downloads/` 目录复制到新发布目录，保留已发布版本的直链。首次迁移或发布新版本时，将经过校验的安装包与 `SHA256SUMS` 放入新发布目录的 `downloads/<版本>/`。目录和文件分别使用 `0755` 和 `0644` 权限。
+
+在新版本目录执行 `sha256sum -c SHA256SUMS`，再核对文件名与 `apps/site/release.json`。切换后通过官网 HTTPS 下载每个安装包并重新校验。若需要回滚，先把回滚目录缺少的已公开版本复制过去，确保已分享的下载地址继续可用。
 
 ## 3. 配置独立域名和 TLS
 
