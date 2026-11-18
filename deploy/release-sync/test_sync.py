@@ -1,14 +1,18 @@
 import errno
 import hashlib
 from io import BytesIO
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import tempfile
 import subprocess
 import stat
+import sys
+import threading
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 import sync
 
@@ -16,9 +20,13 @@ TRUSTED_FILE = sync.trusted_file
 
 
 class Response(BytesIO):
-    def __init__(self, data, headers=None):
+    def __init__(self, data, headers=None, status=200):
         super().__init__(data)
         self.headers = headers or {}
+        self.status = status
+
+    def read1(self, size=-1):
+        return self.read(size)
 
 
 class InterruptedResponse(Response):
@@ -144,7 +152,7 @@ class ReleaseSyncTest(unittest.TestCase):
         if url.startswith(f'{sync.ASSET_API}/'):
             if self.impair_asset_api:
                 raise TimeoutError('temporary asset API timeout')
-            self.assertEqual(kwargs.get('headers'), {'Accept': 'application/octet-stream'})
+            self.assertEqual(kwargs.get('headers', {}).get('Accept'), 'application/octet-stream')
             return Response(self.remote[url])
         if url.startswith(f'{sync.API}?'):
             return Response(json.dumps(self.releases_api).encode())
@@ -230,7 +238,7 @@ class ReleaseSyncTest(unittest.TestCase):
         for name, data in self.package_data(self.new).items():
             self.assertEqual((self.current / 'downloads' / self.new.tag / name).read_bytes(), data)
 
-    def test_retries_a_partially_downloaded_package_from_the_start(self):
+    def test_safely_restarts_when_server_ignores_range(self):
         self.add_release(self.new)
         package = self.new.packages()[-1]
         url = next(asset['url'] for asset in self.releases_api[0]['assets'] if asset['name'] == package)
@@ -274,6 +282,38 @@ class ReleaseSyncTest(unittest.TestCase):
         self.assertEqual(first_requests, {*self.new.assets(), sync.BUNDLE})
         self.assertEqual(set(requests), {sync.MANIFEST, sync.BUNDLE, failed})
         self.assertFalse((self.root / '.release-sync-cache' / self.new.tag).exists())
+
+    def test_prunes_only_stale_canonical_partials_after_manifest_verification(self):
+        self.add_release(self.new)
+        assets = sync.release_assets(self.new, self.releases_api[0])
+        packages = self.package_data(self.new)
+        cache = self.root / '.release-sync-cache' / self.new.tag
+        cache.mkdir(parents=True)
+        for name in self.new.packages():
+            (cache / name).write_bytes(packages[name])
+        name = self.new.packages()[0]
+        asset = assets[name]
+        current = sync.partial_path(cache, self.new, name, asset, digest(packages[name]))
+        previous_asset = sync.Asset(asset.url, f'{sync.ASSET_API}/99999', asset.size, asset.digest)
+        stale = sync.partial_path(cache, self.new, name, previous_asset, digest(packages[name]))
+        stale_manifest = sync.partial_path(cache, self.new, name, asset, '0' * 64)
+        for path in (current, current.with_suffix('.lock'), stale, stale.with_suffix('.lock'), stale_manifest):
+            path.write_bytes(b'keep current only')
+        other = cache / '.partial-unrelated'
+        other.write_bytes(b'keep')
+        canonical_directory = cache / ('.partial-' + 'f' * 64)
+        canonical_directory.mkdir()
+        destination = self.root / 'staged'
+        destination.mkdir()
+        with sync.release_lock(self.root):
+            sync.prepare_downloads(self.new, assets, destination, cache, packages[sync.MANIFEST])
+        self.assertTrue(current.exists())
+        self.assertTrue(current.with_suffix('.lock').exists())
+        self.assertFalse(stale.exists())
+        self.assertFalse(stale.with_suffix('.lock').exists())
+        self.assertFalse(stale_manifest.exists())
+        self.assertEqual(other.read_bytes(), b'keep')
+        self.assertTrue(canonical_directory.is_dir())
 
     def test_reuses_verified_downloads_retained_during_website_rollback(self):
         self.add_release(self.new)
@@ -411,6 +451,14 @@ class ReleaseSyncTest(unittest.TestCase):
         self.verifier.assert_not_called()
         self.assertEqual(self.current.resolve(), self.old)
 
+    def test_release_lock_prevents_concurrent_timer_sync(self):
+        self.add_release(self.new)
+        with sync.release_lock(self.root):
+            with self.assertRaisesRegex(sync.SyncError, 'already running'):
+                sync.sync(self.root)
+        self.assertEqual(self.current.resolve(), self.old)
+        self.verifier.assert_not_called()
+
     def test_bundle_size_and_timeout_fail_closed(self):
         self.add_release(self.new)
         item = next(a for a in self.releases_api[0]['assets'] if a['name'] == sync.BUNDLE)
@@ -447,6 +495,187 @@ class ReleaseSyncTest(unittest.TestCase):
             sync.read_manifest(manifest.replace(first, b'../' + first), self.new.packages())
         with self.assertRaisesRegex(sync.SyncError, 'Unexpected or duplicate'):
             sync.read_manifest(manifest + manifest, self.new.packages())
+
+
+class PackageResumeTest(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.cache = Path(temporary.name)
+        self.version = sync.Version.parse('v0.2.0-preview.10')
+        self.name = self.version.packages()[0]
+        self.data = b'0123456789' * 100
+        self.digest = digest(self.data)
+        self.asset = sync.Asset(f'https://github.com/{sync.REPO}/releases/download/{self.version.tag}/{self.name}',
+                                f'{sync.ASSET_API}/123', len(self.data), self.digest)
+        self.partial = sync.partial_path(self.cache, self.version, self.name, self.asset, self.digest)
+
+    def ranged(self, start, **headers):
+        return Response(self.data[start:], {
+            'Content-Range': f'bytes {start}-{len(self.data) - 1}/{len(self.data)}',
+            'Content-Length': str(len(self.data) - start), **headers,
+        }, status=206)
+
+    def test_retries_from_received_offset_with_fresh_official_request(self):
+        requests = []
+
+        def open_url(url, **kwargs):
+            requests.append((url, kwargs['headers']))
+            if len(requests) == 1:
+                return InterruptedResponse(self.data)
+            return self.ranged(5)
+
+        with patch('sync.open_url', side_effect=open_url):
+            sync.download_package(self.asset, self.partial, self.digest)
+        self.assertEqual(self.partial.read_bytes(), self.data)
+        self.assertNotIn('Range', requests[0][1])
+        self.assertEqual(requests[1], (self.asset.api_url, {
+            'Accept': 'application/octet-stream', 'Cache-Control': 'no-cache', 'Range': 'bytes=5-',
+        }))
+        self.assertEqual(stat.S_IMODE(self.partial.stat().st_mode), 0o600)
+
+    def test_no_progress_and_ignored_range_timeout_preserve_previous_prefix(self):
+        prefix = self.data[:100]
+        for response in (InterruptedResponse(self.data), Response(b'')):
+            with self.subTest(response=type(response).__name__):
+                self.partial.write_bytes(prefix)
+                with patch('sync.open_url', return_value=response), patch('sync.PACKAGE_ATTEMPTS', 1):
+                    with self.assertRaisesRegex(sync.SyncError, 'partial retained'):
+                        sync.download_package(self.asset, self.partial, self.digest)
+                self.assertEqual(self.partial.read_bytes(), prefix)
+
+    def test_ignored_range_can_replace_prefix_only_with_more_progress(self):
+        self.partial.write_bytes(b'wrong old prefix')
+        with patch('sync.open_url', return_value=Response(self.data)) as request:
+            sync.download_package(self.asset, self.partial, self.digest)
+        self.assertEqual(request.call_args.kwargs['headers']['Range'], 'bytes=16-')
+        self.assertEqual(self.partial.read_bytes(), self.data)
+
+    def test_incompatible_ranges_and_encoding_never_append(self):
+        prefix = self.data[:5]
+        cases = [
+            self.ranged(4),
+            self.ranged(5, **{'Content-Range': f'bytes 5-999/{len(self.data) + 1}'}),
+            self.ranged(5, **{'Content-Range': 'bytes 5-1000/1000'}),
+            self.ranged(5, **{'Content-Range': 'bytes 05-999/1000'}),
+            self.ranged(5, **{'Content-Length': '1'}),
+            self.ranged(5, **{'Content-Encoding': 'gzip'}),
+            Response(self.data, {'Content-Range': 'bytes 0-999/1000'}),
+            Response(self.data, status=203),
+        ]
+        for response in cases:
+            with self.subTest(headers=response.headers, status=response.status):
+                self.partial.write_bytes(prefix)
+                with patch('sync.open_url', return_value=response), patch('sync.PACKAGE_ATTEMPTS', 1):
+                    with self.assertRaises(sync.SyncError):
+                        sync.download_package(self.asset, self.partial, self.digest)
+                self.assertEqual(self.partial.read_bytes(), prefix)
+
+    def test_oversized_response_does_not_succeed_with_valid_prefix_hash(self):
+        for offset in (0, 5):
+            with self.subTest(offset=offset):
+                self.partial.write_bytes(self.data[:offset])
+                response = Response(self.data[offset:] + b'extra', {
+                    'Content-Range': f'bytes {offset}-999/1000',
+                }, status=206)
+                with patch('sync.open_url', return_value=response), patch('sync.PACKAGE_ATTEMPTS', 1):
+                    with self.assertRaisesRegex(sync.SyncError, 'size mismatch'):
+                        sync.download_package(self.asset, self.partial, self.digest)
+                self.assertEqual(self.partial.read_bytes(), self.data[:offset])
+
+    def test_416_retries_fresh_without_erasing_prefix(self):
+        self.partial.write_bytes(self.data[:5])
+        error = HTTPError(self.asset.api_url, 416, 'range not satisfiable', {}, BytesIO())
+        with patch('sync.open_url', side_effect=[error, Response(self.data)]) as request:
+            sync.download_package(self.asset, self.partial, self.digest)
+        self.assertEqual(request.call_args_list[0].kwargs['headers']['Range'], 'bytes=5-')
+        self.assertNotIn('Range', request.call_args_list[1].kwargs['headers'])
+        self.assertEqual(self.partial.read_bytes(), self.data)
+
+    def test_corrupt_completed_partial_and_bad_download_are_reset(self):
+        self.partial.write_bytes(b'x' * len(self.data))
+        with patch('sync.open_url', side_effect=[Response(b'y' * len(self.data)), Response(self.data)]) as request:
+            sync.download_package(self.asset, self.partial, self.digest)
+        self.assertEqual(len(request.call_args_list), 2)
+        self.assertTrue(all('Range' not in call.kwargs['headers'] for call in request.call_args_list))
+        self.assertEqual(self.partial.read_bytes(), self.data)
+
+    def test_partial_identity_changes_with_tag_signed_hash_size_and_asset_id(self):
+        changed = [
+            sync.partial_path(self.cache, self.version, self.name, self.asset, '0' * 64),
+            sync.partial_path(self.cache, sync.Version.parse('v0.2.0'), self.name, self.asset, self.digest),
+            sync.partial_path(self.cache, self.version, self.name,
+                              sync.Asset(self.asset.url, self.asset.api_url, len(self.data) + 1, self.digest), self.digest),
+            sync.partial_path(self.cache, self.version, self.name,
+                              sync.Asset(self.asset.url, f'{sync.ASSET_API}/124', len(self.data), self.digest), self.digest),
+        ]
+        self.assertNotIn(self.partial, changed)
+        self.assertEqual(len(set(changed)), len(changed))
+
+    def test_symlink_partial_cannot_overwrite_other_file(self):
+        victim = self.cache / 'victim'
+        victim.write_bytes(b'keep')
+        self.partial.symlink_to(victim)
+        with self.assertRaises(OSError):
+            sync.download_package(self.asset, self.partial, self.digest)
+        self.assertEqual(victim.read_bytes(), b'keep')
+
+    def test_deadline_preserves_partial_without_another_request(self):
+        self.partial.write_bytes(self.data[:5])
+        with patch('sync.time.monotonic', side_effect=[0, sync.PACKAGE_DEADLINE + 1]), \
+                patch('sync.open_url') as request:
+            with self.assertRaisesRegex(sync.SyncError, 'partial retained'):
+                sync.download_package(self.asset, self.partial, self.digest)
+        request.assert_not_called()
+        self.assertEqual(self.partial.read_bytes(), self.data[:5])
+
+    def test_actual_http_resume_survives_new_timer_process(self):
+        data = self.data
+        ranges = []
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                value = self.headers.get('Range')
+                ranges.append(value)
+                self.send_response(206 if value else 200)
+                start = int(value.removeprefix('bytes=').removesuffix('-')) if value else 0
+                self.send_header('Content-Length', str(len(data) - start))
+                if value:
+                    self.send_header('Content-Range', f'bytes {start}-{len(data) - 1}/{len(data)}')
+                self.end_headers()
+                self.wfile.write(data[start:] if value else data[:5])
+                self.wfile.flush()
+                self.close_connection = True
+
+            def log_message(self, *args):
+                pass
+
+        server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        driver = '''
+import pathlib, sys
+from urllib.request import Request, urlopen
+import sync
+sync.PACKAGE_ATTEMPTS = 1
+sync.open_url = lambda url, **kw: urlopen(Request(sys.argv[1], headers=kw['headers']), timeout=2)
+asset = sync.Asset('https://github.com/official', 'https://api.github.com/official', int(sys.argv[3]), sys.argv[4])
+try:
+    sync.download_package(asset, pathlib.Path(sys.argv[2]), sys.argv[4])
+except sync.SyncError:
+    sys.exit(3)
+'''
+        command = [sys.executable, '-B', '-c', driver, f'http://127.0.0.1:{server.server_port}/package',
+                   str(self.partial), str(len(self.data)), self.digest]
+        first = subprocess.run(command, cwd=Path(__file__).resolve().parent, capture_output=True, timeout=10)
+        self.assertEqual(first.returncode, 3, first.stderr.decode())
+        self.assertEqual(self.partial.read_bytes(), data[:5])
+        second = subprocess.run(command, cwd=Path(__file__).resolve().parent, capture_output=True, timeout=10)
+        self.assertEqual(second.returncode, 0, second.stderr.decode())
+        self.assertEqual(ranges, [None, 'bytes=5-'])
+        self.assertEqual(self.partial.read_bytes(), data)
 
 
 if __name__ == '__main__':

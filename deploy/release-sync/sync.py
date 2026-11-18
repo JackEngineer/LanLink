@@ -20,6 +20,7 @@ import stat
 import sys
 import subprocess
 import tempfile
+import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -45,6 +46,10 @@ MANIFEST_LIMIT = 8192
 ASSET_LIMIT = 256 * 1024 * 1024
 PAGE_LIMIT = 4 * 1024 * 1024
 ASSET_CDNS = {'release-assets.githubusercontent.com', 'objects.githubusercontent.com'}
+PACKAGE_ATTEMPTS = 9
+PACKAGE_DEADLINE = 20 * 60
+PACKAGE_TIMEOUT = 30
+PACKAGE_CHUNK = 64 * 1024
 
 
 class SyncError(Exception):
@@ -94,7 +99,8 @@ class ReleaseRedirect(HTTPRedirectHandler):
 def open_url(url, **kwargs):
     headers = {'User-Agent': 'LANLink-release-sync', 'Accept-Encoding': 'identity'}
     headers.update(kwargs.pop('headers', {}))
-    return build_opener(ReleaseRedirect).open(Request(url, headers=headers, **kwargs), timeout=45)
+    timeout = kwargs.pop('timeout', 45)
+    return build_opener(ReleaseRedirect).open(Request(url, headers=headers, **kwargs), timeout=timeout)
 
 
 def read_response(response, limit):
@@ -227,6 +233,137 @@ def file_digest(path):
     return actual.hexdigest()
 
 
+def partial_path(cache, version, name, asset, digest):
+    identity = json.dumps([version.tag, name, digest, asset.size, asset.api_url], separators=(',', ':'))
+    key = hashlib.sha256(identity.encode('utf-8')).hexdigest()
+    return cache / f'.partial-{key}'
+
+
+def prune_partials(cache, candidates):
+    """Called under the release lock after verifying the current signed manifest."""
+    keep = {path.name for path in candidates}
+    keep.update(f'{name}.lock' for name in tuple(keep))
+    for path in cache.iterdir():
+        if (re.fullmatch(r'\.partial-[0-9a-f]{64}(?:\.lock)?', path.name)
+                and path.name not in keep and stat.S_ISREG(path.lstat().st_mode)):
+            path.unlink()
+
+
+def private_file(path):
+    descriptor = os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+        os.close(descriptor)
+        raise SyncError('Download partial must be a regular file')
+    os.fchmod(descriptor, 0o600)
+    return os.fdopen(descriptor, 'r+b', buffering=0)
+
+
+def response_extent(response, asset, offset):
+    if response.headers.get('Content-Encoding', 'identity').lower() != 'identity':
+        raise SyncError('Download response must use identity encoding')
+    status = response.status
+    content_range = response.headers.get('Content-Range')
+    if status == 206:
+        match = re.fullmatch(r'bytes (0|[1-9][0-9]*)-(0|[1-9][0-9]*)/(0|[1-9][0-9]*)', content_range or '')
+        if not match:
+            raise SyncError('Invalid download Content-Range')
+        start, end, total = map(int, match.groups())
+        if start != offset or not start <= end < total or total != asset.size:
+            raise SyncError('Download Content-Range does not match the requested asset')
+        length = end - start + 1
+    elif status == 200 and content_range is None:
+        length = asset.size
+    else:
+        raise SyncError('Unexpected download response status or Content-Range')
+    content_length = response.headers.get('Content-Length')
+    if content_length is not None and content_length != str(length):
+        raise SyncError('Download Content-Length does not match the requested asset')
+    return status, length
+
+
+def download_package(asset, partial, digest):
+    """Keep untrusted bytes between timer runs; only return a fully rehashed file.
+
+    The caller holds the site release lock. The per-identity lock also protects
+    direct invocations, and neither lock depends on the lifetime of a response.
+    """
+    deadline = time.monotonic() + PACKAGE_DEADLINE
+    api = (asset.api_url, {'Accept': 'application/octet-stream'})
+    sources = (api, api, (asset.url, {}))
+    last_error = 'no download progress'
+    restart = False
+    with private_file(partial.with_suffix('.lock')) as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with private_file(partial) as output:
+            for attempt in range(PACKAGE_ATTEMPTS):
+                offset = output.seek(0, os.SEEK_END)
+                if offset >= asset.size:
+                    if offset == asset.size and file_digest(partial) == digest:
+                        return
+                    output.truncate(0)
+                    output.seek(0)
+                    offset = 0
+                    last_error = 'SHA256SUMS mismatch'
+                remaining_time = deadline - time.monotonic()
+                if remaining_time <= 0:
+                    break
+                url, source_headers = sources[attempt % len(sources)]
+                headers = {**source_headers, 'Cache-Control': 'no-cache'}
+                requested = 0 if restart else offset
+                if requested:
+                    headers['Range'] = f'bytes={requested}-'
+                restart = False
+                candidate = None
+                invalid_response = False
+                try:
+                    with open_url(url, headers=headers, timeout=min(PACKAGE_TIMEOUT, remaining_time)) as response:
+                        status, length = response_extent(response, asset, requested)
+                        # A server may ignore Range. Preserve the old prefix until
+                        # a separately downloaded restart has made more progress.
+                        if (status == 200 and offset) or requested != offset:
+                            candidate = tempfile.TemporaryFile(dir=partial.parent)
+                            target = candidate
+                        else:
+                            target = output
+                        while length:
+                            if time.monotonic() >= deadline:
+                                raise TimeoutError('package download deadline reached')
+                            chunk = response.read1(min(length, PACKAGE_CHUNK))
+                            if not chunk:
+                                raise IncompleteRead(b'', length)
+                            target.write(chunk)
+                            length -= len(chunk)
+                        if response.read1(1):
+                            raise SyncError('Download size mismatch')
+                except (URLError, TimeoutError, ConnectionError, IncompleteRead, SyncError) as error:
+                    last_error = f'{type(error).__name__}: {error}' if isinstance(error, SyncError) else type(error).__name__
+                    if isinstance(error, HTTPError):
+                        restart = error.code == 416
+                        error.close()
+                    elif isinstance(error, SyncError):
+                        restart = True
+                        invalid_response = True
+                        output.truncate(offset)
+                finally:
+                    if candidate is not None:
+                        try:
+                            if not invalid_response and candidate.tell() > offset:
+                                candidate.seek(0)
+                                output.seek(0)
+                                shutil.copyfileobj(candidate, output, PACKAGE_CHUNK)
+                                output.truncate()
+                        finally:
+                            candidate.close()
+                    os.fsync(output.fileno())
+                if not invalid_response and output.seek(0, os.SEEK_END) == asset.size:
+                    if file_digest(partial) == digest:
+                        return
+                    output.truncate(0)
+                    os.fsync(output.fileno())
+                    last_error = 'GitHub SHA-256 mismatch' if asset.digest else 'SHA256SUMS mismatch'
+    raise SyncError(f'Transfer failed for package ({last_error}); partial retained for the next run')
+
+
 def github_json(path):
     with open_url(f'{REPO_API}/{path}', headers={'Accept': 'application/vnd.github+json'}) as response:
         value = json.loads(read_response(response, PAGE_LIMIT))
@@ -310,23 +447,30 @@ def prepare_downloads(version, assets, directory, cache, manifest):
     (directory / MANIFEST).write_bytes(manifest)
     expected = read_manifest(manifest, version.packages())
     cache.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if cache.is_symlink():
+    if cache.is_symlink() or not cache.is_dir():
         raise SyncError(f'Invalid download cache for {version.tag}')
+    cache.chmod(0o700)
+    partials = {}
+    for name, digest in expected.items():
+        asset = assets[name]
+        if asset.digest and asset.digest != digest:
+            raise SyncError(f'GitHub digest and SHA256SUMS disagree for {name}')
+        partials[name] = partial_path(cache, version, name, asset, digest)
+    prune_partials(cache, partials.values())
 
     def verify_package(name):
         asset = assets[name]
         digest = expected[name]
-        if asset.digest and asset.digest != digest:
-            raise SyncError(f'GitHub digest and SHA256SUMS disagree for {name}')
         saved = cache / name
         output = directory / name
         if (saved.is_symlink() or not saved.is_file()
                 or saved.stat().st_size != asset.size or file_digest(saved) != digest):
-            with tempfile.TemporaryDirectory(prefix='.download-', dir=cache) as work:
-                partial = Path(work) / name
-                if download(asset, partial) != digest:
-                    raise SyncError(f'SHA256SUMS mismatch for {name}')
-                os.replace(partial, saved)
+            partial = partials[name]
+            download_package(asset, partial, digest)
+            # Rehash locally even when the final HTTP retry only supplied a tail.
+            if partial.stat().st_size != asset.size or file_digest(partial) != digest:
+                raise SyncError(f'SHA256SUMS mismatch for {name}')
+            os.replace(partial, saved)
         shutil.copyfile(saved, output)
 
     with ThreadPoolExecutor(max_workers=len(expected)) as pool:
@@ -501,6 +645,7 @@ def sync(root, check=False):
         cache.mkdir(exist_ok=True, mode=0o700)
         if cache.is_symlink():
             raise SyncError('Website release cache must be a real directory')
+        cache.chmod(0o700)
         stage = Path(tempfile.mkdtemp(prefix=f'.sync-{newest.tag}-', dir=releases))
         try:
             copy_site(active, stage)
