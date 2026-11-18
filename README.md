@@ -4,19 +4,21 @@ LANLink 是面向 macOS 和 Windows 的开源局域网聊天与文件传输工�
 
 Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢复实测。[验收报告](docs/acceptance.md)
 
-从源码构建的版本提供手机和平板扫码传文件。手机和电脑连同一个可信 Wi‑Fi，电脑确认连接后即可双向收发，不用安装移动端 App。[扫码使用说明](docs/install.md#与手机或平板扫码传文件)
+LANLink 支持手机和平板扫码传文件。手机和电脑连同一个可信 Wi‑Fi，电脑确认连接后即可双向收发，不用安装移动端 App。[扫码使用说明](docs/install.md#与手机或平板扫码传文件)
 
-## 下载开发预览
+## 下载 v0.2.0 正式版
 
-从 [LANLink 官网 v0.2.0-preview.3](https://lanlink.heyyami.com/#download) 选择与你的电脑匹配的安装包。
+从 [LANLink 官网](https://lanlink.heyyami.com/#download) 选择与你的电脑匹配的正式版安装包。
 
-| 平台                        | 下载包                                                                                                                                                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Apple Silicon Mac（M 系列） | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0-preview.3/LANLink-0.2.0-aarch64-apple-darwin.zip) 或 [PKG](https://lanlink.heyyami.com/downloads/v0.2.0-preview.3/LANLink-0.2.0-aarch64-apple-darwin.pkg) |
-| Intel Mac                   | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0-preview.3/LANLink-0.2.0-x86_64-apple-darwin.zip)                                                                                                          |
-| Windows x64                 | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0-preview.3/LANLink-0.2.0-x86_64-pc-windows-msvc.zip)                                                                                                       |
+| 平台                        | 下载包                                                                                                                                                                                   |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Apple Silicon Mac（M 系列） | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-aarch64-apple-darwin.zip) 或 [PKG](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-aarch64-apple-darwin.pkg) |
+| Intel Mac                   | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-x86_64-apple-darwin.zip)                                                                                                |
+| Windows x64                 | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-x86_64-pc-windows-msvc.zip)                                                                                             |
 
-下载后按[安装指南](docs/install.md)操作。安装包校验值见 [SHA256SUMS](https://lanlink.heyyami.com/downloads/v0.2.0-preview.3/SHA256SUMS)。
+下载后按[安装指南](docs/install.md)操作。安装包校验值见 [SHA256SUMS](https://lanlink.heyyami.com/downloads/v0.2.0/SHA256SUMS)。
+
+已安装 `v0.2.0-preview.4` 或 `v0.2.0-preview.5` 的用户可以在「设置」点击「一键升级」。从官网下载的 `v0.2.0-preview.5` 已在 Mac mini 和 Windows x64 上实测升级到正式版。[一键升级验收](docs/acceptance.md#v020-一键升级实机验收)
 
 ## 开发运行
 

@@ -103,3 +103,20 @@ curl -I https://lanlink.heyyami.com/this-path-must-not-exist
 - 四个版本的安装包及校验清单共 20 条公网直链均返回 HTTP 200。完整下载的四个现行安装包均通过 SHA-256 校验。Apple Silicon PKG 请求 `Range: bytes=1024-2047`，返回 HTTP 206 和 1,024 字节。
 
 发布目录为 `/var/www/lanlink/releases/website-2ee4310`。回滚目标为部署前的 `/var/www/lanlink/releases/v0.2.0-preview.3-bxnb6oj4`。回滚前核对现行下载版本和历史下载目录，保留新增的公开直链，再按部署指南原子切换 `current` 并复验。 [回滚步骤](website-deploy.md#5-回滚)
+
+## v0.2.0 正式发布与公网验收
+
+2026-11-19 02:35:55（北京时间），GitHub 公开发布 `v0.2.0`，并将其标为最新正式版。标签指向 PR #20 的合并提交 `9cfa73a`，与 `v0.2.0-preview.5` 使用同一源码提交。发行工作流完成 Apple 芯片 Mac、Intel Mac 和 Windows x64 的测试与打包。Release 提供四个安装包、`SHA256SUMS` 和 `SHA256SUMS.sigstore.jsonl`，共六个资产。[正式版 Release](https://github.com/JackEngineer/LanLink/releases/tag/v0.2.0) · [签名构建](https://github.com/JackEngineer/LanLink/actions/runs/44367929423) · [合并提交](https://github.com/JackEngineer/LanLink/commit/9cfa73ae0af06309123f346756248bab06957947)
+
+将已核对的原始安装包预置到同步服务的私有缓存。现有服务重新验证标签、工作流、Sigstore 构建来源证明和包摘要后切换官网。公网首页显示「正式发布 v0.2.0」，`/release.json` 返回 `{"tag":"v0.2.0"}`。官网校验清单与发行工作流产物逐字节一致。[官网下载](https://lanlink.heyyami.com/#download) · [版本索引](https://lanlink.heyyami.com/release.json) · [校验清单](https://lanlink.heyyami.com/downloads/v0.2.0/SHA256SUMS)
+
+从公网完整下载四个正式安装包，SHA-256 均与签名清单一致。
+
+| 安装包                                     | SHA-256                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| `LANLink-0.2.0-aarch64-apple-darwin.pkg`   | `cf35e9ca4a59abf571df2e194e2074a63b7e2dde2ec77ac4164f89dceb323381` |
+| `LANLink-0.2.0-aarch64-apple-darwin.zip`   | `900f7e46fa01af7e2dedbb35e0e5ac928a6f4ed575e98634ab0981f388e95119` |
+| `LANLink-0.2.0-x86_64-apple-darwin.zip`    | `582acec83188e390d710fab25d57c554cc37d7571875f51795b646a46cd3cb89` |
+| `LANLink-0.2.0-x86_64-pc-windows-msvc.zip` | `1422013e38b55a995991fce0ae2736c97793f424d969d5a7ba71d7630bfa81e1` |
+
+六个历史预览版本的校验清单均可获取，24 条历史安装包直链均返回 HTTP 200。Mac mini 和 Windows 从官网 `v0.2.0-preview.5` 升级的结果见[一键升级实机验收](acceptance.md#v020-一键升级实机验收)。
