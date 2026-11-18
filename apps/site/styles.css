@@ -100,9 +100,7 @@ section[id] {
 .header-inner,
 .site-header nav,
 .brand,
-.hero-actions,
 .button,
-.quiet-button,
 .guide-link {
   display: flex;
   align-items: center;
@@ -168,21 +166,14 @@ section[id] {
   color: var(--muted);
   font-size: clamp(1rem, 1.65vw, 1.35rem);
 }
-.hero-actions {
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.65rem;
-}
 .button,
-.quiet-button,
 .guide-link {
   min-height: 48px;
   gap: 0.55rem;
   justify-content: center;
   font-weight: 700;
 }
-.button,
-.quiet-button {
+.button {
   padding: 0.62rem 1.18rem;
   border: 1px solid transparent;
   border-radius: 2.5rem;
@@ -191,8 +182,6 @@ section[id] {
     background-color 180ms,
     color 180ms,
     transform 180ms;
-}
-.button {
   color: white;
   background: var(--blue);
 }
@@ -203,15 +192,6 @@ section[id] {
 }
 .button img {
   filter: brightness(0) invert(1);
-}
-.quiet-button {
-  border-color: var(--line);
-  color: var(--ink);
-  background: var(--surface);
-}
-.quiet-button:hover {
-  color: var(--blue);
-  transform: translateY(-2px);
 }
 .guide-link {
   width: fit-content;
@@ -649,12 +629,6 @@ section[id] {
   .site-header nav .nav-download {
     padding-inline: 0.65rem;
   }
-  .hero-actions {
-    gap: 0.45rem;
-  }
-  .hero-actions > a {
-    padding-inline: 0.75rem;
-  }
 }
 @property --handoff-progress {
   syntax: '<percentage>';
@@ -780,7 +754,6 @@ section[id] {
 }
 @media (prefers-reduced-motion: reduce) {
   .button,
-  .quiet-button,
   .mode-controls label,
   .screen {
     transition: none;
