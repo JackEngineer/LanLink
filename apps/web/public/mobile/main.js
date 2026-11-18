@@ -1,6 +1,7 @@
 const status = document.querySelector('#status')
 const timer = document.querySelector('#timer')
 const confirmation = document.querySelector('#confirmation')
+const remembered = document.querySelector('#remembered')
 const code = document.querySelector('#code')
 const transfer = document.querySelector('#transfer')
 const limit = document.querySelector('#limit')
@@ -136,6 +137,13 @@ function showState(state) {
   confirmation.hidden = !waiting
   setText(code, waiting ? state.code : '')
   transfer.hidden = !approved
+  remembered.hidden = !approved
+  setText(
+    remembered,
+    state.remembered
+      ? '已记住此浏览器，90 天内再次扫码可直接连接。请使用同一浏览器；清除网站数据后需要重新确认。'
+      : '本次为临时连接，下次扫码仍需电脑确认。',
+  )
   showError(connectionError, '')
   showTime()
 
@@ -154,6 +162,7 @@ function endSession(message) {
   expiresAt = 0
   timer.hidden = true
   confirmation.hidden = true
+  remembered.hidden = true
   code.textContent = ''
   transfer.hidden = true
   updateSend()

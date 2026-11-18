@@ -52,6 +52,7 @@ pub struct State {
     pub uploads: Arc<Semaphore>,
     pub tcp_port: u16,
     pub mobile: Mutex<Option<Arc<crate::mobile::Session>>>,
+    pub mobile_trust: Arc<crate::mobile_trust::Registry>,
     pub outbox: tokio::sync::Notify,
 }
 impl State {
@@ -239,8 +240,11 @@ pub async fn test_state(root: &std::path::Path) -> Result<State> {
     };
     store.pin(device.clone(), "test-key".into()).await?;
     let (events, _) = broadcast::channel(8);
+    let mobile_trust =
+        Arc::new(crate::mobile_trust::Registry::open(store.clone(), &device.id).await?);
     Ok(State {
         store,
+        mobile_trust,
         device: RwLock::new(device),
         private: vec![0; 32],
         token: "test-token".into(),

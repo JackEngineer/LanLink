@@ -207,8 +207,10 @@ export const api = {
     }),
   startMobile: (address: string) =>
     mutate<MobileState>('POST', '/mobile', { address }),
-  approveMobile: (code: string) =>
-    mutate<MobileState>('POST', '/mobile/approve', { code }),
+  approveMobile: (code: string, remember = true) =>
+    mutate<MobileState>('POST', '/mobile/approve', { code, remember }),
+  forgetMobileBrowser: (id: string) =>
+    mutate<MobileState>('DELETE', `/mobile/browsers/${pathId(id)}`),
   endMobile: () => mutate<MobileState>('DELETE', '/mobile'),
   uploadMobile: async (
     file: File,

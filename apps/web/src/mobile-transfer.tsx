@@ -4,7 +4,11 @@ import { ArrowDownToLine, ArrowUpFromLine, Wifi } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { api } from './api'
 import { InlineError, Modal } from './components'
-import { formatBytes, type MobileSession } from './lanlink'
+import {
+  formatBytes,
+  type MobileSession,
+  type RememberedBrowser,
+} from './lanlink'
 
 const mobileKey = ['agent', 'mobile']
 const labels = {
@@ -15,7 +19,8 @@ const labels = {
 
 type SessionAction =
   | { type: 'start'; address: string }
-  | { type: 'approve'; code: string }
+  | { type: 'approve'; code: string; remember: boolean }
+  | { type: 'forget'; id: string }
   | { type: 'end' }
 
 function updateSession(action: SessionAction) {
@@ -23,7 +28,9 @@ function updateSession(action: SessionAction) {
     case 'start':
       return api.startMobile(action.address)
     case 'approve':
-      return api.approveMobile(action.code)
+      return api.approveMobile(action.code, action.remember)
+    case 'forget':
+      return api.forgetMobileBrowser(action.id)
     case 'end':
       return api.endMobile()
   }
@@ -74,7 +81,9 @@ export function MobileTransferDialog({ onClose }: { onClose: () => void }) {
           <p className="modal-copy" role="status">
             {action.isSuccess && action.variables?.type === 'end'
               ? '互传已结束。'
-              : '生成二维码后，用手机或平板扫码连接。'}
+              : action.isSuccess && action.variables?.type === 'forget'
+                ? '已忘记该浏览器，下次扫码需重新确认。'
+                : '生成二维码后，用手机或平板扫码连接。'}
           </p>
           {addresses.length > 1 && (
             <label className="mobile-field">
@@ -130,15 +139,24 @@ export function MobileTransferDialog({ onClose }: { onClose: () => void }) {
             <ApproveMobile
               key={session.url}
               disabled={action.isPending || status.isError}
-              onApprove={(code) => action.mutate({ type: 'approve', code })}
+              onApprove={(code, remember) =>
+                action.mutate({ type: 'approve', code, remember })
+              }
             />
           )}
           {session.phase === 'approved' && (
-            <MobileFiles
-              key={session.url}
-              session={session}
-              disabled={action.isPending || status.isError}
-            />
+            <>
+              <p className="modal-copy mobile-remembered-status">
+                {session.remembered
+                  ? '已记住此浏览器，下次扫码可直接连接。'
+                  : '本次为临时连接，下次扫码仍需电脑确认。'}
+              </p>
+              <MobileFiles
+                key={session.url}
+                session={session}
+                disabled={action.isPending || status.isError}
+              />
+            </>
           )}
           <div className="modal-actions">
             <button
@@ -151,6 +169,13 @@ export function MobileTransferDialog({ onClose }: { onClose: () => void }) {
             </button>
           </div>
         </>
+      )}
+      {status.data && (
+        <RememberedBrowsers
+          browsers={status.data.remembered_browsers ?? []}
+          disabled={action.isPending || status.isError}
+          onForget={(id) => action.mutate({ type: 'forget', id })}
+        />
       )}
       <InlineError error={action.error} />
     </Modal>
@@ -180,16 +205,17 @@ function ApproveMobile({
   onApprove,
 }: {
   disabled: boolean
-  onApprove: (code: string) => void
+  onApprove: (code: string, remember: boolean) => void
 }) {
   const [code, setCode] = useState('')
+  const [remember, setRemember] = useState(true)
 
   return (
     <form
       className="mobile-approve"
       onSubmit={(event) => {
         event.preventDefault()
-        if (!disabled && code.length === 6) onApprove(code)
+        if (!disabled && code.length === 6) onApprove(code, remember)
       }}
     >
       <p className="modal-copy">
@@ -207,6 +233,18 @@ function ApproveMobile({
           onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
         />
       </label>
+      <label className="mobile-remember">
+        <input
+          type="checkbox"
+          checked={remember}
+          disabled={disabled}
+          onChange={(event) => setRemember(event.target.checked)}
+        />
+        记住此浏览器，90 天内扫码免确认
+      </label>
+      <p className="modal-detail mobile-guest-note">
+        访客或公用设备请取消勾选，仅允许本次连接。
+      </p>
       <button
         className="button button-primary"
         type="submit"
@@ -215,6 +253,64 @@ function ApproveMobile({
         允许连接
       </button>
     </form>
+  )
+}
+
+const browserDate = new Intl.DateTimeFormat('zh-CN', {
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+function RememberedBrowsers({
+  browsers,
+  disabled,
+  onForget,
+}: {
+  browsers: RememberedBrowser[]
+  disabled: boolean
+  onForget: (id: string) => void
+}) {
+  return (
+    <section className="mobile-browsers" aria-label="已记住的浏览器">
+      <h3>已记住的浏览器</h3>
+      {browsers.length === 0 ? (
+        <p className="modal-copy">暂无已记住的浏览器。</p>
+      ) : (
+        <>
+          <p className="modal-detail">
+            忘记后下次扫码需重新确认；正在使用该浏览器的互传也会结束。
+          </p>
+          <ul>
+            {browsers.map((browser) => (
+              <li key={browser.id}>
+                <span className="mobile-file-name">
+                  {browser.name}
+                  <small>
+                    上次使用{' '}
+                    <time
+                      dateTime={new Date(browser.last_used_at).toISOString()}
+                    >
+                      {browserDate.format(browser.last_used_at)}
+                    </time>
+                  </small>
+                </span>
+                <button
+                  className="button button-small"
+                  type="button"
+                  aria-label={`忘记 ${browser.name}`}
+                  disabled={disabled}
+                  onClick={() => onForget(browser.id)}
+                >
+                  忘记
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
   )
 }
 

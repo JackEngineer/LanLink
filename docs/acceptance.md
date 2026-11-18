@@ -62,12 +62,13 @@ python3 scripts/smoke.py --agent target/release/lanlink-agent --web-dir apps/web
 
 新增扫码入口通过以下本机验证。
 
-- 前端 lint、26 项单元测试及生产构建通过。Rust workspace 的 37 项测试、格式检查和 Clippy 通过。
+- 前端 lint、35 项单元测试及生产构建通过。Rust workspace 的 42 项测试、格式检查和 Clippy 通过。
 - `scripts/mobile-smoke.py` 使用实际局域网 IPv4 和隔离 Agent，验证一次性邀请、确认前拒绝传输、确认码、双向文件字节一致、超限拒绝、中断上传清理，以及撤销后关闭监听并保留接收文件。
 - Chrome 完成显示二维码解码、电脑确认、两端原生附件下载及会话结束。WebKit 26 完成电脑端和 iPhone 视口下的相同收发流程，并检查 390px 和 820px 页面没有横向溢出。
+- `scripts/mobile-remember-smoke.py` 验证首次记住浏览器、跨监听端口自动连接、Agent 重启后自动连接、访客模式，以及忘记浏览器后断开连接并在重启后保持撤销。Chrome 与 WebKit 26 页面完成默认记住、再次扫码免确认、忘记后重新确认和访客模式流程。
 - 现有双 Agent 集成脚本完成配对、双向消息、双向 1 MiB 文件、4 MiB 文件中断续传及撤销回归。
 
-这些验证运行在同一台 Mac 上。iPhone、iPad 和 Android 真机扫码、系统文件保存，以及 Windows 原生防火墙和接收文件行为仍待验证。扫码会话使用局域网 HTTP，界面提示传输未加密，仅在可信 Wi-Fi 使用。
+自动验证运行在同一台 Mac 上。用户已确认手机扫码连接和文件传输成功，具体机型与浏览器尚未记录。记住浏览器的真机重复扫码、其他移动平台、系统文件保存，以及 Windows 原生防火墙和接收文件行为仍待验证。扫码会话使用局域网 HTTP，界面提示传输未加密，仅在可信 Wi-Fi 使用。
 
 ### 桌面设备传输
 

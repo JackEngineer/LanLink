@@ -648,6 +648,28 @@ button:disabled {
   letter-spacing: 0.15em;
 }
 
+.mobile-remember {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  line-height: 1.5;
+}
+
+.mobile-remember input {
+  flex-shrink: 0;
+  margin-top: 3px;
+  accent-color: var(--blue);
+}
+
+.mobile-guest-note {
+  margin-block: 4px 12px;
+}
+
+.mobile-remembered-status {
+  margin-bottom: 12px;
+}
+
 .mobile-send .button {
   margin-top: 9px;
 }
@@ -673,18 +695,21 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.mobile-inbox {
+.mobile-inbox,
+.mobile-browsers {
   margin-block-start: 13px;
   border-top: 1px solid var(--border);
   padding-block-start: 10px;
 }
 
-.mobile-inbox h3 {
+.mobile-inbox h3,
+.mobile-browsers h3 {
   margin-block-end: 6px;
   font-weight: 650;
 }
 
-.mobile-inbox li {
+.mobile-inbox li,
+.mobile-browsers li {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -692,7 +717,8 @@ button:disabled {
   padding-block: 7px;
 }
 
-.mobile-inbox li + li {
+.mobile-inbox li + li,
+.mobile-browsers li + li {
   border-top: 1px solid var(--border);
 }
 

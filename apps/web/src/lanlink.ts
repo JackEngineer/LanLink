@@ -77,11 +77,22 @@ export interface MobileSession {
   expires_at: number
   max_file_size: number
   files: MobileFile[]
+  remembered: boolean
+  remembered_browser_id: string | null
+}
+
+export interface RememberedBrowser {
+  id: string
+  name: string
+  created_at: number
+  last_used_at: number
+  expires_at: number
 }
 
 export interface MobileState {
   addresses: string[]
   session: MobileSession | null
+  remembered_browsers?: RememberedBrowser[]
 }
 
 export interface Settings {
