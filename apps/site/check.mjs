@@ -9,14 +9,13 @@ const release = JSON.parse(await readFile(resolve(root, 'apps/site/release.json'
 const html = await readFile(resolve(output, 'index.html'), 'utf8');
 const readme = await readFile(resolve(root, 'README.md'), 'utf8');
 const install = await readFile(resolve(root, 'docs/install.md'), 'utf8');
-const releaseBase = 'https://github.com/JackEngineer/LanLink/releases/';
+const downloadBase = `https://lanlink.heyyami.com/downloads/${release.tag}/`;
 assert.match(
   release.tag,
   /^v\d+\.\d+\.\d+-preview\.\d+$/,
   'Use a named development preview release',
 );
-assert.equal(release.releaseUrl, `${releaseBase}tag/${release.tag}`);
-assert.equal(release.checksumsUrl, `${releaseBase}download/${release.tag}/SHA256SUMS`);
+assert.equal(release.checksumsUrl, `${downloadBase}SHA256SUMS`);
 assert.ok(
   Array.isArray(release.downloads) && release.downloads.length > 0,
   'Release must contain platforms',
@@ -34,12 +33,11 @@ for (const download of release.downloads) {
       ['PKG', 'ZIP'].includes(artifact.format),
       `Unexpected artifact format: ${artifact.format}`,
     );
+    assert.ok(artifact.url.startsWith(downloadBase), `Artifact outside release: ${artifact.url}`);
     assert.ok(
-      artifact.url.startsWith(`${releaseBase}download/${release.tag}/`),
-      `Artifact outside release: ${artifact.url}`,
-    );
-    assert.ok(
-      new URL(artifact.url).pathname.endsWith(`.${artifact.format.toLowerCase()}`),
+      new RegExp(`^[A-Za-z0-9_-][A-Za-z0-9._-]*[.]${artifact.format.toLowerCase()}$`).test(
+        artifact.url.slice(downloadBase.length),
+      ),
       'Format must match filename',
     );
     artifactUrls.push(artifact.url);
@@ -47,10 +45,7 @@ for (const download of release.downloads) {
 }
 assert.equal(new Set(artifactUrls).size, artifactUrls.length, 'Duplicate download artifact');
 const releaseAssets = (text) =>
-  new Set(
-    text.match(/https:\/\/github\.com\/JackEngineer\/LanLink\/releases\/download\/[^\s)"<>]+/g) ??
-      [],
-  );
+  new Set(text.match(/https:\/\/lanlink\.heyyami\.com\/downloads\/[^\s)"<>]+/g) ?? []);
 const expected = new Set([...artifactUrls, release.checksumsUrl]);
 assert.deepEqual(
   releaseAssets(html),
@@ -67,10 +62,10 @@ assert.deepEqual(
   expected,
   'Install guide download assets differ from release manifest',
 );
-assert.ok(
-  html.includes(release.tag) && html.includes(release.releaseUrl),
-  'Built page must show the current release',
-);
+assert.ok(html.includes(release.tag), 'Built page must show the current release');
+for (const body of [html, readme, install]) {
+  assert.doesNotMatch(body, /https:\/\/github\.com\/JackEngineer\/LanLink\/releases\//i);
+}
 assert.equal((html.match(/class="download-card"/g) ?? []).length, release.downloads.length);
 assert.ok(!/{{[^}]+}}/.test(html), 'Unresolved build slots');
 assert.ok(
@@ -87,7 +82,10 @@ const localResources = new Set();
 const officialLinks = new Set(['https://beian.miit.gov.cn/']);
 for (const match of html.matchAll(/<(\w+)\b[^>]*?\b(href|src)="([^"]+)"[^>]*>/g)) {
   const [, tag, attribute, url] = match;
-  if (url.startsWith('#')) {
+  if (expected.has(url)) {
+    assert.equal(tag, 'a', `Download must be a link: ${url}`);
+    assert.match(match[0], /\sdownload(?:[\s>])/);
+  } else if (url.startsWith('#')) {
     assert.ok(ids.includes(url.slice(1)), `Broken anchor: ${url}`);
   } else if (url.startsWith('https://')) {
     assert.equal(tag, 'a', `External runtime resource: ${url}`);

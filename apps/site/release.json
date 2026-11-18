@@ -1,7 +1,6 @@
 {
   "tag": "v0.2.0-preview.1",
-  "releaseUrl": "https://github.com/JackEngineer/LanLink/releases/tag/v0.2.0-preview.1",
-  "checksumsUrl": "https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/SHA256SUMS",
+  "checksumsUrl": "https://lanlink.heyyami.com/downloads/v0.2.0-preview.1/SHA256SUMS",
   "downloads": [
     {
       "platform": "macos-apple-silicon",
@@ -9,11 +8,11 @@
       "artifacts": [
         {
           "format": "PKG",
-          "url": "https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-aarch64-apple-darwin.pkg"
+          "url": "https://lanlink.heyyami.com/downloads/v0.2.0-preview.1/LANLink-0.2.0-aarch64-apple-darwin.pkg"
         },
         {
           "format": "ZIP",
-          "url": "https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-aarch64-apple-darwin.zip"
+          "url": "https://lanlink.heyyami.com/downloads/v0.2.0-preview.1/LANLink-0.2.0-aarch64-apple-darwin.zip"
         }
       ]
     },
@@ -23,7 +22,7 @@
       "artifacts": [
         {
           "format": "ZIP",
-          "url": "https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-x86_64-apple-darwin.zip"
+          "url": "https://lanlink.heyyami.com/downloads/v0.2.0-preview.1/LANLink-0.2.0-x86_64-apple-darwin.zip"
         }
       ]
     },
@@ -33,7 +32,7 @@
       "artifacts": [
         {
           "format": "ZIP",
-          "url": "https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-x86_64-pc-windows-msvc.zip"
+          "url": "https://lanlink.heyyami.com/downloads/v0.2.0-preview.1/LANLink-0.2.0-x86_64-pc-windows-msvc.zip"
         }
       ]
     }
