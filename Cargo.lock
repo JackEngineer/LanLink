@@ -1105,6 +1105,7 @@ dependencies = [
  "lanlink-protocol",
  "lanlink-store",
  "lanlink-transport",
+ "libc",
  "mdns-sd",
  "percent-encoding",
  "semver",

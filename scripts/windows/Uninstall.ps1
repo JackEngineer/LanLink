@@ -1,6 +1,8 @@
 $ErrorActionPreference = "Stop"
 $install = Join-Path $env:LOCALAPPDATA "Programs/LANLink"
-$running = Get-Process -Name lanlink-agent -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $install "lanlink-agent.exe") }
+$running = Get-Process -Name lanlink-agent -ErrorAction SilentlyContinue | Where-Object {
+  $_.Path -in @((Join-Path $install "lanlink-agent.exe"), (Join-Path $install "current/lanlink-agent.exe"))
+}
 if ($running) {
   $running | Stop-Process
   $running | Wait-Process -Timeout 10

@@ -2,8 +2,9 @@
 
 All routes use `/api/v1`. JSON response arrays are bare arrays. Errors use `{ "error": "human readable reason" }`. UI and API share the exact loopback origin. Mutations require `X-LANLink-Token` from `GET /api/v1/session` and exact Origin. GET session requires same-origin fetch header. WS supplies token using `Sec-WebSocket-Protocol` values `lanlink` and token. WS sends `{ "type": "changed" }` to invalidate caches and clients refetch after reconnect.
 
-- GET health -> `{service:"lanlink",status:"ok",version:"0.2.0-preview.1"}`
-- POST updates/check -> `{status:"current"}`, `{status:"available",version:string,download_url:string}`, or `{status:"unsupported"}`. The Agent contacts the official release index on demand. An unavailable or invalid index returns HTTP 502.
+- GET health -> `{service:"lanlink",status:"ok",version:string,update_failed_version?:string}`. After a failed upgrade, the optional field identifies the failed candidate.
+- POST updates/check -> `{status:"current"}`, `{status:"available",version:string}`, or `{status:"unsupported"}`. An unavailable or invalid official release index returns HTTP 502.
+- POST updates/apply `{version:string}` -> `{version:string}`. The authenticated request downloads and verifies the published package and returns once a helper takes over. The browser polls health on the same origin and reloads after it sees the requested version.
 - GET session -> `{token:string}`
 - GET device -> Device
 - PATCH device `{name}` -> Device

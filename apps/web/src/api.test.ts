@@ -198,6 +198,28 @@ describe('local Agent requests', () => {
     )
   })
 
+  it('sends the selected upgrade version to the authenticated local Agent', async () => {
+    const version = '0.2.0-preview.3'
+    const fetchMock = mockFetch(
+      Response.json({ token: 'launch-token' }),
+      Response.json({ version }),
+    )
+
+    await expect(api.applyUpdate(version)).resolves.toEqual({ version })
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/updates/apply',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ version }),
+        headers: new Headers({
+          'X-LANLink-Token': 'launch-token',
+          'Content-Type': 'application/json',
+        }),
+      }),
+    )
+  })
+
   it('does not send a mutation when the Agent returns no session token', async () => {
     const fetchMock = mockFetch(Response.json(null))
 

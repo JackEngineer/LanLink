@@ -1,11 +1,33 @@
 param([switch]$BackgroundOnly)
 $ErrorActionPreference = "Stop"
-$binary = Join-Path $PSScriptRoot "lanlink-agent.exe"
-$logs = Join-Path $env:LOCALAPPDATA "LANLink/LANLink/data/logs"
+$current = Join-Path $PSScriptRoot "current"
+$previous = Join-Path $PSScriptRoot ".previous"
+if (-not (Test-Path $current) -and -not (Test-Path $previous)) {
+  $current = $PSScriptRoot
+}
+$binary = Join-Path $current "lanlink-agent.exe"
+$data = Join-Path $env:LOCALAPPDATA "LANLink/LANLink/data"
+$logs = Join-Path $data "logs"
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
 $existing = Get-Process -Name lanlink-agent -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $binary }
+if (-not $existing -and (Test-Path $previous -PathType Container)) {
+  $lock = [IO.File]::Open((Join-Path $data "update.lock"), "OpenOrCreate", "ReadWrite", "ReadWrite")
+  try {
+    try { $lock.Lock(0, 1) } catch [IO.IOException] { exit 0 }
+    if ((Test-Path $previous -PathType Container) -and -not (Test-Path (Join-Path $previous ".committed"))) {
+      if (Test-Path $current) {
+        $rejected = Join-Path $PSScriptRoot (".rejected-" + [Guid]::NewGuid().ToString("N"))
+        [IO.Directory]::Move($current, $rejected)
+      }
+      [IO.Directory]::Move($previous, $current)
+      if ($rejected) { Remove-Item -LiteralPath $rejected -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+  } finally {
+    $lock.Dispose()
+  }
+}
 if (-not $existing) {
-  Start-Process -FilePath $binary -ArgumentList @("--web-dir", "`"$PSScriptRoot/web`"") -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logs "launcher.stdout.log") -RedirectStandardError (Join-Path $logs "launcher.stderr.log")
+  Start-Process -FilePath $binary -ArgumentList @("--web-dir", "`"$current/web`"") -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logs "launcher.stdout.log") -RedirectStandardError (Join-Path $logs "launcher.stderr.log")
 }
 if (-not $BackgroundOnly) {
   for ($attempt = 0; $attempt -lt 40; $attempt++) {

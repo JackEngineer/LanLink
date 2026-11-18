@@ -16,12 +16,13 @@ import {
   useAgentQuery,
 } from './use-lanlink'
 import { useUi } from './ui-state'
+import { useAppUpdate } from './use-app-update'
 
 export function App() {
   const client = useQueryClient()
   const connection = useAgentConnection()
   const poll = connection === 'live' ? false : 2_500
-  const health = useAgentQuery(agentKeys.health, api.health, 5_000)
+  const health = useAgentQuery(agentKeys.health, () => api.health(), 5_000)
   const device = useAgentQuery(agentKeys.device, api.device, poll)
   const devices = useAgentQuery(agentKeys.peers, api.peers, poll)
   const pairings = useAgentQuery(agentKeys.pairings, api.pairings, poll)
@@ -44,6 +45,10 @@ export function App() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [revokePeerId, setRevokePeerId] = useState<string | null>(null)
   const agentAvailable = health.isSuccess
+  const appUpdate = useAppUpdate(
+    health.data?.version,
+    view === 'settings' && agentAvailable,
+  )
   const hasPairings = Boolean(pairings.data?.length)
   const now = usePairingClock(hasPairings)
   const activePairings = (pairings.data ?? []).filter(
@@ -145,7 +150,7 @@ export function App() {
             </button>
           )}
         </header>
-        {health.isError && (
+        {health.isError && !appUpdate.restarting && (
           <div className="connection-banner" role="status">
             <span>无法连接 LANLink 本地服务。请检查 Agent 是否已启动。</span>
             <button
@@ -184,6 +189,7 @@ export function App() {
             device={device.data}
             settings={settings.data}
             version={health.data?.version}
+            appUpdate={appUpdate}
             loading={device.isPending || settings.isPending}
             agentAvailable={agentAvailable}
             error={device.error || settings.error}
