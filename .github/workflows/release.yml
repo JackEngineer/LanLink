@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      release-version: ${{ steps.version.outputs.release-version }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -39,6 +40,7 @@ jobs:
               raise SystemExit('Tag base and source package versions disagree')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               print(f'version={version.base}', file=output)
+              print(f'release-version={version.tag[1:]}', file=output)
           PY
       - run: npm run site:check
       - run: python3 -B -m unittest discover -s deploy/release-sync
@@ -74,8 +76,12 @@ jobs:
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo test --workspace --locked
       - if: runner.os == 'macOS'
+        env:
+          LANLINK_RELEASE_VERSION: ${{ needs.validate.outputs.release-version }}
         run: bash scripts/macos/package.sh ${{ matrix.target }}
       - if: runner.os == 'Windows'
+        env:
+          LANLINK_RELEASE_VERSION: ${{ needs.validate.outputs.release-version }}
         run: ./scripts/windows/package.ps1
       - name: Stage final packages only
         shell: bash

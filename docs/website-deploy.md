@@ -17,7 +17,7 @@ tar -tzf dist/lanlink-website.tar.gz
 shasum -a 256 dist/lanlink-website.tar.gz
 ```
 
-部署包根目录包含 `index.html`、`styles.css` 和 `assets/`。检查命令会验证实际构建产物的本地资源、锚点和下载链接，并与 `apps/site/release.json`、README、安装指南比较。升级预览版本时，一起更新这些来源，再重新构建。
+部署包根目录包含 `index.html`、`styles.css`、`release.json` 和 `assets/`。构建检查会核对本地资源、锚点、下载链接，以及 `apps/site/release.json`、README 和安装指南中的版本信息。桌面应用从官网根目录的 `release.json` 读取当前发行标签。发布时将该文件和对应安装包一起切换，并让客户端每次访问该路径时重新验证缓存。
 
 ## 2. 上传到独立发布目录
 
@@ -81,10 +81,11 @@ curl -I https://example.com/
 curl -I https://example.com/styles.css
 curl -I https://example.com/assets/lanlink.png
 curl -I https://example.com/assets/demo-request.webp
+curl -fsS https://example.com/release.json
 curl -I https://example.com/this-path-must-not-exist
 ```
 
-首页和静态资源应返回 200，未知路径应返回 404。确认 HTTPS 证书、内容类型、缓存和安全头。浏览器检查桌面与手机布局、锚点、FAQ、三个平台的四个下载链接，以及安装指南和校验值链接。验证其他既有站点仍可访问。
+首页和静态资源应返回 200，未知路径应返回 404。核对 `release.json` 中的 `tag` 与首页显示的版本及安装包目录一致。确认 HTTPS 证书、内容类型、缓存和安全头。浏览器检查桌面与手机布局、锚点、FAQ、三个平台的四个下载链接，以及安装指南和校验值链接。验证其他既有站点仍可访问。
 
 ## 5. 回滚
 

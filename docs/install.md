@@ -42,6 +42,14 @@
 
 Windows 默认数据目录为 `%LOCALAPPDATA%\LANLink\LANLink\data`。Agent 日志和启动器的 `launcher.stdout.log`、`launcher.stderr.log` 位于其 `logs` 子目录。
 
+## 升级 LANLink
+
+在桌面 LANLink 中打开「设置」→「软件更新」。发现新版本后点击「一键升级」。LANLink 会下载安装包、验证来源、替换程序并重启。升级完成后，当前标签页会自动刷新。
+
+升级需要连通 LANLink 官网和 GitHub。下载和校验期间可以继续使用 LANLink。重启会短暂断开连接，桌面文件传输会按已保存的进度恢复，手机扫码会话需要重新连接。升级沿用原来的设备身份、消息、文件和登录启动设置。
+
+旧版首次启用一键升级时，需从 [LANLink 官网](https://lanlink.heyyami.com/#download) 下载并覆盖安装支持此功能的版本。安装目录需要允许当前账户写入。
+
 ## 消息与文件
 
 配对后选择设备发送消息。`sent` 表示接收端 Agent 已将消息保存到数据库，不表示对方已阅读。断线后未确认的消息保留原 ID 重试。

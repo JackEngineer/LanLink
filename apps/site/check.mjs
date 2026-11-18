@@ -7,6 +7,8 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const output = resolve(root, 'dist/site');
 const release = JSON.parse(await readFile(resolve(root, 'apps/site/release.json'), 'utf8'));
 const html = await readFile(resolve(output, 'index.html'), 'utf8');
+const releaseIndex = resolve(output, 'release.json');
+assert.deepEqual(JSON.parse(await readFile(releaseIndex, 'utf8')), { tag: release.tag });
 const readme = await readFile(resolve(root, 'README.md'), 'utf8');
 const install = await readFile(resolve(root, 'docs/install.md'), 'utf8');
 const downloadBase = `https://lanlink.heyyami.com/downloads/${release.tag}/`;
@@ -123,6 +125,7 @@ async function filesIn(directory) {
 }
 const files = await filesIn(output);
 for (const path of files) {
+  if (path === releaseIndex) continue;
   const extension = extname(path);
   assert.ok(
     ['.html', '.css', '.svg', '.png', '.webp'].includes(extension),

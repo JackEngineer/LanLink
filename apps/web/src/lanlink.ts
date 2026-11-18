@@ -1,7 +1,13 @@
 export interface Health {
   status: 'ok'
   version: string
+  update_failed_version?: string
 }
+
+export type Update =
+  | { status: 'current' }
+  | { status: 'available'; version: string }
+  | { status: 'unsupported' }
 
 export interface Device {
   id: string

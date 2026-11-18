@@ -9,6 +9,7 @@ import type {
   Settings,
   Transfer,
   TransferAction,
+  Update,
 } from './lanlink'
 
 const base = '/api/v1'
@@ -70,13 +71,15 @@ async function mutate<T>(
   method: 'POST' | 'PATCH' | 'DELETE',
   path: string,
   body?: object,
+  signal?: AbortSignal,
 ) {
-  const headers = new Headers({ [tokenHeader]: await sessionToken() })
+  const headers = new Headers({ [tokenHeader]: await sessionToken(signal) })
   if (body) headers.set('Content-Type', 'application/json')
   return request<T>(path, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
+    signal,
   })
 }
 
@@ -179,7 +182,11 @@ function uploadFile<T>(
 }
 
 export const api = {
-  health: () => request<Health>('/health'),
+  health: (signal?: AbortSignal) => request<Health>('/health', { signal }),
+  checkUpdate: (signal?: AbortSignal) =>
+    mutate<Update>('POST', '/updates/check', undefined, signal),
+  applyUpdate: (version: string) =>
+    mutate<{ version: string }>('POST', '/updates/apply', { version }),
   device: () => request<Device>('/device'),
   rename: (name: string) => mutate<Device>('PATCH', '/device', { name }),
   peers: () => request<Peer[]>('/devices'),

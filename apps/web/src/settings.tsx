@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Check, Copy, FolderDown } from 'lucide-react'
+import { Check, Copy, FolderDown, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { api } from './api'
 import { DeviceIcon, InlineError } from './components'
@@ -11,12 +11,14 @@ import {
   type Device,
   type Settings,
 } from './lanlink'
+import type { useAppUpdate } from './use-app-update'
 import { agentKeys } from './use-lanlink'
 
 export function SettingsPage({
   device,
   settings,
   version,
+  appUpdate,
   loading,
   agentAvailable,
   error,
@@ -24,6 +26,7 @@ export function SettingsPage({
   device: Device | undefined
   settings: Settings | undefined
   version: string | undefined
+  appUpdate: ReturnType<typeof useAppUpdate>
   loading: boolean
   agentAvailable: boolean
   error: Error | null
@@ -60,9 +63,80 @@ export function SettingsPage({
             </div>
           </div>
         )}
-        {version && <p className="version">LANLink {version}</p>}
+        {version && (
+          <AppUpdates
+            version={version}
+            disabled={!agentAvailable}
+            {...appUpdate}
+          />
+        )}
       </div>
     </section>
+  )
+}
+
+function AppUpdates({
+  version,
+  disabled,
+  update,
+  checking,
+  checkError,
+  retryCheck,
+  installing,
+  restarting,
+  installError,
+  install,
+}: ReturnType<typeof useAppUpdate> & { version: string; disabled: boolean }) {
+  const available = update?.status === 'available' ? update.version : null
+  let message = ''
+  if (restarting) message = '正在重启 LANLink…'
+  else if (installing) message = '正在下载并校验更新…'
+  else if (checking) message = '正在检查更新…'
+  else if (update?.status === 'current') message = '当前版本已是最新。'
+  else if (update?.status === 'unsupported')
+    message = '当前安装暂不支持一键升级。'
+  else if (available) message = `发现新版本 ${available}。`
+
+  return (
+    <div className="settings-group">
+      <h2>
+        <RefreshCw size={19} aria-hidden="true" /> 软件更新
+      </h2>
+      <div className="settings-card">
+        <div className="settings-row">
+          <span className="setting-label">当前版本</span>
+          <div className="setting-field">
+            <div className="field-controls">
+              <span className="setting-value">LANLink {version}</span>
+              {available && (
+                <button
+                  className="button button-primary"
+                  type="button"
+                  disabled={disabled || checking || installing}
+                  onClick={() => install(available)}
+                >
+                  一键升级
+                </button>
+              )}
+              {!available && checkError && (
+                <button
+                  className="button"
+                  type="button"
+                  disabled={disabled || checking || installing}
+                  onClick={() => void retryCheck()}
+                >
+                  重试
+                </button>
+              )}
+            </div>
+            <div className="setting-hint update-status" role="status">
+              {message}
+            </div>
+            <InlineError error={installError ?? checkError} />
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

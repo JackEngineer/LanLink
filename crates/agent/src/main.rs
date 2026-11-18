@@ -5,6 +5,8 @@ mod mobile;
 mod mobile_trust;
 mod network;
 mod state;
+mod updates;
+mod upgrade;
 
 use anyhow::{Context, Result, ensure};
 use clap::Parser;
@@ -17,7 +19,7 @@ use tokio::{
 };
 
 #[derive(Parser)]
-#[command(version, about = "Private offline LAN messaging and file transfer")]
+#[command(version = updates::INSTALLED_VERSION, about = "Private offline LAN messaging and file transfer")]
 struct Args {
     #[arg(long)]
     data_dir: Option<PathBuf>,
@@ -36,6 +38,9 @@ struct Args {
 }
 #[tokio::main]
 async fn main() -> Result<()> {
+    if let Some(result) = upgrade::run_helper() {
+        return result;
+    }
     let args = Args::parse();
     let root = args.data_dir.unwrap_or_else(|| {
         directories::ProjectDirs::from("dev", "LANLink", "LANLink")
@@ -50,6 +55,7 @@ async fn main() -> Result<()> {
         tokio::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700)).await?;
     }
     let root = tokio::fs::canonicalize(root).await?;
+    let restart_lock = upgrade::startup_lock(&root)?;
     let lock = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -58,6 +64,7 @@ async fn main() -> Result<()> {
         .open(root.join("agent.lock"))?;
     fs2::FileExt::try_lock_exclusive(&lock)
         .context("another LANLink agent uses this data directory")?;
+    drop(restart_lock);
     for name in ["spool", "downloads", "logs"] {
         tokio::fs::create_dir_all(root.join(name)).await?;
     }
@@ -190,12 +197,23 @@ async fn main() -> Result<()> {
             .filter(|p| p.exists())
             .unwrap_or_else(|| PathBuf::from("web/dist"))
     });
-    println!("LANLink {VERSION} ready at {origin} (TCP {tcp_port})");
+    println!(
+        "LANLink {} ready at {origin} (TCP {tcp_port})",
+        updates::INSTALLED_VERSION
+    );
     tracing::info!(%origin, tcp_port, "agent started");
-    axum::serve(http, http::router(state.clone(), web_dir))
+    let updater = upgrade::Updater::new(&web_dir, &state.root, args.http_port);
+    let upgrade_shutdown = updater.shutdown.clone();
+    let restart_deadline = upgrade_shutdown.clone();
+    let server = axum::serve(http, http::router(state.clone(), web_dir, updater))
         .with_graceful_shutdown(async move {
-            if let Err(error) = shutdown_signal().await {
-                tracing::warn!(%error, "shutdown signal listener failed");
+            tokio::select! {
+                () = upgrade_shutdown.cancelled() => {},
+                result = shutdown_signal() => {
+                    if let Err(error) = result {
+                        tracing::warn!(%error, "shutdown signal listener failed");
+                    }
+                }
             }
             mobile::shutdown(&state).await;
             if let Some(mdns) = mdns
@@ -208,8 +226,14 @@ async fn main() -> Result<()> {
             {
                 tracing::warn!("mDNS shutdown did not complete within three seconds");
             }
-        })
-        .await?;
+        });
+    tokio::select! {
+        result = server => result?,
+        () = async {
+            restart_deadline.cancelled().await;
+            tokio::time::sleep(std::time::Duration::from_secs(15)).await;
+        } => tracing::warn!("forcing shutdown after update drain deadline"),
+    }
     Ok(())
 }
 

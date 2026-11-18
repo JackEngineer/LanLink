@@ -1151,8 +1151,7 @@ button:disabled {
 }
 
 .setting-value,
-.setting-hint,
-.version {
+.setting-hint {
   color: var(--muted);
 }
 
@@ -1214,8 +1213,7 @@ button:disabled {
 }
 
 .setting-hint,
-.saved,
-.version {
+.saved {
   margin-top: 5px;
   font-size: 12px;
 }
@@ -1227,8 +1225,8 @@ button:disabled {
   color: #20684e;
 }
 
-.version {
-  margin-top: 18px;
+.update-status:empty {
+  margin-top: 0;
 }
 
 @media (max-width: 700px) {

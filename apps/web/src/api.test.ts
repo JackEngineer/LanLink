@@ -175,6 +175,51 @@ describe('local Agent requests', () => {
     )
   })
 
+  it('checks for upgrades with an authenticated local request and surfaces a retryable error', async () => {
+    const fetchMock = mockFetch(
+      Response.json({ token: 'launch-token' }),
+      Response.json(
+        { error: '无法检查更新，请确认网络连接后重试。' },
+        { status: 502 },
+      ),
+    )
+
+    await expect(api.checkUpdate()).rejects.toThrow(
+      '无法检查更新，请确认网络连接后重试。',
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/updates/check',
+      expect.objectContaining({
+        method: 'POST',
+        mode: 'same-origin',
+        headers: new Headers({ 'X-LANLink-Token': 'launch-token' }),
+      }),
+    )
+  })
+
+  it('sends the selected upgrade version to the authenticated local Agent', async () => {
+    const version = '0.2.0-preview.3'
+    const fetchMock = mockFetch(
+      Response.json({ token: 'launch-token' }),
+      Response.json({ version }),
+    )
+
+    await expect(api.applyUpdate(version)).resolves.toEqual({ version })
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/updates/apply',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ version }),
+        headers: new Headers({
+          'X-LANLink-Token': 'launch-token',
+          'Content-Type': 'application/json',
+        }),
+      }),
+    )
+  })
+
   it('does not send a mutation when the Agent returns no session token', async () => {
     const fetchMock = mockFetch(Response.json(null))
 

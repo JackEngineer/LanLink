@@ -2,10 +2,11 @@ use crate::{
     files::{self, UploadGuard},
     mobile, network,
     state::State as App,
+    updates, upgrade,
 };
 use anyhow::Context;
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     body::Body,
     extract::{
         DefaultBodyLimit, Multipart, Path, Query, Request, State, WebSocketUpgrade,
@@ -47,11 +48,13 @@ type Api<T> = std::result::Result<Json<T>, ApiError>;
 fn ok() -> Json<Value> {
     Json(json!({"ok": true}))
 }
-pub fn router(state: Arc<App>, web_dir: std::path::PathBuf) -> Router {
+pub fn router(state: Arc<App>, web_dir: std::path::PathBuf, updater: upgrade::Updater) -> Router {
     Router::new()
+        .route("/api/v1/health", get(health))
+        .route("/api/v1/updates/check", post(check_update))
         .route(
-            "/api/v1/health",
-            get(|| async { Json(json!({"service":"lanlink","status":"ok","version": VERSION})) }),
+            "/api/v1/updates/apply",
+            post(apply_update).layer(DefaultBodyLimit::max(1024)),
         )
         .route("/api/v1/session", get(session))
         .route("/api/v1/device", get(device).patch(rename))
@@ -71,9 +74,63 @@ pub fn router(state: Arc<App>, web_dir: std::path::PathBuf) -> Router {
         .layer(DefaultBodyLimit::max(
             (MAX_FILE_SIZE + 1024 * 1024) as usize,
         ))
+        .layer(Extension(updater))
         .layer(middleware::from_fn_with_state(state.clone(), protect))
         .with_state(state)
 }
+async fn health(State(state): State<Arc<App>>) -> Json<Value> {
+    let mut health =
+        json!({"service":"lanlink","status":"ok","version":updates::INSTALLED_VERSION});
+    if let Some(version) = upgrade::failure(&state.root) {
+        health["update_failed_version"] = json!(version);
+    }
+    Json(health)
+}
+
+async fn check_update(Extension(updater): Extension<upgrade::Updater>) -> Response {
+    match tokio::task::spawn_blocking(move || updater.check()).await {
+        Ok(Ok(update)) => Json(update).into_response(),
+        result => {
+            tracing::debug!(?result, "Update check failed");
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(json!({"error":"无法检查更新，请确认网络连接后重试。"})),
+            )
+                .into_response()
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct ApplyUpdate {
+    version: String,
+}
+
+async fn apply_update(
+    State(state): State<Arc<App>>,
+    Extension(updater): Extension<upgrade::Updater>,
+    Json(input): Json<ApplyUpdate>,
+) -> Response {
+    let root = state.root.clone();
+    let origin = state.origin.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        updater.prepare(&input.version, root, origin)?;
+        Ok::<_, anyhow::Error>(input.version)
+    })
+    .await;
+    match result {
+        Ok(Ok(version)) => Json(json!({"version":version})).into_response(),
+        result => {
+            tracing::warn!(?result, "Could not prepare update");
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(json!({"error":"暂时无法安装更新，当前版本可以继续使用。请稍后重试。"})),
+            )
+                .into_response()
+        }
+    }
+}
+
 async fn protect(State(state): State<Arc<App>>, request: Request, next: Next) -> Response {
     let deny = || {
         (
@@ -421,6 +478,7 @@ async fn update_settings(
 }
 async fn events(
     State(s): State<Arc<App>>,
+    Extension(updater): Extension<upgrade::Updater>,
     headers: axum::http::HeaderMap,
     ws: WebSocketUpgrade,
 ) -> std::result::Result<Response, ApiError> {
@@ -440,6 +498,7 @@ async fn events(
     Ok(ws.protocols(["lanlink"]).on_upgrade(move |mut socket| async move {
         let mut events = s.events.subscribe();
         loop { tokio::select! {
+            () = updater.shutdown.cancelled() => break,
             event = events.recv() => { if matches!(event, Err(tokio::sync::broadcast::error::RecvError::Closed)) { break; }
                     if socket.send(WsMessage::Text("{\"type\":\"changed\"}".into())).await.is_err() { break; } }
             incoming = socket.recv() => { if matches!(incoming, None | Some(Err(_)) | Some(Ok(WsMessage::Close(_)))) { break; } }
