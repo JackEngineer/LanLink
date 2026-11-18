@@ -660,10 +660,11 @@ section[id] {
       display: none;
     }
     .scroll-route {
+      --file-chip-size: 2.25rem;
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
-      gap: 1.9rem;
+      gap: calc(var(--file-chip-size) / 2 + 0.75rem);
       min-height: 2.5rem;
       margin-top: 1rem;
       color: #e1ebff;
@@ -689,15 +690,22 @@ section[id] {
       position: absolute;
       top: 50%;
       left: var(--handoff-progress);
-      display: flex;
-      align-items: center;
-      gap: 0.28rem;
-      padding: 0.28rem 0.5rem;
+      width: var(--file-chip-size);
+      height: var(--file-chip-size);
+      overflow: clip;
       transform: translate(-50%, -50%);
-      border-radius: 0.45rem;
-      color: #153b93;
+      border-radius: 0.55rem;
       background: #fff;
       box-shadow: 0 0 1.35rem #749eff;
+    }
+    .scroll-file-icons {
+      display: grid;
+      grid-auto-rows: var(--file-chip-size);
+      justify-items: center;
+      align-items: center;
+      animation: file-icon-type step-end both;
+      animation-timeline: --handoff;
+      animation-range: var(--handoff-range);
     }
     .scroll-route {
       animation: file-handoff linear both;
@@ -729,6 +737,21 @@ section[id] {
       90%,
       100% {
         --handoff-progress: 100%;
+      }
+    }
+    @keyframes file-icon-type {
+      0% {
+        transform: translateY(0);
+      }
+      28% {
+        transform: translateY(-25%);
+      }
+      50% {
+        transform: translateY(-50%);
+      }
+      72%,
+      100% {
+        transform: translateY(-75%);
       }
     }
     @keyframes receive-focus {
