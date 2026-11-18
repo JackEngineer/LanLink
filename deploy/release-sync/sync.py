@@ -210,14 +210,37 @@ def read_manifest(data, packages):
     return result
 
 
-def prepare_downloads(version, assets, directory):
+def file_digest(path):
+    actual = hashlib.sha256()
+    with path.open('rb') as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b''):
+            actual.update(chunk)
+    return actual.hexdigest()
+
+
+def prepare_downloads(version, assets, directory, cache):
     checksums = directory / MANIFEST
     download(assets[MANIFEST], checksums)
     expected = read_manifest(checksums.read_bytes(), version.packages())
+    cache.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if cache.is_symlink():
+        raise SyncError(f'Invalid download cache for {version.tag}')
 
     def verify_package(name):
-        if download(assets[name], directory / name) != expected[name]:
-            raise SyncError(f'SHA256SUMS mismatch for {name}')
+        asset = assets[name]
+        digest = expected[name]
+        if asset.digest and asset.digest != digest:
+            raise SyncError(f'GitHub digest and SHA256SUMS disagree for {name}')
+        saved = cache / name
+        output = directory / name
+        if (saved.is_symlink() or not saved.is_file()
+                or saved.stat().st_size != asset.size or file_digest(saved) != digest):
+            with tempfile.TemporaryDirectory(prefix='.download-', dir=cache) as work:
+                partial = Path(work) / name
+                if download(asset, partial) != digest:
+                    raise SyncError(f'SHA256SUMS mismatch for {name}')
+                os.replace(partial, saved)
+        shutil.copyfile(saved, output)
 
     with ThreadPoolExecutor(max_workers=len(expected)) as pool:
         list(pool.map(verify_package, expected))
@@ -236,11 +259,8 @@ def verify_release_files(version, assets, directory):
         asset = assets[name]
         if path.stat().st_size != asset.size:
             raise SyncError(f'Staged download size mismatch for {name}')
-        with path.open('rb') as source:
-            actual = hashlib.sha256()
-            for chunk in iter(lambda: source.read(1024 * 1024), b''):
-                actual.update(chunk)
-        if actual.hexdigest() != digest or (asset.digest and actual.hexdigest() != asset.digest):
+        actual = file_digest(path)
+        if actual != digest or (asset.digest and actual != asset.digest):
             raise SyncError(f'Staged download SHA-256 mismatch for {name}')
 
 
@@ -388,6 +408,10 @@ def sync(root, check=False):
         assets_by_version = {version: release_assets(version, release) for version, release in releases_to_sync}
         newest = releases_to_sync[-1][0]
         html = render(old_html, current, newest)
+        cache = root / '.release-sync-cache'
+        cache.mkdir(exist_ok=True, mode=0o700)
+        if cache.is_symlink():
+            raise SyncError('Website release cache must be a real directory')
         stage = Path(tempfile.mkdtemp(prefix=f'.sync-{newest.tag}-', dir=releases))
         try:
             copy_site(active, stage)
@@ -395,7 +419,7 @@ def sync(root, check=False):
                 downloads = stage / 'downloads' / version.tag
                 if not downloads.exists():
                     downloads.mkdir(parents=True)
-                    prepare_downloads(version, assets, downloads)
+                    prepare_downloads(version, assets, downloads, cache / version.tag)
                 verify_downloads(stage, version)
                 verify_release_files(version, assets, downloads)
             (stage / 'index.html').write_bytes(html.encode('utf-8'))
@@ -415,6 +439,8 @@ def sync(root, check=False):
                     shutil.rmtree(published)
                 raise
             print(f'Activated {newest.tag}; previous website retained at {active}', flush=True)
+            for version in assets_by_version:
+                shutil.rmtree(cache / version.tag, ignore_errors=True)
             for version, assets in assets_by_version.items():
                 verify_public(version, html, published / 'downloads' / version.tag, assets)
             print(f'Verified public homepage, SHA256SUMS and packages through {newest.tag}')

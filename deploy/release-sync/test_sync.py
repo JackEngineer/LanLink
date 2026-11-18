@@ -134,7 +134,7 @@ class ReleaseSyncTest(unittest.TestCase):
             with self.subTest(digest_mismatch=digest_mismatch):
                 self.releases_api.pop()
                 self.add_release(self.new, corrupt=self.new.packages()[0], digest_mismatch=digest_mismatch)
-                with self.assertRaisesRegex(sync.SyncError, 'SHA256SUMS mismatch|GitHub SHA-256 mismatch'):
+                with self.assertRaisesRegex(sync.SyncError, 'GitHub digest and SHA256SUMS disagree|GitHub SHA-256 mismatch'):
                     sync.sync(self.root)
                 self.assertEqual(self.current.resolve(), self.old)
                 self.assertEqual(list(self.releases.iterdir()), [self.old])
@@ -182,6 +182,32 @@ class ReleaseSyncTest(unittest.TestCase):
         self.assertEqual(attempts, [url, url])
         self.assertEqual((self.current / 'downloads' / self.new.tag / package).read_bytes(),
                          self.package_data(self.new)[package])
+
+    def test_only_retries_missing_package_across_failed_runs(self):
+        self.add_release(self.new)
+        failed = self.new.packages()[-1]
+        self.remote_fail = True
+        requests = []
+
+        def open_url(address, **kwargs):
+            for asset in self.releases_api[0]['assets']:
+                if address in (asset['url'], asset['browser_download_url']):
+                    requests.append(asset['name'])
+                    if self.remote_fail and asset['name'] == failed:
+                        raise TimeoutError('temporarily unavailable')
+            return self.open_url(address, **kwargs)
+
+        with patch('sync.open_url', side_effect=open_url):
+            with self.assertRaisesRegex(sync.SyncError, 'Transfer failed'):
+                sync.sync(self.root)
+            self.assertEqual(self.current.resolve(), self.old)
+            first_requests = set(requests)
+            requests.clear()
+            self.remote_fail = False
+            sync.sync(self.root)
+        self.assertEqual(first_requests, set(self.new.assets()))
+        self.assertEqual(set(requests), {sync.MANIFEST, failed})
+        self.assertFalse((self.root / '.release-sync-cache' / self.new.tag).exists())
 
     def test_reuses_verified_downloads_retained_during_website_rollback(self):
         self.add_release(self.new)
