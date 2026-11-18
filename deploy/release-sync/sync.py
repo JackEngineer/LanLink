@@ -24,6 +24,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 REPO = 'JackEngineer/LanLink'
 API = f'https://api.github.com/repos/{REPO}/releases'
+ASSET_API = f'{API}/assets'
 SITE = 'https://lanlink.heyyami.com'
 TAG = r'v(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})(?:-preview\.(0|[1-9][0-9]{0,8}))?'
 VERSION_HTML = re.compile(rf'<span class="release-version">({TAG})</span>')
@@ -70,8 +71,10 @@ class Version:
 
 class ReleaseRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
+        source = urlsplit(req.full_url)
         target = urlsplit(newurl)
-        if (req.origin_req_host not in {'github.com', *ASSET_CDNS}
+        is_asset_api = req.full_url.startswith(f'{ASSET_API}/')
+        if (not (source.netloc in {'github.com', *ASSET_CDNS} or is_asset_api)
                 or target.scheme != 'https' or target.netloc not in ASSET_CDNS):
             raise SyncError('Unexpected redirect while reading release or website')
         return super().redirect_request(req, fp, code, msg, headers, newurl)
@@ -118,6 +121,7 @@ def published_releases(current):
 @dataclass(frozen=True)
 class Asset:
     url: str
+    api_url: str
     size: int
     digest: str | None
 
@@ -136,6 +140,10 @@ def release_assets(version, release):
         url = f'https://github.com/{REPO}/releases/download/{version.tag}/{name}'
         if name in result or item.get('browser_download_url') != url or item.get('state') != 'uploaded':
             raise SyncError(f'{version.tag} has invalid metadata for {name}')
+        asset_id = item.get('id')
+        api_url = f'{ASSET_API}/{asset_id}'
+        if type(asset_id) is not int or asset_id <= 0 or item.get('url') != api_url:
+            raise SyncError(f'{version.tag} has an invalid asset ID or API URL for {name}')
         size = item.get('size')
         limit = MANIFEST_LIMIT if name == MANIFEST else ASSET_LIMIT
         if type(size) is not int or not 0 < size <= limit:
@@ -143,7 +151,7 @@ def release_assets(version, release):
         digest = item.get('digest')
         if digest is not None and (not isinstance(digest, str) or not re.fullmatch(f'sha256:{HASH}', digest)):
             raise SyncError(f'{version.tag} has an invalid digest for {name}')
-        result[name] = Asset(url, size, digest[7:].lower() if digest else None)
+        result[name] = Asset(url, api_url, size, digest[7:].lower() if digest else None)
     missing = expected - result.keys()
     if missing:
         raise SyncError(f'{version.tag} is missing release assets: {", ".join(sorted(missing))}')
@@ -151,9 +159,13 @@ def release_assets(version, release):
 
 
 def download(asset, destination):
+    try:
+        response = open_url(asset.api_url, headers={'Accept': 'application/octet-stream'})
+    except (URLError, TimeoutError, ConnectionError):
+        response = open_url(asset.url)
     digest = hashlib.sha256()
     remaining = asset.size
-    with open_url(asset.url) as response, destination.open('xb') as output:
+    with response, destination.open('xb') as output:
         while remaining:
             chunk = response.read(min(remaining, 1024 * 1024))
             if not chunk:

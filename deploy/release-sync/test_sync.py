@@ -46,6 +46,7 @@ class ReleaseSyncTest(unittest.TestCase):
         self.releases_api = []
         self.remote = {}
         self.impair_public = False
+        self.impair_asset_api = False
         self.addCleanup(patch.stopall)
         patch('sync.open_url', side_effect=self.open_url).start()
         for version in (self.initial, self.live):
@@ -61,12 +62,14 @@ class ReleaseSyncTest(unittest.TestCase):
 
     def add_release(self, version, *, missing=None, draft=False, corrupt=None, digest_mismatch=False):
         assets = []
-        for name, data in self.package_data(version).items():
+        for asset_id, (name, data) in enumerate(self.package_data(version).items(), start=5 * len(self.releases_api) + 1):
             if name == missing:
                 continue
             url = f'https://github.com/{sync.REPO}/releases/download/{version.tag}/{name}'
+            api_url = f'{sync.ASSET_API}/{asset_id}'
             asset = {
                 'name': name, 'browser_download_url': url, 'size': len(data),
+                'id': asset_id, 'url': api_url,
                 'state': 'uploaded', 'digest': f'sha256:{digest(data)}',
             }
             if name == corrupt:
@@ -74,12 +77,18 @@ class ReleaseSyncTest(unittest.TestCase):
                 if not digest_mismatch:
                     asset['digest'] = f'sha256:{digest(data)}'
             self.remote[url] = data
+            self.remote[api_url] = data
             assets.append(asset)
         self.releases_api.append({'tag_name': version.tag, 'draft': draft, 'prerelease': version.preview,
                                   'published_at': '2026-11-17T00:00:00Z', 'assets': assets})
 
     def open_url(self, url, method='GET', **kwargs):
-        if url.startswith(sync.API):
+        if url.startswith(f'{sync.ASSET_API}/'):
+            if self.impair_asset_api:
+                raise TimeoutError('temporary asset API timeout')
+            self.assertEqual(kwargs.get('headers'), {'Accept': 'application/octet-stream'})
+            return Response(self.remote[url])
+        if url.startswith(f'{sync.API}?'):
             return Response(json.dumps(self.releases_api).encode())
         if url.startswith(f'{sync.SITE}/'):
             if self.impair_public:
@@ -140,6 +149,13 @@ class ReleaseSyncTest(unittest.TestCase):
         sync.sync(self.root)
         self.assertEqual(self.current.resolve(), self.old)
         self.assertEqual(list(self.releases.iterdir()), [self.old])
+
+    def test_falls_back_to_release_download_on_asset_api_timeout(self):
+        self.add_release(self.new)
+        self.impair_asset_api = True
+        sync.sync(self.root)
+        for name, data in self.package_data(self.new).items():
+            self.assertEqual((self.current / 'downloads' / self.new.tag / name).read_bytes(), data)
 
     def test_reuses_verified_downloads_retained_during_website_rollback(self):
         self.add_release(self.new)
