@@ -58,3 +58,26 @@ curl -I https://lanlink.heyyami.com/this-path-must-not-exist
 - 原腾讯云证书保留在 root 专用备份目录，私钥未进入仓库。
 
 定时器启用和一次演练通过不能证明未来所有续签都会成功。后续仍需保留服务器时间、DNS、80 端口挑战路径、CA 网络访问和日志检查能力。
+
+## 安装包构建来源验证
+
+2026-11-18，腾讯云 Ubuntu 上的同步脚本、固定工作流副本和 systemd 单元经 SHA-256 比对，与 PR #12 合并提交 `be45f01` 一致。服务器使用 GitHub CLI 2.97.0，验签程序、工作流副本和 Sigstore 信任根均通过 root 所有权与权限检查。生产定时器 `lanlink-release-sync.timer` 每 15 分钟运行，核查开始时已启用。 [合并提交](https://github.com/JackEngineer/LanLink/commit/be45f01ad0f244fc1dd5fe14ca52d07046c45fc3) · [部署与回滚说明](../deploy/release-sync/README.md)
+
+定时器启用后，使用生产账号 `lanlink-release` 在隔离的 systemd 服务中调用同步程序的检查模式。测试使用临时标签 `v0.2.0-preview.0` 的真实构建产物，现场校验 GitHub 的标签、提交、工作流身份和签名。四个原始安装包全部通过。缺少签名证明、篡改校验清单、篡改安装包三种情况均被拒绝。隔离检查从本地暂存目录读取构建产物，生产站点目录以只读方式挂载。测试标签没有公开 Release，验收后已删除。 [隔离测试的签名构建](https://github.com/JackEngineer/LanLink/actions/runs/44257273942)
+
+## v0.2.0-preview.3 公网验收
+
+2026-11-18 15:27（北京时间），首个带构建来源证明的预览版在 GitHub 公开。Release 提供四个安装包、`SHA256SUMS` 和 `SHA256SUMS.sigstore.jsonl`。 [GitHub Release](https://github.com/JackEngineer/LanLink/releases/tag/v0.2.0-preview.3) · [签名构建](https://github.com/JackEngineer/LanLink/actions/runs/44256691714)
+
+生产定时器于 15:30 开始同步，暂存期间官网继续提供 `v0.2.0-preview.2`，新版直链返回 404。Apple Silicon PKG 和 Intel Mac ZIP 的 CDN 传输中断后，从同一 GitHub Release 取得这两个文件，核对签名清单后补入私有缓存。生产同步服务在重试时重新验签、校验四个包，于 15:53 切换官网入口。
+
+切换后，公网 HTTPS 首页指向 `v0.2.0-preview.3`。公网 `SHA256SUMS` 再次通过来源验签，且 SHA-256 与 GitHub Release 一致。从官网完整下载了以下四个安装包，HTTP 状态均为 200，文件大小与 Release 一致，SHA-256 与签名清单及 Release 一致。 [官网下载](https://lanlink.heyyami.com/#download) · [官网 SHA256SUMS](https://lanlink.heyyami.com/downloads/v0.2.0-preview.3/SHA256SUMS)
+
+| 安装包                                     |   字节数 | SHA-256                                                            |
+| ------------------------------------------ | -------: | ------------------------------------------------------------------ |
+| `LANLink-0.2.0-aarch64-apple-darwin.pkg`   |  6045014 | `43bc97735462dc68015a573b7006aee6bf5f72f015ffc06d9963f475d01b6fe4` |
+| `LANLink-0.2.0-aarch64-apple-darwin.zip`   | 12089149 | `5a37bc3ffbdaa838939a1dff5c608b186f9e565cd6ab2fa56d0468a6a65f478b` |
+| `LANLink-0.2.0-x86_64-apple-darwin.zip`    | 12702932 | `e2b70b76312de52fc9e88d0a6c3a9d9c027341a8aa34a8323dc95d1cf6c9f82e` |
+| `LANLink-0.2.0-x86_64-pc-windows-msvc.zip` |  4882423 | `0ce42f575474b31aba8932bcec6e983c610d0630a9fcbce175ffb8a641bbeb56` |
+
+`v0.1.0-preview.1`、`v0.2.0-preview.1` 和 `v0.2.0-preview.2` 共 15 条历史安装包与校验清单直链均返回 HTTP 200。旧安装包可通过 HTTP 范围请求读取，文件大小和三个版本的校验清单与切换前一致。
