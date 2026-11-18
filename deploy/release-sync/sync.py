@@ -18,6 +18,7 @@ import re
 import shutil
 import stat
 import sys
+import subprocess
 import tempfile
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
@@ -25,13 +26,21 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 REPO = 'JackEngineer/LanLink'
-API = f'https://api.github.com/repos/{REPO}/releases'
+REPO_API = f'https://api.github.com/repos/{REPO}'
+API = f'{REPO_API}/releases'
 ASSET_API = f'{API}/assets'
 SITE = 'https://lanlink.heyyami.com'
 TAG = r'v(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})(?:-preview\.(0|[1-9][0-9]{0,8}))?'
 VERSION_HTML = re.compile(rf'<span class="release-version">({TAG})</span>')
 HASH = r'[0-9a-fA-F]{64}'
 MANIFEST = 'SHA256SUMS'
+BUNDLE = 'SHA256SUMS.sigstore.jsonl'
+BUNDLE_LIMIT = 1024 * 1024
+WORKFLOW = '.github/workflows/release.yml'
+TRUSTED_WORKFLOW = Path('/etc/lanlink-release-sync/release-workflow.yml')
+TRUSTED_ROOT = Path('/etc/lanlink-release-sync/trusted-root.jsonl')
+GH = Path('/usr/bin/gh')
+COMMIT = r'[0-9a-f]{40}'
 MANIFEST_LIMIT = 8192
 ASSET_LIMIT = 256 * 1024 * 1024
 PAGE_LIMIT = 4 * 1024 * 1024
@@ -128,10 +137,10 @@ class Asset:
     digest: str | None
 
 
-def release_assets(version, release):
+def release_assets(version, release, *, provenance=False):
     if not isinstance(release.get('assets'), list):
         raise SyncError(f'{version.tag} has no asset list')
-    expected = set(version.assets())
+    expected = set((*version.assets(), BUNDLE) if provenance else version.assets())
     result = {}
     for item in release['assets']:
         if not isinstance(item, dict):
@@ -147,7 +156,7 @@ def release_assets(version, release):
         if type(asset_id) is not int or asset_id <= 0 or item.get('url') != api_url:
             raise SyncError(f'{version.tag} has an invalid asset ID or API URL for {name}')
         size = item.get('size')
-        limit = MANIFEST_LIMIT if name == MANIFEST else ASSET_LIMIT
+        limit = {MANIFEST: MANIFEST_LIMIT, BUNDLE: BUNDLE_LIMIT}.get(name, ASSET_LIMIT)
         if type(size) is not int or not 0 < size <= limit:
             raise SyncError(f'{version.tag} has an invalid size for {name}')
         digest = item.get('digest')
@@ -218,10 +227,88 @@ def file_digest(path):
     return actual.hexdigest()
 
 
-def prepare_downloads(version, assets, directory, cache):
-    checksums = directory / MANIFEST
-    download(assets[MANIFEST], checksums)
-    expected = read_manifest(checksums.read_bytes(), version.packages())
+def github_json(path):
+    with open_url(f'{REPO_API}/{path}', headers={'Accept': 'application/vnd.github+json'}) as response:
+        value = json.loads(read_response(response, PAGE_LIMIT))
+    if not isinstance(value, dict):
+        raise SyncError('Unexpected GitHub provenance metadata')
+    return value
+
+
+def resolve_tag(version):
+    reference = f'refs/tags/{version.tag}'
+    value = github_json(f'git/ref/tags/{version.tag}')
+    if value.get('ref') != reference:
+        raise SyncError(f'{version.tag} did not resolve to its exact tag ref')
+    obj = value.get('object')
+    for _ in range(6):
+        if not isinstance(obj, dict) or not isinstance(obj.get('sha'), str) or not re.fullmatch(COMMIT, obj['sha']):
+            raise SyncError(f'{version.tag} has an invalid Git object')
+        if obj.get('type') == 'commit':
+            return obj['sha']
+        if obj.get('type') != 'tag':
+            break
+        tag = github_json(f'git/tags/{obj["sha"]}')
+        if tag.get('sha') != obj['sha']:
+            break
+        obj = tag.get('object')
+    raise SyncError(f'{version.tag} does not resolve to a commit within the tag depth limit')
+
+
+def trusted_file(path, *, executable=False):
+    # A read-only file in a writable directory can still be replaced.
+    for entry in (path, *path.parents):
+        info = entry.lstat()
+        required = stat.S_ISREG(info.st_mode) if entry == path else stat.S_ISDIR(info.st_mode)
+        if not required or info.st_uid != 0 or info.st_mode & 0o022:
+            raise SyncError(f'Trust configuration must be root-owned and not writable by others: {entry}')
+    if executable and not os.access(path, os.X_OK):
+        raise SyncError(f'Verifier is not executable: {path}')
+
+
+def verify_provenance(version, assets, directory):
+    trusted_file(GH, executable=True)
+    trusted_file(TRUSTED_WORKFLOW)
+    trusted_file(TRUSTED_ROOT)
+    if TRUSTED_WORKFLOW.stat().st_size > MANIFEST_LIMIT:
+        raise SyncError('Trusted release workflow exceeded its size limit')
+    workflow = TRUSTED_WORKFLOW.read_bytes()
+    blob = hashlib.sha1(f'blob {len(workflow)}\0'.encode() + workflow).hexdigest()
+    commit = resolve_tag(version)
+    ancestry = github_json(f'compare/{commit}...main')
+    if (ancestry.get('status') not in {'ahead', 'identical'}
+            or ancestry.get('merge_base_commit', {}).get('sha') != commit
+            or ancestry.get('base_commit', {}).get('sha') != commit):
+        raise SyncError(f'{version.tag} is not an ancestor of main')
+    source = github_json(f'contents/{WORKFLOW}?ref={commit}')
+    if source.get('type') != 'file' or source.get('path') != WORKFLOW or source.get('sha') != blob:
+        raise SyncError(f'{version.tag} release workflow does not match the installed trusted workflow')
+    manifest = directory / MANIFEST
+    bundle = directory / BUNDLE
+    download(assets[MANIFEST], manifest)
+    read_manifest(manifest.read_bytes(), version.packages())
+    download(assets[BUNDLE], bundle)
+    reference = f'refs/tags/{version.tag}'
+    command = [str(GH), 'attestation', 'verify', str(manifest), '--repo', REPO,
+               '--bundle', str(bundle), '--custom-trusted-root', str(TRUSTED_ROOT),
+               '--cert-identity', f'https://github.com/{REPO}/{WORKFLOW}@{reference}',
+               '--source-ref', reference, '--source-digest', commit, '--signer-digest', commit,
+               '--deny-self-hosted-runners', '--hostname', 'github.com']
+    # Use a clean, private CLI configuration without any developer credentials.
+    environment = {'PATH': '/usr/bin:/bin', 'HOME': str(directory),
+                   'GH_CONFIG_DIR': str(directory / 'gh'), 'XDG_CACHE_HOME': str(directory / 'cache'),
+                   'GH_PROMPT_DISABLED': '1', 'GH_NO_UPDATE_NOTIFIER': '1'}
+    try:
+        subprocess.run(command, env=environment, stdin=subprocess.DEVNULL,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True, timeout=120)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+        raise SyncError(f'{version.tag} build provenance verification failed ({type(error).__name__})') from error
+    return commit, manifest.read_bytes()
+
+
+def prepare_downloads(version, assets, directory, cache, manifest):
+    (directory / MANIFEST).write_bytes(manifest)
+    expected = read_manifest(manifest, version.packages())
     cache.mkdir(parents=True, exist_ok=True, mode=0o700)
     if cache.is_symlink():
         raise SyncError(f'Invalid download cache for {version.tag}')
@@ -246,11 +333,13 @@ def prepare_downloads(version, assets, directory, cache):
         list(pool.map(verify_package, expected))
 
 
-def verify_release_files(version, assets, directory):
+def verify_release_files(version, assets, directory, verified_manifest=None):
     manifest_path = directory / MANIFEST
     if manifest_path.stat().st_size != assets[MANIFEST].size:
         raise SyncError(f'{version.tag} has an unexpected SHA256SUMS size')
     manifest = manifest_path.read_bytes()
+    if verified_manifest is not None and manifest != verified_manifest:
+        raise SyncError(f'{version.tag} staged SHA256SUMS differs from the attested manifest')
     if assets[MANIFEST].digest and hashlib.sha256(manifest).hexdigest() != assets[MANIFEST].digest:
         raise SyncError(f'{version.tag} has an unexpected SHA256SUMS digest')
     expected = read_manifest(manifest, version.packages())
@@ -405,7 +494,7 @@ def sync(root, check=False):
         if not releases_to_sync:
             print(f'{current.tag} is already current; no newer supported release')
             return
-        assets_by_version = {version: release_assets(version, release) for version, release in releases_to_sync}
+        assets_by_version = {version: release_assets(version, release, provenance=True) for version, release in releases_to_sync}
         newest = releases_to_sync[-1][0]
         html = render(old_html, current, newest)
         cache = root / '.release-sync-cache'
@@ -415,15 +504,22 @@ def sync(root, check=False):
         stage = Path(tempfile.mkdtemp(prefix=f'.sync-{newest.tag}-', dir=releases))
         try:
             copy_site(active, stage)
+            commits = {}
             for version, assets in assets_by_version.items():
+                with tempfile.TemporaryDirectory(prefix='.provenance-', dir=cache) as work:
+                    commit, manifest = verify_provenance(version, assets, Path(work))
+                commits[version] = commit
                 downloads = stage / 'downloads' / version.tag
                 if not downloads.exists():
                     downloads.mkdir(parents=True)
-                    prepare_downloads(version, assets, downloads, cache / version.tag)
+                    prepare_downloads(version, assets, downloads, cache / version.tag, manifest)
                 verify_downloads(stage, version)
-                verify_release_files(version, assets, downloads)
+                verify_release_files(version, assets, downloads, manifest)
             (stage / 'index.html').write_bytes(html.encode('utf-8'))
             verify_downloads(stage, current)
+            for version, commit in commits.items():
+                if resolve_tag(version) != commit:
+                    raise SyncError(f'{version.tag} moved during provenance verification')
             if check:
                 print(f'Verified {len(assets_by_version)} release(s) through {newest.tag}; {current.tag} is still active')
                 return

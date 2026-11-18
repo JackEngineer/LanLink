@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/../.."
+version="$(node -p "require('./package.json').version")"
 arch="${1:-aarch64-apple-darwin}"
 case "$arch" in aarch64-apple-darwin|x86_64-apple-darwin) ;; *) exit 2 ;; esac
 npm run build
@@ -16,7 +17,7 @@ cp assets/branding/lanlink.icns "$app/Contents/Resources/LANLink.icns"
 cp scripts/macos/launch.sh "$app/Contents/MacOS/LANLink"
 cp scripts/macos/{login-start,stop,uninstall}.sh "$app/Contents/Resources/"
 chmod +x "$app/Contents/MacOS/LANLink"
-cat > "$app/Contents/Info.plist" <<'PLIST'
+cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -25,7 +26,7 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>LANLink</string>
 <key>CFBundleIconFile</key><string>LANLink.icns</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.2.0</string>
+<key>CFBundleShortVersionString</key><string>$version</string>
 <key>CFBundleVersion</key><string>1</string>
 <key>LSUIElement</key><true/>
 </dict></plist>
@@ -38,6 +39,6 @@ cp scripts/macos/login-start.sh "$out/"
 cp scripts/macos/uninstall.sh "$out/"
 cp scripts/macos/stop.sh "$out/"
 cp LICENSE "$out/LICENSE"
-pkgbuild --component "$app" --install-location /Applications --identifier app.lanlink.desktop --version 0.2.0 "$out/LANLink-0.2.0-$arch.pkg"
-ditto -c -k --keepParent "$out" "dist/LANLink-0.2.0-$arch.zip"
-shasum -a 256 "$out/LANLink-0.2.0-$arch.pkg" "dist/LANLink-0.2.0-$arch.zip"
+pkgbuild --component "$app" --install-location /Applications --identifier app.lanlink.desktop --version "$version" "$out/LANLink-$version-$arch.pkg"
+ditto -c -k --keepParent "$out" "dist/LANLink-$version-$arch.zip"
+shasum -a 256 "$out/LANLink-$version-$arch.pkg" "dist/LANLink-$version-$arch.zip"
