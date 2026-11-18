@@ -81,3 +81,13 @@ curl -I https://lanlink.heyyami.com/this-path-must-not-exist
 | `LANLink-0.2.0-x86_64-pc-windows-msvc.zip` |  4882423 | `0ce42f575474b31aba8932bcec6e983c610d0630a9fcbce175ffb8a641bbeb56` |
 
 `v0.1.0-preview.1`、`v0.2.0-preview.1` 和 `v0.2.0-preview.2` 共 15 条历史安装包与校验清单直链均返回 HTTP 200。旧安装包可通过 HTTP 范围请求读取，文件大小和三个版本的校验清单与切换前一致。
+
+## 安装包断点续传验收
+
+2026-11-18 16:14:27（北京时间），腾讯云完成首次隔离演练。故意中断真实 GitHub CDN 的响应后，新进程从私有缓存保留的 5,983,612 字节偏移继续下载。四个包通过来源与 SHA-256 校验后，才切换隔离站点的下载入口。 [PR #13](https://github.com/JackEngineer/LanLink/pull/13)
+
+16:15:26，腾讯云切换生产同步脚本。随后核对线上脚本的 SHA-256，确认与 PR #13 的合并提交 `2c28d2b` 一致。服务器保留了切换前的脚本备份。16:45 的生产定时任务退出码为 0，`lanlink-release-sync.timer` 处于启用和运行状态。 [合并提交](https://github.com/JackEngineer/LanLink/commit/2c28d2b6adf14b3ec811fe83a996d7cf4c8984ce)
+
+使用合并版脚本复跑时，以生产账号 `lanlink-release` 在隔离的 systemd 服务中读取 `v0.2.0-preview.3` 的签名清单和真实 CDN 资产，生产站点目录以只读方式挂载。故意中断 Apple Silicon PKG 的响应后，私有文件保留了 5,982,234 字节。新进程发送 `Range: bytes=5982234-`，收到 HTTP 206。四个安装包通过完整 SHA-256 校验后，隔离站点切换到 `v0.2.0-preview.3`，三个历史版本的文件逐字节一致。
+
+公网复验时，官网仍提供 `v0.2.0-preview.3`，首页内容与核查前一致。四个现行安装包均从官网完整下载，文件大小与 GitHub Release 一致，SHA-256 与签名清单及 Release 一致。现行和历史版本共 20 条安装包与校验清单链接均返回 HTTP 200。安装包通过了范围读取检查，四份公开校验清单均与核查前一致。服务器上的四个版本共 16 个安装包也通过了 SHA-256 校验。 [官网下载](https://lanlink.heyyami.com/#download)
