@@ -91,3 +91,15 @@ curl -I https://lanlink.heyyami.com/this-path-must-not-exist
 使用合并版脚本复跑时，以生产账号 `lanlink-release` 在隔离的 systemd 服务中读取 `v0.2.0-preview.3` 的签名清单和真实 CDN 资产，生产站点目录以只读方式挂载。故意中断 Apple Silicon PKG 的响应后，私有文件保留了 5,982,234 字节。新进程发送 `Range: bytes=5982234-`，收到 HTTP 206。四个安装包通过完整 SHA-256 校验后，隔离站点切换到 `v0.2.0-preview.3`，三个历史版本的文件逐字节一致。
 
 公网复验时，官网仍提供 `v0.2.0-preview.3`，首页内容与核查前一致。四个现行安装包均从官网完整下载，文件大小与 GitHub Release 一致，SHA-256 与签名清单及 Release 一致。现行和历史版本共 20 条安装包与校验清单链接均返回 HTTP 200。安装包通过了范围读取检查，四份公开校验清单均与核查前一致。服务器上的四个版本共 16 个安装包也通过了 SHA-256 校验。 [官网下载](https://lanlink.heyyami.com/#download)
+
+## 新版官网部署与验收
+
+2026-11-18 晚（北京时间），以 PR #18 的合并提交 `2ee4310` 构建并发布新版官网。部署包 SHA-256 为 `2a9030f015c9470a4c63daab49c1aa94840bc59fbf687d2dc40e78bf0c04dd08`，上传后在服务器复验一致。下载区提供 `v0.2.0-preview.3`。 [PR #18](https://github.com/JackEngineer/LanLink/pull/18) · [合并提交](https://github.com/JackEngineer/LanLink/commit/2ee4310198ecd03ef9c890c717ee571cea21a272)
+
+在安装包同步锁内复制四个版本的下载目录，逐文件比对后按各版 `SHA256SUMS` 校验 16 个安装包。Nginx 配置检查通过后，原子切换 `/var/www/lanlink/current`。切换后用 HTTPS 回环请求核对首页、主要素材和现行版校验清单，确认新目录已生效。
+
+- 公网首页、CSS 和图片共 11 个文件均返回 HTTP 200，MIME 类型正确，响应内容与部署包逐字节一致。首页保留安全响应头，HTTP 跳转至 HTTPS，未知路径返回 404。同机主站 `heyyami.com` 返回 HTTPS 200。
+- 浏览器实测电脑互传、手机扫码、局域网聊天三种演示切换，以及扫码步骤展开、截图放大和关闭、下载区跳转。下载区有三个平台的四个安装包入口。
+- 四个版本的安装包及校验清单共 20 条公网直链均返回 HTTP 200。完整下载的四个现行安装包均通过 SHA-256 校验。Apple Silicon PKG 请求 `Range: bytes=1024-2047`，返回 HTTP 206 和 1,024 字节。
+
+发布目录为 `/var/www/lanlink/releases/website-2ee4310`。回滚目标为部署前的 `/var/www/lanlink/releases/v0.2.0-preview.3-bxnb6oj4`。回滚前核对现行下载版本和历史下载目录，保留新增的公开直链，再按部署指南原子切换 `current` 并复验。 [回滚步骤](website-deploy.md#5-回滚)
