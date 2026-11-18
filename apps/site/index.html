@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#193d35" />
+    <meta
+      name="description"
+      content="LANLink 是开源的局域网文件与消息工具。在 Mac 与 Windows 之间发现设备、核对安全码、发送消息和文件。现已提供开发预览。"
+    />
+    <title>LANLink · 让局域网里的设备直接相连</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/lanlink.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳转到正文</a>
+    <header class="site-header wrap">
+      <a class="brand" href="#top" aria-label="LANLink 首页"
+        ><img src="./assets/lanlink.svg" alt="" width="36" height="36" /><span
+          >LANLink<span class="brand-dot">.</span></span
+        ></a
+      >
+      <nav aria-label="主导航">
+        <a href="#features">功能</a><a href="#start">如何开始</a><a href="#faq">常见问题</a>
+      </nav>
+      <a class="nav-download" href="#download">下载预览版 <span aria-hidden="true">↗</span></a>
+    </header>
+    <main id="main">
+      <section class="hero wrap" id="top" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="status-dot"></span> 在同一个网络，靠近一点。</div>
+          <h1 id="hero-title">
+            文件与消息，<br />在你的局域网里<br /><span class="title-end"
+              >直达<span class="title-period">。</span></span
+            >
+          </h1>
+          <p class="hero-description">
+            一台 Mac，一台 Windows。<br />发现彼此，确认连接，把文件和消息直接送到对方。
+          </p>
+          <div class="hero-actions">
+            <a class="button button-dark" href="#download"
+              >下载 LANLink <span aria-hidden="true">↓</span></a
+            ><a class="text-link" href="https://github.com/JackEngineer/LanLink"
+              >查看开源代码 <span aria-hidden="true">↗</span></a
+            >
+          </div>
+          <p class="hero-meta">
+            macOS &amp; Windows <span>·</span> MIT 开源 <span>·</span> 开发预览
+          </p>
+        </div>
+        <div
+          class="connection-scene"
+          role="img"
+          aria-label="界面示意：Mac 和 Windows 在局域网内连接，核对安全码后发送文件。这是设计示意，不是实际运行截图。"
+        >
+          <div class="scene-grid" aria-hidden="true"></div>
+          <div class="scene-orbit orbit-one" aria-hidden="true"></div>
+          <div class="scene-orbit orbit-two" aria-hidden="true"></div>
+          <div class="scene-heading">
+            <span class="small-label">YOUR LOCAL NETWORK</span
+            ><span class="scene-label">界面示意</span>
+          </div>
+          <div class="device-window mac-window">
+            <div class="window-bar">
+              <span class="traffic-lights"><i></i><i></i><i></i></span><span>LANLink</span
+              ><span class="tiny-symbol">⌘</span>
+            </div>
+            <div class="window-body">
+              <div class="device-heading">
+                <span class="device-icon">M</span>
+                <div><strong>我的 Mac</strong><span>已连接到局域网</span></div>
+                <span class="online-dot"></span>
+              </div>
+              <div class="window-rule"></div>
+              <div class="peer-label">附近的设备 <span>01</span></div>
+              <div class="peer">
+                <span class="windows-glyph" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                <div>
+                  <strong>工作室的 Windows</strong
+                  ><span><span class="mini-dot"></span> 已配对 · 在线</span>
+                </div>
+                <span class="peer-arrow">↗</span>
+              </div>
+              <div class="message-bubble">设计稿整理好了，发给你。</div>
+              <div class="file-row">
+                <span class="file-icon">↗</span>
+                <div><strong>项目设计稿.zip</strong><span>文件传送示意</span></div>
+                <span class="file-check">✓</span>
+              </div>
+              <div class="transfer-track"><span></span></div>
+              <div class="transfer-caption"><span>直接传送到设备</span><span>已完成</span></div>
+            </div>
+          </div>
+          <div class="connection-line" aria-hidden="true"><span></span><i>↘</i></div>
+          <div class="pairing-stamp">
+            <span class="stamp-icon" aria-hidden="true">↔</span>
+            <div>
+              <span>双端核对安全码</span><strong>3A7F · 92C1 · …</strong
+              ><small>此处为示意，配对时请核对完整安全码</small>
+            </div>
+          </div>
+          <div class="device-window windows-window">
+            <div class="windows-title">
+              <span>LANLink</span><span aria-hidden="true">− &nbsp; □ &nbsp; ×</span>
+            </div>
+            <div class="windows-body">
+              <div class="received-label"><span class="mini-dot"></span> 来自「我的 Mac」</div>
+              <div class="received-file">
+                <span class="large-file-icon">↙</span>
+                <div><strong>项目设计稿.zip</strong><span>文件已接收</span></div>
+                <span class="received-check">✓</span>
+              </div>
+              <div class="received-message">收到了，继续开工。</div>
+            </div>
+            <div class="windows-bottom">
+              <span class="windows-glyph" aria-hidden="true"><i></i><i></i><i></i><i></i></span
+              ><span>工作室的 Windows</span><span class="online-dot"></span>
+            </div>
+          </div>
+          <div class="scene-footnote">
+            <span class="local-symbol" aria-hidden="true">⌁</span> 两台设备。一个局域网。<span
+              class="scene-index"
+              >01 / CONNECT</span
+            >
+          </div>
+        </div>
+      </section>
+      <div class="hero-bottom wrap">
+        <span>让手边的设备，成为工作的一部分。</span
+        ><a href="#features">向下探索 <span aria-hidden="true">↓</span></a>
+      </div>
+
+      <section class="features-section" id="features" aria-labelledby="features-title">
+        <div class="wrap">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">01 / MADE FOR NEARBY</p>
+              <h2 id="features-title">不用绕远路。<br /><span>让传送发生在身边。</span></h2>
+            </div>
+            <p class="section-intro">
+              从电脑到电脑，消息和文件通过局域网传送。<br />编译安装后，日常使用无需访问公网。
+            </p>
+          </div>
+          <div class="feature-grid">
+            <article class="feature feature-main">
+              <div class="feature-number">01 <span>DISCOVER</span></div>
+              <div class="radar-art" aria-hidden="true">
+                <span class="radar-ring ring-a"></span><span class="radar-ring ring-b"></span
+                ><span class="radar-center">L<span>↗</span></span
+                ><span class="radar-peer radar-mac">Mac</span
+                ><span class="radar-peer radar-win">Win</span><span class="radar-point"></span>
+              </div>
+              <h3>同网发现，不必记住 IP。</h3>
+              <p>打开两端 LANLink，附近的设备会出现在列表中。选中设备，发起连接。</p>
+            </article>
+            <article class="feature">
+              <div class="feature-number">02 <span>PAIR</span></div>
+              <div class="feature-symbol" aria-hidden="true">
+                ↔<span class="symbol-detail">✓</span>
+              </div>
+              <h3>先确认，再连接。</h3>
+              <p>
+                在两台电脑上核对完整安全码并分别确认。设备间使用 Noise
+                加密连接，也可以撤销设备授权。
+              </p>
+            </article>
+            <article class="feature">
+              <div class="feature-number">03 <span>TRANSFER</span></div>
+              <div class="feature-symbol file-symbol" aria-hidden="true">
+                ↓<span class="symbol-detail">↻</span>
+              </div>
+              <h3>中途断线，接着传。</h3>
+              <p>文件由接收端确认后传送。断线后保留已确认进度，重连继续；完成时校验文件完整性。</p>
+            </article>
+          </div>
+          <div class="feature-note">
+            <span>消息留在本机，工作可以继续。</span>
+            <p>身份与历史保存在本地。消息的「已发送」表示对方设备已保存，不代表已读。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="start-section wrap" id="start" aria-labelledby="start-title">
+        <div class="start-heading">
+          <p class="eyebrow">02 / GET CONNECTED</p>
+          <h2 id="start-title">准备好，<br />连接下一台。</h2>
+          <a
+            class="text-link"
+            href="https://github.com/JackEngineer/LanLink/blob/main/docs/install.md"
+            >打开完整安装指南 <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <ol class="steps">
+          <li>
+            <span class="step-number">01</span>
+            <div>
+              <h3>两端安装，接入同一局域网</h3>
+              <p>
+                在 Mac 和 Windows 上安装对应预览包。连接受信任的 Wi-Fi 或有线网络，再打开 LANLink。
+              </p>
+            </div>
+          </li>
+          <li>
+            <span class="step-number">02</span>
+            <div>
+              <h3>找到设备，核对完整安全码</h3>
+              <p>从设备列表发起配对。两端安全码一致后，在两台电脑上分别确认。</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-number">03</span>
+            <div>
+              <h3>发送消息，或传一份文件</h3>
+              <p>选择已配对设备即可聊天。发送文件时，对方接受后开始传输。</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="download-section" id="download" aria-labelledby="download-title">
+        <div class="wrap">
+          <div class="download-heading">
+            <div>
+              <p class="eyebrow">03 / READY WHEN YOU ARE</p>
+              <h2 id="download-title">下一次传文件，<br />试试直接相连。</h2>
+            </div>
+            <div class="release-status">
+              <span class="preview-pill"><span class="status-dot"></span> 开发预览</span
+              ><a href="{{releaseUrl}}">{{releaseTag}} <span aria-hidden="true">↗</span></a>
+              <p>适合愿意尝试并反馈的用户。</p>
+            </div>
+          </div>
+          <div class="download-grid">{{downloadCards}}</div>
+          <div class="download-notice">
+            <span class="notice-mark" aria-hidden="true">i</span>
+            <div>
+              <strong>安装前，请先了解预览版的边界。</strong>
+              <p>
+                macOS 尚未提供 Developer ID 签名与 Apple 公证；Windows 安装脚本未签名。Intel Mac
+                已构建与测试，尚未实机验证。请按安装指南操作，不要全局关闭系统安全保护。
+              </p>
+              <div class="download-links">
+                <a href="https://github.com/JackEngineer/LanLink/blob/main/docs/install.md"
+                  >安装指南 <span aria-hidden="true">↗</span></a
+                ><a href="{{checksumsUrl}}">SHA-256 校验值 <span aria-hidden="true">↗</span></a
+                ><a href="https://github.com/JackEngineer/LanLink/blob/main/docs/acceptance.md"
+                  >查看验收范围 <span aria-hidden="true">↗</span></a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq-section wrap" id="faq" aria-labelledby="faq-title">
+        <div class="faq-heading">
+          <p class="eyebrow">04 / GOOD TO KNOW</p>
+          <h2 id="faq-title">在开始之前。</h2>
+          <p>连接很近的设备，<br />也把使用边界说清楚。</p>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>需要注册账号或连接互联网吗？<span aria-hidden="true">+</span></summary>
+            <p>
+              不需要注册账号。安装包需要先从 GitHub
+              下载；安装完成后，消息和文件在局域网内传送，日常使用无需公网。首次从源码构建需要联网获取依赖。
+            </p>
+          </details>
+          <details>
+            <summary>Mac 和 Windows 可以互传吗？<span aria-hidden="true">+</span></summary>
+            <p>
+              可以。Apple Silicon Mac 与 Windows x64
+              已完成双向消息、文件传输和断点恢复等实机验收。Intel Mac
+              提供预览包，但尚未实机验证。具体测试范围见<a
+                href="https://github.com/JackEngineer/LanLink/blob/main/docs/acceptance.md"
+                >验收记录</a
+              >。
+            </p>
+          </details>
+          <details>
+            <summary>为什么发现不了另一台设备？<span aria-hidden="true">+</span></summary>
+            <p>
+              先确认两端 LANLink
+              都在运行，设备处于同一个局域网，防火墙允许受信任的专用网络访问。访客 Wi-Fi
+              或路由器的客户端隔离可能阻止设备互访。更多步骤见<a
+                href="https://github.com/JackEngineer/LanLink/blob/main/docs/install.md#排查连接"
+                >连接排查指南</a
+              >。
+            </p>
+          </details>
+          <details>
+            <summary>文件大小有限制吗？中断后怎么办？<span aria-hidden="true">+</span></summary>
+            <p>
+              默认单文件上限为 2
+              GiB。文件需要接收端单独接受，断线后保留已确认进度，重新连接后继续传输。取消或拒绝的传输不会自动恢复。
+            </p>
+          </details>
+          <details>
+            <summary>文件和聊天记录存在哪里？<span aria-hidden="true">+</span></summary>
+            <p>
+              身份、消息历史和接收文件保存在本机，默认卸载流程会保留这些数据。具体目录与卸载方法见<a
+                href="https://github.com/JackEngineer/LanLink/blob/main/docs/install.md"
+                >安装指南</a
+              >。
+            </p>
+          </details>
+          <details>
+            <summary>这是正式版本吗？如何反馈问题？<span aria-hidden="true">+</span></summary>
+            <p>
+              目前是开发预览，不是 v0.1.0 正式完成版。欢迎在
+              <a href="https://github.com/JackEngineer/LanLink/issues">GitHub Issues</a>
+              提交问题，说明操作系统、版本与复现步骤。请勿公开身份密钥、私人聊天或文件内容。
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="footer-top">
+          <a class="brand" href="#top"
+            ><img src="./assets/lanlink.svg" alt="" width="36" height="36" /><span
+              >LANLink<span class="brand-dot">.</span></span
+            ></a
+          >
+          <p>设备之间，少一点距离。</p>
+          <a class="footer-github" href="https://github.com/JackEngineer/LanLink"
+            >在 GitHub 一起构建 <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <div class="footer-bottom">
+          <span>为局域网而做 · MIT 开源</span>
+          <div>
+            <a href="https://github.com/JackEngineer/LanLink/blob/main/LICENSE">开源许可</a
+            ><a href="https://github.com/JackEngineer/LanLink/issues">反馈问题</a
+            ><a href="#download">下载预览版</a>
+          </div>
+          <span class="footer-wordmark" aria-hidden="true">Stay local. Stay connected.</span>
+        </div>
+        <div class="filing">
+          <span>赤壁市芽米软件开发工作室（个体工商户）</span>
+          <a href="https://beian.miit.gov.cn/">鄂ICP备2026063139号-1</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
