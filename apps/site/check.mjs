@@ -80,6 +80,13 @@ assert.ok(
 );
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(ids.length, new Set(ids).size, 'Duplicate anchor ID');
+for (const [, attribute, targets] of html.matchAll(
+  /\b(for|popovertarget|aria-controls|aria-labelledby)="([^"]+)"/g,
+)) {
+  for (const target of targets.split(/\s+/)) {
+    assert.ok(ids.includes(target), `Broken ${attribute} target: ${target}`);
+  }
+}
 const localResources = new Set();
 const officialLinks = new Set(['https://beian.miit.gov.cn/']);
 for (const match of html.matchAll(/<(\w+)\b[^>]*?\b(href|src)="([^"]+)"[^>]*>/g)) {
@@ -119,15 +126,38 @@ async function filesIn(directory) {
 const files = await filesIn(output);
 for (const path of files) {
   if (path === releaseIndex) continue;
-  assert.ok(['.html', '.css', '.svg'].includes(extname(path)), `Unexpected static output: ${path}`);
-  if (path.endsWith('.html')) continue;
+  const extension = extname(path);
+  assert.ok(
+    ['.html', '.css', '.svg', '.png', '.webp'].includes(extension),
+    `Unexpected static output: ${path}`,
+  );
+  if (extension === '.html') continue;
   assert.ok(localResources.has(path), `Unreferenced output resource: ${path}`);
+  if (extension === '.png' || extension === '.webp') {
+    const image = await readFile(path);
+    if (extension === '.png') {
+      assert.equal(
+        image.subarray(0, 8).toString('hex'),
+        '89504e470d0a1a0a',
+        `Invalid PNG: ${path}`,
+      );
+    } else {
+      assert.equal(image.toString('ascii', 0, 4), 'RIFF', `Invalid WebP: ${path}`);
+      assert.equal(image.toString('ascii', 8, 12), 'WEBP', `Invalid WebP: ${path}`);
+    }
+    continue;
+  }
   const content = await readFile(path, 'utf8');
   assert.ok(
     !/@import\b|url\s*\(|<script\b|\son[a-z]+\s*=|<foreignObject\b/i.test(content),
     `Unexpected runtime dependency in ${path}`,
   );
 }
+assert.deepEqual(
+  await readFile(resolve(output, 'assets/lanlink.png')),
+  await readFile(resolve(root, 'apps/web/public/apple-touch-icon.png')),
+  'Website must use the approved application logo',
+);
 console.log(
   `Site checks passed: ${files.length} static files, ${platforms.size} platforms, ${artifactUrls.length} download artifacts; README and install guide agree.`,
 );

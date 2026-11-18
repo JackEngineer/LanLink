@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  Check,
   CircleHelp,
+  Copy,
   Link2,
   MessageSquare,
   Paperclip,
@@ -354,6 +356,16 @@ function MessageBubble({
       }),
   })
   const outgoing = message.direction === 'outgoing'
+  const [copyResult, setCopyResult] = useState<'copied' | 'error' | null>(null)
+
+  async function copyMessage() {
+    try {
+      await navigator.clipboard.writeText(message.body)
+      setCopyResult('copied')
+    } catch {
+      setCopyResult('error')
+    }
+  }
 
   return (
     <li className={outgoing ? 'message message-outgoing' : 'message'}>
@@ -377,7 +389,27 @@ function MessageBubble({
             重试
           </button>
         )}
+        <button
+          className="icon-button message-copy"
+          type="button"
+          aria-label="复制消息"
+          title={copyResult === 'copied' ? '已复制' : '复制消息'}
+          onClick={() => void copyMessage()}
+        >
+          {copyResult === 'copied' ? (
+            <Check size={15} aria-hidden="true" />
+          ) : (
+            <Copy size={15} aria-hidden="true" />
+          )}
+        </button>
       </div>
+      <p
+        className={copyResult === 'error' ? 'message-copy-error' : 'sr-only'}
+        role="status"
+      >
+        {copyResult === 'copied' && '消息已复制'}
+        {copyResult === 'error' && '无法访问剪贴板，请选中消息文字并复制。'}
+      </p>
       <InlineError error={retry.error} />
     </li>
   )
