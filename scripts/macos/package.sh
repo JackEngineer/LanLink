@@ -12,6 +12,7 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/web"
 cp "target/$arch/release/lanlink-agent" "$app/Contents/MacOS/lanlink-agent"
 cp -R apps/web/dist/. "$app/Contents/Resources/web/"
 cp LICENSE "$app/Contents/Resources/LICENSE"
+cp assets/branding/lanlink.icns "$app/Contents/Resources/LANLink.icns"
 cp scripts/macos/launch.sh "$app/Contents/MacOS/LANLink"
 cp scripts/macos/{login-start,stop,uninstall}.sh "$app/Contents/Resources/"
 chmod +x "$app/Contents/MacOS/LANLink"
@@ -22,6 +23,7 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 <key>CFBundleIdentifier</key><string>app.lanlink.desktop</string>
 <key>CFBundleName</key><string>LANLink</string>
 <key>CFBundleExecutable</key><string>LANLink</string>
+<key>CFBundleIconFile</key><string>LANLink.icns</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.2.0</string>
 <key>CFBundleVersion</key><string>1</string>
