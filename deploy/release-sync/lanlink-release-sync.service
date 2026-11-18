@@ -1,0 +1,22 @@
+[Unit]
+Description=Sync verified LANLink releases to the download site
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=lanlink-release
+Group=lanlink-release
+ExecStart=/usr/bin/python3 -B /usr/local/libexec/lanlink-release-sync.py
+TimeoutStartSec=15min
+UMask=0022
+NoNewPrivileges=yes
+PrivateDevices=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/www/lanlink
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
