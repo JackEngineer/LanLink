@@ -84,7 +84,7 @@ def advertise(instance, endpoint, agent, log_path):
         "dns-sd", "-P", instance, SERVICE_TYPE, "local.", str(port),
         f"{instance}.local.", address,
         f"id={agent.id}", f"name={agent.name}", f"os={agent.device['platform']}",
-        "version=0.1.0",
+        "version=0.2.0",
     ]
     with log_path.open("w", encoding="utf-8") as log:
         print(command, file=log, flush=True)

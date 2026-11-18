@@ -2,7 +2,7 @@
 
 All routes use `/api/v1`. JSON response arrays are bare arrays. Errors use `{ "error": "human readable reason" }`. UI and API share the exact loopback origin. Mutations require `X-LANLink-Token` from `GET /api/v1/session` and exact Origin. GET session requires same-origin fetch header. WS supplies token using `Sec-WebSocket-Protocol` values `lanlink` and token. WS sends `{ "type": "changed" }` to invalidate caches and clients refetch after reconnect.
 
-- GET health -> `{status:"ok",version:"0.1.0"}`
+- GET health -> `{status:"ok",version:"0.2.0"}`
 - GET session -> `{token:string}`
 - GET device -> Device
 - PATCH device `{name}` -> Device

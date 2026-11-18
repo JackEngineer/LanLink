@@ -23,7 +23,7 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 <key>CFBundleName</key><string>LANLink</string>
 <key>CFBundleExecutable</key><string>LANLink</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
+<key>CFBundleShortVersionString</key><string>0.2.0</string>
 <key>CFBundleVersion</key><string>1</string>
 <key>LSUIElement</key><true/>
 </dict></plist>
@@ -36,6 +36,6 @@ cp scripts/macos/login-start.sh "$out/"
 cp scripts/macos/uninstall.sh "$out/"
 cp scripts/macos/stop.sh "$out/"
 cp LICENSE "$out/LICENSE"
-pkgbuild --component "$app" --install-location /Applications --identifier app.lanlink.desktop --version 0.1.0 "$out/LANLink-0.1.0-$arch.pkg"
-ditto -c -k --keepParent "$out" "dist/LANLink-0.1.0-$arch.zip"
-shasum -a 256 "$out/LANLink-0.1.0-$arch.pkg" "dist/LANLink-0.1.0-$arch.zip"
+pkgbuild --component "$app" --install-location /Applications --identifier app.lanlink.desktop --version 0.2.0 "$out/LANLink-0.2.0-$arch.pkg"
+ditto -c -k --keepParent "$out" "dist/LANLink-0.2.0-$arch.zip"
+shasum -a 256 "$out/LANLink-0.2.0-$arch.pkg" "dist/LANLink-0.2.0-$arch.zip"
