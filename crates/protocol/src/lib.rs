@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub const VERSION: &str = "0.1.0";
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MAX_FILE_SIZE: u64 = 2 * 1024 * 1024 * 1024;
 pub const DISK_QUOTA: u64 = 8 * 1024 * 1024 * 1024;
 pub const CHUNK_SIZE: usize = 1024 * 1024;

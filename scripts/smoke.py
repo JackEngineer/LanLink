@@ -94,7 +94,7 @@ class Agent:
                 return None
 
         health = wait_for(f"{self.label} health", healthy, bool, self.timeout)
-        require(health.get("status") == "ok" and health.get("version") == "0.1.0",
+        require(health.get("status") == "ok" and health.get("version") == "0.2.0",
                 f"{self.label} returned unexpected health: {health!r}")
         session = self.request("GET", "/session", headers={"Sec-Fetch-Site": "same-origin"})
         self.token = session["token"]

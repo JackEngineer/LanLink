@@ -12,5 +12,5 @@ Copy-Item "target/$Target/release/lanlink-agent.exe" "$out/lanlink-agent.exe"
 Copy-Item "apps/web/dist/*" "$out/web" -Recurse -Force
 Copy-Item "scripts/windows/Install.ps1", "scripts/windows/Launch.ps1", "scripts/windows/Uninstall.ps1" $out
 Copy-Item LICENSE "$out/LICENSE"
-Compress-Archive -Path "$out/*" -DestinationPath "dist/LANLink-0.1.0-$Target.zip" -Force
-Get-FileHash "dist/LANLink-0.1.0-$Target.zip" -Algorithm SHA256
+Compress-Archive -Path "$out/*" -DestinationPath "dist/LANLink-0.2.0-$Target.zip" -Force
+Get-FileHash "dist/LANLink-0.2.0-$Target.zip" -Algorithm SHA256

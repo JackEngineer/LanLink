@@ -8,15 +8,15 @@ Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢
 
 ## 下载开发预览
 
-从 [GitHub Release v0.1.0-preview.1](https://github.com/JackEngineer/LanLink/releases/tag/v0.1.0-preview.1) 选择与你的电脑匹配的安装包。
+从 [GitHub Release v0.2.0-preview.1](https://github.com/JackEngineer/LanLink/releases/tag/v0.2.0-preview.1) 选择与你的电脑匹配的安装包。
 
 | 平台                        | 下载包                                                                                                                                                                                                                                               |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Apple Silicon Mac（M 系列） | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-aarch64-apple-darwin.zip) 或 [PKG](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-aarch64-apple-darwin.pkg) |
-| Intel Mac                   | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-x86_64-apple-darwin.zip)                                                                                                                              |
-| Windows x64                 | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/LANLink-0.1.0-x86_64-pc-windows-msvc.zip)                                                                                                                           |
+| Apple Silicon Mac（M 系列） | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-aarch64-apple-darwin.zip) 或 [PKG](https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-aarch64-apple-darwin.pkg) |
+| Intel Mac                   | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-x86_64-apple-darwin.zip)                                                                                                                              |
+| Windows x64                 | [ZIP](https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/LANLink-0.2.0-x86_64-pc-windows-msvc.zip)                                                                                                                           |
 
-下载后按[安装指南](docs/install.md)操作。安装包校验值见 [SHA256SUMS](https://github.com/JackEngineer/LanLink/releases/download/v0.1.0-preview.1/SHA256SUMS)。
+下载后按[安装指南](docs/install.md)操作。安装包校验值见 [SHA256SUMS](https://github.com/JackEngineer/LanLink/releases/download/v0.2.0-preview.1/SHA256SUMS)。
 
 ## 开发运行
 
