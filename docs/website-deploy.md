@@ -49,7 +49,7 @@ readlink -f /var/www/lanlink/current
 
 以 `deploy/nginx/lanlink.conf` 为模板，替换 `example.com`。通过现有 Nginx 的配置机制加载独立文件，例如 `/etc/nginx/conf.d/lanlink.conf`。若服务器已有同名文件，先备份并审阅差异。不要假设此目录适用于所有安装方式。Nginx 的配置与重载方式见[官方入门文档](https://nginx.org/en/docs/beginners_guide.html)。
 
-模板只包含 HTTP，方便先检查域名路由。正式上线前，使用该服务器现有的证书工具申请并安装对应域名证书，建立单独的 `listen 443 ssl` 站点，保留模板中的 `root`、静态文件规则和安全头。把 80 端口站点改成跳转到固定的正式 HTTPS 域名；若证书续期使用 HTTP 验证，保留相应验证路径。确认续期机制有效。仅在 HTTPS 正常并确定域名范围后配置 HSTS。
+模板只包含 HTTP，方便先检查域名路由。正式上线前，使用该服务器现有的证书工具申请并安装对应域名证书，建立单独的 `listen 443 ssl` 站点，保留模板中的 `root`、静态文件规则和安全头。把 80 端口站点改成跳转到固定的正式 HTTPS 域名；若证书续期使用 HTTP 验证，保留相应验证路径。确认续期机制有效。LANLink 当前使用的 Certbot 自动续签及部署方式见[自动续签说明](../deploy/certbot/README.md)。仅在 HTTPS 正常并确定域名范围后配置 HSTS。
 
 如果 Nginx 由带文件系统沙箱的服务管理器运行，先确认服务允许写入的日志目录。为 LANLink 创建独立日志文件时，沿用允许写入的目录，不放宽服务沙箱。主机终端中的 `nginx -t` 不包含服务的挂载限制；Linux 上可在已核实 master 的挂载命名空间内使用 `nsenter` 复验配置。
 

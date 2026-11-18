@@ -20,7 +20,7 @@
 
 ## 生产配置与验收
 
-用户明确批准免费证书申请、自动 DNS 验证、子域名 A 记录及官网上线后执行。证书域名为 `lanlink.heyyami.com`，证书链和私钥匹配，私钥安装后为 root 所有、权限 600。证书有效期至北京时间 2027-02-15 22:59:59，未开启自动续签或自动部署，需要到期前重新签发并安装。
+用户明确批准免费证书申请、自动 DNS 验证、子域名 A 记录及官网上线后执行。证书域名为 `lanlink.heyyami.com`，证书链和私钥匹配，私钥安装后为 root 所有、权限 600。首次上线的腾讯云证书有效期至北京时间 2027-02-15 22:59:59，当时未开启自动续签。后续自动续签配置及验收见下文。
 
 公网 Nginx 使用专用配置和 pid，系统默认 Nginx 是另一实例。保留原配置备份，仅增加独立站点 include，以原 master 的配置执行检查和重载。
 
@@ -43,3 +43,18 @@ curl -I https://lanlink.heyyami.com/this-path-must-not-exist
 ```
 
 官网仅提供介绍与 GitHub Release 下载入口。未修改 LANLink 本机应用、Agent 或安装包。
+
+## 自动续签与自动部署
+
+2026-11-18 按用户要求，官网已切换到现有 Certbot 管理的 Let's Encrypt 证书。使用已有 ACME 账户和 `/var/www/certbot`，为 LANLink 配置独立 HTTP 验证路径、renewal 配置和 deploy hook，未修改邮件证书的 renewal 配置。
+
+`certbot.timer` 已启用。LANLink 配置持久化 `renew_hook = /usr/local/sbin/lanlink-cert-deploy`。钩子只接受精确的 LANLink lineage 和域名，检查证书与私钥后原子替换证书目录，在正确 Nginx master 的命名空间内检查并重载，通过可信 TLS 回环连接核对实际证书指纹。失败恢复旧证书。脚本及部署命令见[自动续签说明](../deploy/certbot/README.md)。
+
+实际验证结果如下。
+
+- 首次真实签发成功，deploy hook 输出证书已部署并验证。
+- 公网证书颁发者为 Let's Encrypt YR1，当前到期时间为北京时间 2027-02-16 10:07:33。SHA-256 指纹为 `9b99d499b1ca49de0ac3447a69080e07ed1b86fbd9e2922e25ffa4f9a2012003`。
+- `certbot renew --cert-name lanlink.heyyami.com --dry-run --run-deploy-hooks --no-random-sleep-on-renew` 返回 0，模拟续签及部署钩子均成功。演练未向官网安装测试环境证书。
+- 原腾讯云证书保留在 root 专用备份目录，私钥未进入仓库。
+
+定时器启用和一次演练通过不能证明未来所有续签都会成功。后续仍需保留服务器时间、DNS、80 端口挑战路径、CA 网络访问和日志检查能力。
