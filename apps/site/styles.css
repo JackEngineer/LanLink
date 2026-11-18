@@ -660,12 +660,12 @@ section[id] {
       display: none;
     }
     .scroll-route {
-      --file-chip-size: 2.25rem;
+      --file-chip-size: 2.75rem;
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
-      gap: calc(var(--file-chip-size) / 2 + 0.75rem);
-      min-height: 2.5rem;
+      gap: calc(var(--file-chip-size) / 2 + 0.875rem);
+      min-height: var(--file-chip-size);
       margin-top: 1rem;
       color: #e1ebff;
       font-size: 0.78rem;
@@ -694,15 +694,11 @@ section[id] {
       height: var(--file-chip-size);
       overflow: clip;
       transform: translate(-50%, -50%);
-      border-radius: 0.55rem;
-      background: #fff;
-      box-shadow: 0 0 1.35rem #749eff;
+      filter: drop-shadow(0 2px 3px #071e6699);
     }
     .scroll-file-icons {
-      display: grid;
-      grid-auto-rows: var(--file-chip-size);
-      justify-items: center;
-      align-items: center;
+      width: 100%;
+      height: auto;
       animation: file-icon-type step-end both;
       animation-timeline: --handoff;
       animation-range: var(--handoff-range);
