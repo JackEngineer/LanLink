@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass
 import errno
 import fcntl
 import hashlib
+from http.client import IncompleteRead
 import json
 import os
 from pathlib import Path
@@ -158,27 +160,39 @@ def release_assets(version, release):
     return result
 
 
-def download(asset, destination):
-    try:
-        response = open_url(asset.api_url, headers={'Accept': 'application/octet-stream'})
-    except (URLError, TimeoutError, ConnectionError):
-        response = open_url(asset.url)
+def transfer_asset(asset, name, response, output):
     digest = hashlib.sha256()
     remaining = asset.size
-    with response, destination.open('xb') as output:
-        while remaining:
-            chunk = response.read(min(remaining, 1024 * 1024))
-            if not chunk:
-                break
-            output.write(chunk)
-            digest.update(chunk)
-            remaining -= len(chunk)
-        if remaining or response.read(1):
-            raise SyncError(f'Download size mismatch for {destination.name}')
+    while remaining:
+        chunk = response.read(min(remaining, 1024 * 1024))
+        if not chunk:
+            raise IncompleteRead(b'', remaining)
+        output.write(chunk)
+        digest.update(chunk)
+        remaining -= len(chunk)
+    if response.read(1):
+        raise SyncError(f'Download size mismatch for {name}')
     actual = digest.hexdigest()
     if asset.digest and actual != asset.digest:
-        raise SyncError(f'GitHub SHA-256 mismatch for {destination.name}')
+        raise SyncError(f'GitHub SHA-256 mismatch for {name}')
     return actual
+
+
+def download(asset, destination):
+    api = (asset.api_url, {'Accept': 'application/octet-stream'})
+    sources = (api, api, (asset.url, {}))
+    with destination.open('xb') as output:
+        for url, headers in sources:
+            try:
+                with open_url(url, headers=headers) as response:
+                    return transfer_asset(asset, destination.name, response, output)
+            except (URLError, TimeoutError, ConnectionError, IncompleteRead) as error:
+                if isinstance(error, HTTPError):
+                    error.close()
+                if url == asset.url:
+                    raise SyncError(f'Transfer failed for {destination.name} ({type(error).__name__})') from error
+                output.seek(0)
+                output.truncate()
 
 
 def read_manifest(data, packages):
@@ -200,9 +214,13 @@ def prepare_downloads(version, assets, directory):
     checksums = directory / MANIFEST
     download(assets[MANIFEST], checksums)
     expected = read_manifest(checksums.read_bytes(), version.packages())
-    for name, digest in expected.items():
-        if download(assets[name], directory / name) != digest:
+
+    def verify_package(name):
+        if download(assets[name], directory / name) != expected[name]:
             raise SyncError(f'SHA256SUMS mismatch for {name}')
+
+    with ThreadPoolExecutor(max_workers=len(expected)) as pool:
+        list(pool.map(verify_package, expected))
 
 
 def verify_release_files(version, assets, directory):

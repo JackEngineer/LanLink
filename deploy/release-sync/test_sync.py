@@ -16,6 +16,13 @@ class Response(BytesIO):
         self.headers = headers or {}
 
 
+class InterruptedResponse(Response):
+    def read(self, size=-1):
+        if self.tell() > 0:
+            raise TimeoutError('asset read interrupted')
+        return super().read(min(size, 5))
+
+
 def digest(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -156,6 +163,25 @@ class ReleaseSyncTest(unittest.TestCase):
         sync.sync(self.root)
         for name, data in self.package_data(self.new).items():
             self.assertEqual((self.current / 'downloads' / self.new.tag / name).read_bytes(), data)
+
+    def test_retries_a_partially_downloaded_package_from_the_start(self):
+        self.add_release(self.new)
+        package = self.new.packages()[-1]
+        url = next(asset['url'] for asset in self.releases_api[0]['assets'] if asset['name'] == package)
+        attempts = []
+
+        def open_url(address, **kwargs):
+            if address == url:
+                attempts.append(address)
+                if len(attempts) == 1:
+                    return InterruptedResponse(b'interrupted data')
+            return self.open_url(address, **kwargs)
+
+        with patch('sync.open_url', side_effect=open_url):
+            sync.sync(self.root)
+        self.assertEqual(attempts, [url, url])
+        self.assertEqual((self.current / 'downloads' / self.new.tag / package).read_bytes(),
+                         self.package_data(self.new)[package])
 
     def test_reuses_verified_downloads_retained_during_website_rollback(self):
         self.add_release(self.new)
