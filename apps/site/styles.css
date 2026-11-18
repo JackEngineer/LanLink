@@ -639,7 +639,7 @@ section[id] {
   @media (min-width: 920px) and (min-height: 700px) and (prefers-reduced-motion: no-preference) {
     .experience {
       --handoff-top: 1.65rem;
-      --handoff-travel: clamp(14rem, 39svh, 23rem);
+      --handoff-travel: clamp(20rem, 52svh, 30rem);
       --handoff-range: exit-crossing 0px exit-crossing var(--handoff-travel);
       view-timeline-name: --handoff;
       view-timeline-inset: var(--handoff-top) 0;
@@ -679,8 +679,10 @@ section[id] {
     }
     .scroll-track::before {
       display: block;
-      width: var(--handoff-progress);
+      width: 100%;
       height: 100%;
+      transform: scaleX(var(--handoff-progress));
+      transform-origin: left;
       border-radius: inherit;
       background: #e0edff;
       box-shadow: 0 0 1rem #93b9ff;
@@ -689,22 +691,22 @@ section[id] {
     .scroll-file {
       position: absolute;
       top: 50%;
-      left: var(--handoff-progress);
-      width: var(--file-chip-size);
+      inset-inline: 0;
       height: var(--file-chip-size);
-      overflow: clip;
-      transform: translate(-50%, -50%);
+      clip-path: inset(0 calc(100% - var(--file-chip-size)) 0 0);
+      transform: translate(calc(var(--handoff-progress) - var(--file-chip-size) / 2), -50%);
       filter: drop-shadow(0 2px 3px #071e6699);
+      pointer-events: none;
     }
     .scroll-file-icons {
-      width: 100%;
+      width: var(--file-chip-size);
       height: auto;
-      animation: file-icon-type step-end both;
+      animation: file-icon-type ease-in-out both;
       animation-timeline: --handoff;
       animation-range: var(--handoff-range);
     }
     .scroll-route {
-      animation: file-handoff linear both;
+      animation: file-handoff cubic-bezier(0.42, 0.08, 0.58, 0.92) both;
       animation-timeline: --handoff;
       animation-range: var(--handoff-range);
     }
@@ -726,26 +728,27 @@ section[id] {
       animation-timeline: scroll(root block);
     }
     @keyframes file-handoff {
-      0%,
-      10% {
+      from {
         --handoff-progress: 0%;
       }
-      90%,
-      100% {
+      to {
         --handoff-progress: 100%;
       }
     }
     @keyframes file-icon-type {
-      0% {
+      0%,
+      24% {
         transform: translateY(0);
       }
-      28% {
+      31%,
+      46% {
         transform: translateY(-25%);
       }
-      50% {
+      53%,
+      68% {
         transform: translateY(-50%);
       }
-      72%,
+      75%,
       100% {
         transform: translateY(-75%);
       }
