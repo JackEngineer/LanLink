@@ -37,11 +37,15 @@ The desktop API opens one temporary HTTP listener on a selected LAN IPv4 address
 | ------------------------ | ---------------------- | ----------------------------------------------------------------- |
 | `GET /mobile`            | `X-LANLink-Token`      | Interface addresses and current session                           |
 | `POST /mobile`           | `{address}`            | Starts a session and returns the desktop state                    |
-| `POST /mobile/approve`   | `{code}`               | Approves a matching pending session and returns the desktop state |
+| `POST /mobile/approve`   | `{code,remember?}`     | Approves a matching pending session and returns the desktop state |
 | `DELETE /mobile`         |                        | Ends the session and returns the desktop state                    |
 | `POST /mobile/files`     | Multipart `file`       | Metadata for the file available to the mobile browser             |
 | `GET /mobile/files/{id}` | Same-origin navigation | Attachment for a file received from the mobile browser            |
 
-Desktop state is `{addresses,session}`. `session` is null or includes `url` and the mobile state fields. The QR URL carries the one-use invite in its fragment. Mobile state includes `{phase,code,expires_at,max_file_size,files}`. `expires_at` is epoch milliseconds and `max_file_size` is in bytes. The phases are `inviting`, `pending` and `approved`. Each file is `{id,name,size,direction}`, with direction `to_computer` or `to_mobile`.
+Desktop state is `{addresses,session,remembered_browsers}`. `session` is null or includes `url` and the mobile state fields. The QR URL carries the one-use invite in its fragment. Mobile state includes `{phase,code,expires_at,max_file_size,files,remembered,remembered_browser_id}`. `expires_at` is epoch milliseconds and `max_file_size` is in bytes. The phases are `inviting`, `pending` and `approved`. Each file is `{id,name,size,direction}`, with direction `to_computer` or `to_mobile`.
 
 On the temporary listener, `POST /mobile/claim` with `{invite}` establishes a browser credential as a cookie and returns mobile state. `GET /mobile/state` reads that state using the cookie. After desktop approval, `POST /mobile/files` accepts multipart `file` and `GET /mobile/files/{id}` serves an attachment staged for the mobile browser. Mobile writes require the temporary listener's exact Origin. Ending the session or reaching its expiry invalidates the credential.
+
+Approval remembers the browser by default. Set `remember` to false for a temporary guest. The authenticated mobile state response issues a separate host-only HttpOnly cookie for future scans. The registry persists only the credential hash and metadata. A remembered browser must present both its valid credential and a fresh invitation to become approved in a new session. Successful recall renews the 90-day authorization. Clearing browser data, switching browser profiles or changing the desktop's LAN IP can require approval again.
+
+`remembered_browsers` contains `{id,name,created_at,last_used_at,expires_at}` entries. `DELETE /api/v1/mobile/browsers/{id}` revokes the stored browser and ends its active transfer session, then returns desktop state. Ending a temporary transfer session preserves the browser's remembered authorization.

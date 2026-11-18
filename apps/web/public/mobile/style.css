@@ -98,6 +98,10 @@ header > p:not(.brand, .warning) {
   font-variant-numeric: tabular-nums;
 }
 
+#remembered {
+  margin-top: 10px;
+}
+
 #confirmation {
   margin-top: 12px;
   color: var(--muted);

@@ -1,4 +1,9 @@
-use crate::{files, http::attachment, state::State as App};
+use crate::{
+    files,
+    http::attachment,
+    mobile_trust::{Registry, RememberedBrowser},
+    state::State as App,
+};
 use axum::{
     Extension, Json, Router,
     body::Body,
@@ -6,7 +11,7 @@ use axum::{
     http::{HeaderMap, HeaderValue, Method, StatusCode, header},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use futures_util::StreamExt;
 use lanlink_protocol::{MAX_FILE_SIZE, now_ms, safe_name};
@@ -66,6 +71,7 @@ pub struct Session {
     origin: String,
     url: String,
     cookie_name: String,
+    trust: Arc<Registry>,
     expires_at: i64,
     deadline: Instant,
     stop: CancellationToken,
@@ -126,9 +132,18 @@ enum Phase {
     Approved(Browser),
 }
 
+#[derive(Clone)]
 struct Browser {
     token: String,
     code: String,
+    name: String,
+    remembered: Option<RememberedCredential>,
+}
+
+#[derive(Clone)]
+struct RememberedCredential {
+    browser: RememberedBrowser,
+    token: String,
 }
 
 struct Assets {
@@ -166,6 +181,8 @@ struct StoredFile {
 struct MobileView {
     phase: &'static str,
     code: Option<String>,
+    remembered: bool,
+    remembered_browser_id: Option<String>,
     expires_at: i64,
     max_file_size: u64,
     files: Vec<FileInfo>,
@@ -182,6 +199,7 @@ struct DesktopSession {
 struct DesktopView {
     addresses: Vec<Ipv4Addr>,
     session: Option<DesktopSession>,
+    remembered_browsers: Vec<RememberedBrowser>,
 }
 
 fn addresses() -> io::Result<Vec<Ipv4Addr>> {
@@ -249,7 +267,13 @@ impl Session {
             Phase::Pending(browser) => ("pending", Some(browser.code.clone())),
             Phase::Approved(browser) => ("approved", Some(browser.code.clone())),
         };
+        let remembered = match &data.phase {
+            Phase::Approved(browser) => browser.remembered.as_ref(),
+            _ => None,
+        };
         MobileView {
+            remembered: remembered.is_some(),
+            remembered_browser_id: remembered.map(|credential| credential.browser.id.clone()),
             phase,
             code,
             expires_at: self.expires_at,
@@ -301,6 +325,7 @@ pub fn desktop_router(web_dir: PathBuf) -> Router<Arc<App>> {
     Router::new()
         .route("/api/v1/mobile", get(desktop_view).post(open).delete(close))
         .route("/api/v1/mobile/approve", post(approve))
+        .route("/api/v1/mobile/browsers/{id}", delete(revoke_browser))
         .route("/api/v1/mobile/files", post(stage))
         .route("/api/v1/mobile/files/{id}", get(receipt))
         .layer(Extension(web_dir))
@@ -327,7 +352,9 @@ async fn snapshot(app: &App) -> Result<Json<DesktopView>> {
         }
         _ => None,
     };
+    let remembered_browsers = app.mobile_trust.data.lock().await.list(now_ms());
     Ok(Json(DesktopView {
+        remembered_browsers,
         addresses: addresses().unwrap_or_default(),
         session,
     }))
@@ -380,6 +407,7 @@ async fn open(
         url: format!("{origin}/mobile/#{invite}"),
         origin,
         cookie_name: format!("lanlink_mobile_{}", Uuid::new_v4().simple()),
+        trust: app.mobile_trust.clone(),
         expires_at: now_ms() + SESSION_LIFETIME.as_millis() as i64,
         deadline: Instant::now() + SESSION_LIFETIME,
         stop: CancellationToken::new(),
@@ -445,6 +473,20 @@ async fn current_session(app: &App) -> Result<Arc<Session>> {
 #[derive(Deserialize)]
 struct Approval {
     code: String,
+    #[serde(default = "remember_by_default")]
+    remember: bool,
+}
+
+fn remember_by_default() -> bool {
+    true
+}
+
+fn trust_error(error: anyhow::Error) -> MobileError {
+    tracing::warn!(%error, "mobile browser registry operation failed");
+    MobileError(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "cannot save remembered browser",
+    )
 }
 
 async fn approve(
@@ -452,6 +494,7 @@ async fn approve(
     Json(input): Json<Approval>,
 ) -> Result<Json<DesktopView>> {
     let session = current_session(&app).await?;
+    let mut trust = session.trust.data.lock().await;
     let mut data = session.data.lock().await;
     session.active()?;
     let Phase::Pending(browser) = &data.phase else {
@@ -466,11 +509,50 @@ async fn approve(
             "comparison code does not match",
         ));
     }
-    data.phase = Phase::Approved(Browser {
-        token: browser.token.clone(),
-        code: browser.code.clone(),
-    });
+    let mut browser = browser.clone();
+    if input.remember {
+        let token = hex::encode(lanlink_transport::keypair().map_err(trust_error)?.private);
+        let remembered = trust
+            .register(&token, browser.name.clone(), now_ms())
+            .await
+            .map_err(trust_error)?;
+        browser.remembered = Some(RememberedCredential {
+            browser: remembered,
+            token,
+        });
+    }
+    session.active()?;
+    data.phase = Phase::Approved(browser);
     drop(data);
+    drop(trust);
+    snapshot(&app).await
+}
+
+async fn revoke_browser(
+    State(app): State<Arc<App>>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<DesktopView>> {
+    let slot = app.mobile.lock().await;
+    let mut trust = app.mobile_trust.data.lock().await;
+    let id = id.to_string();
+    trust.revoke(&id).await.map_err(trust_error)?;
+    let ended = if let Some(session) = slot.as_ref() {
+        let data = session.data.lock().await;
+        let matches = matches!(&data.phase, Phase::Approved(browser) if browser.remembered.as_ref().is_some_and(|credential| credential.browser.id == id));
+        if matches {
+            session.stop.cancel();
+            Some(session.clone())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    drop(trust);
+    drop(slot);
+    if let Some(session) = ended {
+        session.end().await;
+    }
     snapshot(&app).await
 }
 
@@ -597,7 +679,57 @@ struct Claim {
     invite: String,
 }
 
-async fn claim(State(session): State<Arc<Session>>, Json(input): Json<Claim>) -> Result<Response> {
+fn cookie_value(headers: &HeaderMap, name: &str) -> Option<String> {
+    let mut matches = headers
+        .get_all(header::COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .flat_map(|cookies| cookies.split(';'))
+        .filter_map(|cookie| cookie.trim().split_once('='))
+        .filter(|(key, _)| *key == name)
+        .map(|(_, value)| value.to_owned());
+    let value = matches.next()?;
+    if matches.next().is_some() {
+        return None;
+    }
+    Some(value)
+}
+
+fn browser_name(headers: &HeaderMap) -> String {
+    let agent = headers
+        .get(header::USER_AGENT)
+        .and_then(|value| value.to_str().ok())
+        .filter(|value| value.len() <= 1024)
+        .unwrap_or("");
+    let device = if agent.contains("iPhone") {
+        "iPhone"
+    } else if agent.contains("iPad") {
+        "iPad"
+    } else if agent.contains("Android") {
+        "Android"
+    } else {
+        "Browser"
+    };
+    let browser = if agent.contains("Edg/") || agent.contains("EdgiOS/") {
+        "Edge"
+    } else if agent.contains("Firefox/") || agent.contains("FxiOS/") {
+        "Firefox"
+    } else if agent.contains("Chrome/") || agent.contains("CriOS/") {
+        "Chrome"
+    } else if agent.contains("Safari/") {
+        "Safari"
+    } else {
+        ""
+    };
+    format!("{device} {browser}").trim().to_owned()
+}
+
+async fn claim(
+    State(session): State<Arc<Session>>,
+    headers: HeaderMap,
+    Json(input): Json<Claim>,
+) -> Result<Response> {
+    let mut trust = session.trust.data.lock().await;
     let mut data = session.data.lock().await;
     session.active()?;
     let Phase::Inviting { invite } = &data.phase else {
@@ -607,9 +739,29 @@ async fn claim(State(session): State<Arc<Session>>, Json(input): Json<Claim>) ->
         return Err(FORBIDDEN);
     }
 
-    let token = Uuid::new_v4().simple().to_string();
+    let token = hex::encode(lanlink_transport::keypair().map_err(trust_error)?.private);
     let code = (Uuid::new_v4().as_u128() & 0xffff_ffff) % 1_000_000;
     let code = format!("{code:06}");
+    let now = now_ms();
+    let recall = cookie_value(&headers, &session.trust.cookie_name)
+        .and_then(|token| trust.find(&token, now).map(|browser| (token, browser)));
+    let mut browser = Browser {
+        token: token.clone(),
+        code,
+        name: browser_name(&headers),
+        remembered: None,
+    };
+    if let Some((remember_token, remembered)) = recall {
+        let remembered = trust
+            .renew(&remembered.id, now)
+            .await
+            .map_err(trust_error)?;
+        browser.remembered = Some(RememberedCredential {
+            browser: remembered,
+            token: remember_token,
+        });
+    }
+    session.active()?;
     let remaining_seconds = session
         .deadline
         .saturating_duration_since(Instant::now())
@@ -619,18 +771,41 @@ async fn claim(State(session): State<Arc<Session>>, Json(input): Json<Claim>) ->
         "{}={token}; Path=/mobile/; HttpOnly; SameSite=Strict; Max-Age={remaining_seconds}",
         session.cookie_name,
     );
-    data.phase = Phase::Pending(Browser { token, code });
+    data.phase = if browser.remembered.is_some() {
+        Phase::Approved(browser)
+    } else {
+        Phase::Pending(browser)
+    };
     Ok(([(header::SET_COOKIE, cookie)], Json(session.view(&data))).into_response())
 }
 
-async fn mobile_view(
-    State(session): State<Arc<Session>>,
-    headers: HeaderMap,
-) -> Result<Json<MobileView>> {
+async fn mobile_view(State(session): State<Arc<Session>>, headers: HeaderMap) -> Result<Response> {
+    let trust = session.trust.data.lock().await;
     let data = session.data.lock().await;
     session.active()?;
     session.authorize_browser(&headers, &data.phase)?;
-    Ok(Json(session.view(&data)))
+    let mut response = Json(session.view(&data)).into_response();
+    if let Phase::Approved(browser) = &data.phase
+        && let Some(credential) = &browser.remembered
+    {
+        let remembered = &credential.browser;
+        let token = &credential.token;
+        let now = now_ms();
+        if !trust.contains(&remembered.id, now) {
+            session.stop.cancel();
+            return Err(EXPIRED);
+        }
+        let seconds = ((remembered.expires_at - now) / 1000).max(1);
+        let cookie = format!(
+            "{}={token}; Path=/mobile/; HttpOnly; SameSite=Strict; Max-Age={seconds}",
+            session.trust.cookie_name
+        );
+        response.headers_mut().insert(
+            header::SET_COOKIE,
+            HeaderValue::from_str(&cookie).map_err(|_| FORBIDDEN)?,
+        );
+    }
+    Ok(response)
 }
 
 async fn receive(
@@ -809,12 +984,13 @@ async fn download(
         .find(|file| file.info.id == id && file.info.direction == direction)
         .ok_or(NOT_FOUND)?;
     let path = match &file.location {
-        FileLocation::Staged(temp) => temp.as_ref(),
-        FileLocation::Published(path) => path.as_path(),
+        FileLocation::Staged(temp) => temp.to_path_buf(),
+        FileLocation::Published(path) => path.clone(),
     };
     let info = file.info.clone();
-    let file = fs::File::open(path).await.map_err(MobileError::io)?;
     drop(data);
+    let file = fs::File::open(path).await.map_err(MobileError::io)?;
+    session.active()?;
     let stream = ReaderStream::new(file).take_until(session.stop.clone().cancelled_owned());
     Ok(attachment(&info.name, info.size, Body::from_stream(stream)))
 }
@@ -826,8 +1002,12 @@ mod tests {
     use serde_json::Value;
     use tower::ServiceExt;
 
-    fn test_session(root: &FsPath) -> Session {
+    async fn test_session(root: &FsPath) -> Session {
+        let store = lanlink_store::Store::open(&root.join("test.sqlite3"))
+            .await
+            .unwrap();
         Session {
+            trust: Arc::new(Registry::open(store, &"a".repeat(64)).await.unwrap()),
             host: "192.168.1.2:12345".into(),
             origin: "http://192.168.1.2:12345".into(),
             url: "http://192.168.1.2:12345/mobile/#invite".into(),
@@ -874,7 +1054,7 @@ mod tests {
     async fn approval_transfer_and_revocation_are_session_scoped() -> anyhow::Result<()> {
         let root = tempfile::tempdir()?;
         let app = Arc::new(crate::state::test_state(root.path()).await?);
-        let session = Arc::new(test_session(root.path()));
+        let session = Arc::new(test_session(root.path()).await);
         *app.mobile.lock().await = Some(session.clone());
 
         let mut desktop_headers = HeaderMap::new();
@@ -892,6 +1072,7 @@ mod tests {
 
         let response = claim(
             State(session.clone()),
+            HeaderMap::new(),
             Json(Claim {
                 invite: "invite".into(),
             }),
@@ -912,6 +1093,7 @@ mod tests {
         assert!(
             claim(
                 State(session.clone()),
+                HeaderMap::new(),
                 Json(Claim {
                     invite: "invite".into()
                 })
@@ -933,15 +1115,22 @@ mod tests {
             approve(
                 State(app.clone()),
                 Json(Approval {
-                    code: "wrong".into()
+                    code: "wrong".into(),
+                    remember: true
                 })
             )
             .await
             .is_err()
         );
-        let approved = approve(State(app.clone()), Json(Approval { code: code.clone() }))
-            .await
-            .unwrap();
+        let approved = approve(
+            State(app.clone()),
+            Json(Approval {
+                code: code.clone(),
+                remember: true,
+            }),
+        )
+        .await
+        .unwrap();
         assert_eq!(approved.0.session.unwrap().view.code, Some(code));
 
         let sent = upload(
@@ -1040,10 +1229,310 @@ mod tests {
         Ok(())
     }
 
+    async fn paired_session(root: &FsPath, trust: Arc<Registry>, port: u16) -> Arc<Session> {
+        let mut session = test_session(root).await;
+        session.trust = trust;
+        session.host = format!("192.168.1.2:{port}");
+        session.origin = format!("http://{}", session.host);
+        session.cookie_name = format!("mobile_{port}");
+        Arc::new(session)
+    }
+
+    fn cookie_header(cookie: &str) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::COOKIE,
+            HeaderValue::from_str(cookie.split(';').next().unwrap()).unwrap(),
+        );
+        headers
+    }
+
+    async fn claim_browser(
+        session: Arc<Session>,
+        headers: HeaderMap,
+        invite: &str,
+    ) -> anyhow::Result<(Value, String)> {
+        let response = claim(
+            State(session),
+            headers,
+            Json(Claim {
+                invite: invite.into(),
+            }),
+        )
+        .await
+        .unwrap();
+        let cookie = response.headers()[header::SET_COOKIE].to_str()?.to_owned();
+        Ok((body_json(response).await?, cookie))
+    }
+
+    #[tokio::test]
+    async fn remembered_browser_requires_new_invite_and_fresh_session_cookie_after_restart()
+    -> anyhow::Result<()> {
+        let root = tempfile::tempdir()?;
+        let app = Arc::new(crate::state::test_state(root.path()).await?);
+        let first = paired_session(root.path(), app.mobile_trust.clone(), 10001).await;
+        *app.mobile.lock().await = Some(first.clone());
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::USER_AGENT,
+            HeaderValue::from_static("Mozilla iPhone Version/18.0 Mobile Safari/604.1"),
+        );
+        let (view, session_cookie) = claim_browser(first.clone(), headers, "invite").await?;
+        assert_eq!(view["phase"], "pending");
+        assert_eq!(view["remembered"], false);
+        assert!(view["remembered_browser_id"].is_null());
+        let input: Approval = serde_json::from_value(json!({"code": view["code"]}))?;
+        assert!(input.remember);
+        let approved = approve(State(app.clone()), Json(input)).await.unwrap();
+        let id = approved
+            .0
+            .session
+            .unwrap()
+            .view
+            .remembered_browser_id
+            .unwrap();
+        assert_eq!(approved.0.remembered_browsers[0].name, "iPhone Safari");
+        let response = mobile_view(State(first.clone()), cookie_header(&session_cookie))
+            .await
+            .unwrap();
+        let remembered_cookie = response.headers()[header::SET_COOKIE].to_str()?.to_owned();
+        assert!(remembered_cookie.contains("Path=/mobile/; HttpOnly; SameSite=Strict; Max-Age="));
+        assert!(!remembered_cookie.contains("Domain="));
+        let retry = mobile_view(State(first.clone()), cookie_header(&session_cookie))
+            .await
+            .unwrap();
+        assert_eq!(
+            retry.headers()[header::SET_COOKIE]
+                .to_str()?
+                .split(';')
+                .next(),
+            remembered_cookie.split(';').next()
+        );
+        let raw_token = remembered_cookie
+            .split(';')
+            .next()
+            .unwrap()
+            .split_once('=')
+            .unwrap()
+            .1;
+        let persisted: String =
+            sqlx::query_scalar("SELECT value FROM kv WHERE key LIKE 'mobile_browsers_%'")
+                .fetch_one(&app.store.pool)
+                .await?;
+        assert!(!persisted.contains(raw_token));
+        assert!(persisted.contains(&crate::mobile_trust::digest(raw_token)));
+        first.end().await;
+
+        let reopened = Arc::new(
+            Registry::open(
+                lanlink_store::Store::open(&root.path().join("test.sqlite3")).await?,
+                &"a".repeat(64),
+            )
+            .await?,
+        );
+        assert_eq!(reopened.cookie_name, app.mobile_trust.cookie_name);
+        let second = paired_session(root.path(), reopened.clone(), 10002).await;
+        assert!(
+            mobile_view(State(second.clone()), cookie_header(&remembered_cookie))
+                .await
+                .is_err()
+        );
+        assert!(
+            claim(
+                State(second.clone()),
+                cookie_header(&remembered_cookie),
+                Json(Claim {
+                    invite: "old-invite".into()
+                })
+            )
+            .await
+            .is_err()
+        );
+        let (view, fresh_cookie) =
+            claim_browser(second.clone(), cookie_header(&remembered_cookie), "invite").await?;
+        assert_eq!(view["phase"], "approved");
+        assert_eq!(view["remembered"], true);
+        assert_eq!(view["remembered_browser_id"], id);
+        assert_ne!(fresh_cookie, session_cookie);
+        assert!(
+            mobile_view(State(second.clone()), cookie_header(&session_cookie))
+                .await
+                .is_err()
+        );
+        assert!(
+            mobile_view(State(second.clone()), cookie_header(&remembered_cookie))
+                .await
+                .is_err()
+        );
+        assert!(
+            mobile_view(State(second.clone()), cookie_header(&fresh_cookie))
+                .await
+                .is_ok()
+        );
+        let record = reopened.data.lock().await.list(now_ms()).pop().unwrap();
+        assert!(record.last_used_at >= record.created_at);
+        assert_eq!(
+            record.expires_at - record.last_used_at,
+            crate::mobile_trust::LIFETIME_MS
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn unrecognized_expired_and_guest_browsers_require_desktop_approval() -> anyhow::Result<()>
+    {
+        let root = tempfile::tempdir()?;
+        let app = Arc::new(crate::state::test_state(root.path()).await?);
+        let expired_token = "a".repeat(64);
+        app.mobile_trust
+            .data
+            .lock()
+            .await
+            .register(&expired_token, "Browser".into(), 0)
+            .await?;
+        for headers in [
+            HeaderMap::new(),
+            cookie_header(&format!(
+                "{}={}",
+                app.mobile_trust.cookie_name,
+                "b".repeat(64)
+            )),
+            cookie_header(&format!("{}={expired_token}", app.mobile_trust.cookie_name)),
+        ] {
+            let session = paired_session(root.path(), app.mobile_trust.clone(), 10003).await;
+            *app.mobile.lock().await = Some(session.clone());
+            let (view, cookie) = claim_browser(session.clone(), headers, "invite").await?;
+            assert_eq!(view["phase"], "pending");
+            assert!(
+                authorize_transfer(
+                    &session,
+                    &*session.data.lock().await,
+                    Some(&cookie_header(&cookie))
+                )
+                .is_err()
+            );
+            let _ = approve(
+                State(app.clone()),
+                Json(Approval {
+                    code: view["code"].as_str().unwrap().into(),
+                    remember: false,
+                }),
+            )
+            .await
+            .unwrap();
+            let response = mobile_view(State(session), cookie_header(&cookie))
+                .await
+                .unwrap();
+            assert!(!response.headers().contains_key(header::SET_COOKIE));
+            let approved = body_json(response).await?;
+            assert_eq!(approved["remembered"], false);
+            assert!(approved["remembered_browser_id"].is_null());
+            assert!(app.mobile_trust.data.lock().await.list(now_ms()).is_empty());
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn revocation_stops_active_streams_and_prevents_poll_or_future_recall()
+    -> anyhow::Result<()> {
+        let root = tempfile::tempdir()?;
+        let app = Arc::new(crate::state::test_state(root.path()).await?);
+        let session = paired_session(root.path(), app.mobile_trust.clone(), 10004).await;
+        *app.mobile.lock().await = Some(session.clone());
+        let (view, cookie) = claim_browser(session.clone(), HeaderMap::new(), "invite").await?;
+        let approved = approve(
+            State(app.clone()),
+            Json(Approval {
+                code: view["code"].as_str().unwrap().into(),
+                remember: true,
+            }),
+        )
+        .await
+        .unwrap();
+        let id = approved.0.remembered_browsers[0].id.clone();
+        let response = mobile_view(State(session.clone()), cookie_header(&cookie))
+            .await
+            .unwrap();
+        let remembered = response.headers()[header::SET_COOKIE].to_str()?.to_owned();
+        let sent = upload(
+            &session,
+            multipart(b"abc").await?,
+            FileDirection::ToMobile,
+            None,
+        )
+        .await
+        .unwrap();
+        let stream = download(
+            &session,
+            sent.id,
+            FileDirection::ToMobile,
+            Some(&cookie_header(&cookie)),
+        )
+        .await
+        .unwrap();
+        let response = revoke_browser(State(app.clone()), Path(Uuid::parse_str(&id)?))
+            .await
+            .unwrap();
+        assert!(response.0.remembered_browsers.is_empty());
+        assert!(response.0.session.is_none());
+        assert!(to_bytes(stream.into_body(), 4).await?.is_empty());
+        assert!(
+            mobile_view(State(session.clone()), cookie_header(&cookie))
+                .await
+                .is_err()
+        );
+        assert!(
+            approve(
+                State(app.clone()),
+                Json(Approval {
+                    code: view["code"].as_str().unwrap().into(),
+                    remember: true
+                })
+            )
+            .await
+            .is_err()
+        );
+        let reopened = Arc::new(Registry::open(app.store.clone(), &"a".repeat(64)).await?);
+        let next = paired_session(root.path(), reopened, 10005).await;
+        let (view, _) = claim_browser(next, cookie_header(&remembered), "invite").await?;
+        assert_eq!(view["phase"], "pending");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn failed_persistence_never_approves_or_reports_revocation() -> anyhow::Result<()> {
+        let root = tempfile::tempdir()?;
+        let app = Arc::new(crate::state::test_state(root.path()).await?);
+        let session = paired_session(root.path(), app.mobile_trust.clone(), 10006).await;
+        *app.mobile.lock().await = Some(session.clone());
+        let (view, _) = claim_browser(session.clone(), HeaderMap::new(), "invite").await?;
+        sqlx::query("DROP TABLE kv")
+            .execute(&app.store.pool)
+            .await?;
+        assert!(
+            approve(
+                State(app.clone()),
+                Json(Approval {
+                    code: view["code"].as_str().unwrap().into(),
+                    remember: true
+                })
+            )
+            .await
+            .is_err()
+        );
+        assert!(matches!(session.data.lock().await.phase, Phase::Pending(_)));
+        assert!(
+            revoke_browser(State(app), Path(Uuid::new_v4()))
+                .await
+                .is_err()
+        );
+        Ok(())
+    }
+
     #[tokio::test]
     async fn lan_boundary_and_expiration_return_json() -> anyhow::Result<()> {
         let root = tempfile::tempdir()?;
-        let session = Arc::new(test_session(root.path()));
+        let session = Arc::new(test_session(root.path()).await);
         let router = lan_router(session.clone());
         for (method, path, host, origin, expected) in [
             (
@@ -1087,7 +1576,7 @@ mod tests {
             assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
             assert!(body_json(response).await?["error"].is_string());
         }
-        let mut expired = test_session(root.path());
+        let mut expired = test_session(root.path()).await;
         expired.deadline = Instant::now() - Duration::from_secs(1);
         let expired = Arc::new(expired);
         let response = lan_router(expired.clone())
@@ -1103,6 +1592,7 @@ mod tests {
         assert!(
             claim(
                 State(expired),
+                HeaderMap::new(),
                 Json(Claim {
                     invite: "invite".into()
                 })

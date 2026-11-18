@@ -69,28 +69,64 @@ describe('local Agent requests', () => {
     )
   })
 
-  it('submits the six-digit mobile code with desktop mutation authentication', async () => {
+  it.each([true, false])(
+    'submits the mobile code with remember=%s and desktop authentication',
+    async (remember) => {
+      const fetchMock = mockFetch(
+        Response.json({ token: 'launch-token' }),
+        Response.json({ addresses: [], session: null }),
+      )
+
+      await api.approveMobile('012345', remember)
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        '/api/v1/mobile/approve',
+        expect.objectContaining({
+          method: 'POST',
+          referrerPolicy: 'same-origin',
+          headers: new Headers({
+            'X-LANLink-Token': 'launch-token',
+            'Content-Type': 'application/json',
+          }),
+          body: JSON.stringify({ code: '012345', remember }),
+        }),
+      )
+      expect(api.mobileDownloadUrl('file /?#')).toBe(
+        '/api/v1/mobile/files/file%20%2F%3F%23',
+      )
+    },
+  )
+
+  it('remembers the browser by default when approving a mobile connection', async () => {
     const fetchMock = mockFetch(
       Response.json({ token: 'launch-token' }),
       Response.json({ addresses: [], session: null }),
     )
 
     await api.approveMobile('012345')
+
+    expect(fetchMock.mock.calls[1][1]?.body).toBe(
+      JSON.stringify({ code: '012345', remember: true }),
+    )
+  })
+
+  it('forgets the encoded mobile browser with desktop authentication and returns updated state', async () => {
+    const state = { addresses: [], session: null, remembered_browsers: [] }
+    const fetchMock = mockFetch(
+      Response.json({ token: 'launch-token' }),
+      Response.json(state),
+    )
+
+    await expect(api.forgetMobileBrowser('browser /?#')).resolves.toEqual(state)
+
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      '/api/v1/mobile/approve',
+      '/api/v1/mobile/browsers/browser%20%2F%3F%23',
       expect.objectContaining({
-        method: 'POST',
-        referrerPolicy: 'same-origin',
-        headers: new Headers({
-          'X-LANLink-Token': 'launch-token',
-          'Content-Type': 'application/json',
-        }),
-        body: JSON.stringify({ code: '012345' }),
+        method: 'DELETE',
+        credentials: 'same-origin',
+        headers: new Headers({ 'X-LANLink-Token': 'launch-token' }),
       }),
-    )
-    expect(api.mobileDownloadUrl('file /?#')).toBe(
-      '/api/v1/mobile/files/file%20%2F%3F%23',
     )
   })
 

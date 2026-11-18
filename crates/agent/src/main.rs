@@ -2,6 +2,7 @@ mod discovery;
 mod files;
 mod http;
 mod mobile;
+mod mobile_trust;
 mod network;
 mod state;
 
@@ -131,8 +132,10 @@ async fn main() -> Result<()> {
     let host = format!("127.0.0.1:{http_port}");
     let origin = format!("http://{host}");
     let (events, _) = broadcast::channel(64);
+    let mobile_trust = Arc::new(mobile_trust::Registry::open(store.clone(), &device.id).await?);
     let state = Arc::new(state::State {
         store,
+        mobile_trust,
         device: RwLock::new(device),
         private,
         token: hex::encode(lanlink_transport::keypair()?.private),
