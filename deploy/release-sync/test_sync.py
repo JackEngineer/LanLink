@@ -4,10 +4,15 @@ from io import BytesIO
 import json
 from pathlib import Path
 import tempfile
+import subprocess
+import stat
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 import sync
+
+TRUSTED_FILE = sync.trusted_file
 
 
 class Response(BytesIO):
@@ -56,6 +61,17 @@ class ReleaseSyncTest(unittest.TestCase):
         self.impair_asset_api = False
         self.addCleanup(patch.stopall)
         patch('sync.open_url', side_effect=self.open_url).start()
+        self.commit = '1' * 40
+        self.tag_object = None
+        self.wrong_ref = False
+        self.ancestry = 'ahead'
+        self.workflow = self.root / 'trusted-workflow.yml'
+        self.workflow.write_bytes(b'approved release workflow')
+        workflow = self.workflow.read_bytes()
+        self.workflow_blob = hashlib.sha1(f'blob {len(workflow)}\0'.encode() + workflow).hexdigest()
+        patch('sync.TRUSTED_WORKFLOW', self.workflow).start()
+        self.trust_check = patch('sync.trusted_file').start()
+        self.verifier = patch('sync.subprocess.run', side_effect=self.verify_bundle).start()
         for version in (self.initial, self.live):
             directory = self.old / 'downloads' / version.tag
             directory.mkdir(parents=True)
@@ -67,9 +83,44 @@ class ReleaseSyncTest(unittest.TestCase):
         packages[sync.MANIFEST] = ''.join(f'{digest(data)}  {name}\n' for name, data in packages.items()).encode()
         return packages
 
+    def release_data(self, version):
+        packages = self.package_data(version)
+        packages[sync.BUNDLE] = json.dumps({
+            'repo': sync.REPO, 'workflow': sync.WORKFLOW,
+            'ref': f'refs/tags/{version.tag}', 'commit': self.commit,
+            'manifest': digest(packages[sync.MANIFEST]), 'hosted': True,
+        }).encode()
+        return packages
+
+    def verify_bundle(self, command, **kwargs):
+        # The real cryptographic verifier is exercised separately; this fake enforces every CLI constraint.
+        self.assertEqual(command[:3], [str(sync.GH), 'attestation', 'verify'])
+        self.assertEqual(kwargs['timeout'], 120)
+        self.assertTrue(kwargs['check'])
+        self.assertNotIn('GH_TOKEN', kwargs['env'])
+        self.assertNotIn('GITHUB_TOKEN', kwargs['env'])
+        self.assertIn('--deny-self-hosted-runners', command)
+        self.assertEqual(command[command.index('--custom-trusted-root') + 1], str(sync.TRUSTED_ROOT))
+        try:
+            bundle = json.loads(Path(command[command.index('--bundle') + 1]).read_bytes())
+        except ValueError as error:
+            raise subprocess.CalledProcessError(1, command) from error
+        ref = command[command.index('--source-ref') + 1]
+        commit = command[command.index('--source-digest') + 1]
+        policy = {
+            'repo': command[command.index('--repo') + 1], 'workflow': sync.WORKFLOW,
+            'ref': ref, 'commit': commit, 'manifest': digest(Path(command[3]).read_bytes()), 'hosted': True,
+        }
+        self.assertEqual(command[command.index('--cert-identity') + 1],
+                         f'https://github.com/{sync.REPO}/{sync.WORKFLOW}@{ref}')
+        self.assertEqual(command[command.index('--signer-digest') + 1], commit)
+        if bundle != policy:
+            raise subprocess.CalledProcessError(1, command)
+        return subprocess.CompletedProcess(command, 0)
+
     def add_release(self, version, *, missing=None, draft=False, corrupt=None, digest_mismatch=False):
         assets = []
-        for asset_id, (name, data) in enumerate(self.package_data(version).items(), start=5 * len(self.releases_api) + 1):
+        for asset_id, (name, data) in enumerate(self.release_data(version).items(), start=6 * len(self.releases_api) + 1):
             if name == missing:
                 continue
             url = f'https://github.com/{sync.REPO}/releases/download/{version.tag}/{name}'
@@ -97,6 +148,21 @@ class ReleaseSyncTest(unittest.TestCase):
             return Response(self.remote[url])
         if url.startswith(f'{sync.API}?'):
             return Response(json.dumps(self.releases_api).encode())
+        if url.startswith(f'{sync.REPO_API}/git/ref/tags/'):
+            tag = url.rsplit('/', 1)[1]
+            ref = f'refs/heads/{tag}' if self.wrong_ref else f'refs/tags/{tag}'
+            obj = self.tag_object or {'sha': self.commit, 'type': 'commit'}
+            return Response(json.dumps({'ref': ref, 'object': obj}).encode())
+        if url.startswith(f'{sync.REPO_API}/git/tags/'):
+            return Response(json.dumps({'sha': url.rsplit('/', 1)[1],
+                                        'object': {'sha': self.commit, 'type': 'commit'}}).encode())
+        if url.startswith(f'{sync.REPO_API}/compare/'):
+            return Response(json.dumps({'status': self.ancestry,
+                                        'merge_base_commit': {'sha': self.commit},
+                                        'base_commit': {'sha': self.commit}}).encode())
+        if url.startswith(f'{sync.REPO_API}/contents/'):
+            self.assertTrue(url.endswith(f'?ref={self.commit}'))
+            return Response(json.dumps({'type': 'file', 'path': sync.WORKFLOW, 'sha': self.workflow_blob}).encode())
         if url.startswith(f'{sync.SITE}/'):
             if self.impair_public:
                 raise OSError('temporary public endpoint failure')
@@ -205,8 +271,8 @@ class ReleaseSyncTest(unittest.TestCase):
             requests.clear()
             self.remote_fail = False
             sync.sync(self.root)
-        self.assertEqual(first_requests, set(self.new.assets()))
-        self.assertEqual(set(requests), {sync.MANIFEST, failed})
+        self.assertEqual(first_requests, {*self.new.assets(), sync.BUNDLE})
+        self.assertEqual(set(requests), {sync.MANIFEST, sync.BUNDLE, failed})
         self.assertFalse((self.root / '.release-sync-cache' / self.new.tag).exists())
 
     def test_reuses_verified_downloads_retained_during_website_rollback(self):
@@ -215,7 +281,10 @@ class ReleaseSyncTest(unittest.TestCase):
         downloads.mkdir()
         for name, data in self.package_data(self.new).items():
             (downloads / name).write_bytes(data)
-        self.remote.clear()
+        for asset in self.releases_api[0]['assets']:
+            if asset['name'] in self.new.packages():
+                del self.remote[asset['url']]
+                del self.remote[asset['browser_download_url']]
         sync.sync(self.root)
         self.assertNotEqual(self.current.resolve(), self.old)
         for name, data in self.package_data(self.new).items():
@@ -248,6 +317,128 @@ class ReleaseSyncTest(unittest.TestCase):
         sync.sync(self.root)
         self.assertEqual(self.current.resolve(), active)
         self.assertEqual(len(list(self.releases.iterdir())), 2)
+
+    def test_new_release_requires_bundle_and_preserves_legacy_noop(self):
+        self.add_release(self.live, missing=sync.BUNDLE)
+        sync.sync(self.root, check=True)
+        self.verifier.assert_not_called()
+        self.add_release(self.new, missing=sync.BUNDLE)
+        with self.assertRaisesRegex(sync.SyncError, 'missing release assets: SHA256SUMS.sigstore.jsonl'):
+            sync.sync(self.root)
+        self.assertEqual(self.current.resolve(), self.old)
+
+    def test_wrong_provenance_claims_block_activation_and_check_mode(self):
+        for field, value in [('repo', 'attacker/LanLink'), ('workflow', '.github/workflows/build.yml'),
+                             ('ref', 'refs/tags/v9.9.9'), ('commit', '2' * 40), ('hosted', False),
+                             ('manifest', '0' * 64)]:
+            with self.subTest(field=field):
+                self.releases_api.clear()
+                self.add_release(self.new)
+                item = next(a for a in self.releases_api[0]['assets'] if a['name'] == sync.BUNDLE)
+                bundle = json.loads(self.remote[item['url']])
+                bundle[field] = value
+                data = json.dumps(bundle).encode()
+                item.update(size=len(data), digest=f'sha256:{digest(data)}')
+                self.remote[item['url']] = self.remote[item['browser_download_url']] = data
+                for check in (False, True):
+                    with self.assertRaisesRegex(sync.SyncError, 'build provenance verification failed'):
+                        sync.sync(self.root, check=check)
+                    self.assertEqual(self.current.resolve(), self.old)
+
+    def test_provenance_cannot_be_bypassed_by_existing_directory_or_cache(self):
+        self.add_release(self.new, corrupt=sync.BUNDLE)
+        for location in (self.old / 'downloads' / self.new.tag,
+                         self.root / '.release-sync-cache' / self.new.tag):
+            location.mkdir(parents=True)
+            for name, data in self.package_data(self.new).items():
+                (location / name).write_bytes(data)
+        with self.assertRaisesRegex(sync.SyncError, 'build provenance verification failed'):
+            sync.sync(self.root)
+        self.assertEqual(self.current.resolve(), self.old)
+        self.verifier.assert_called_once()
+
+    def test_wrong_ref_unmerged_commit_and_substituted_workflow_are_rejected(self):
+        self.add_release(self.new)
+        for attribute, value, message in [('wrong_ref', True, 'exact tag ref'),
+                                          ('ancestry', 'diverged', 'ancestor of main'),
+                                          ('workflow_blob', '0' * 40, 'trusted workflow')]:
+            with self.subTest(attribute=attribute):
+                old = getattr(self, attribute)
+                setattr(self, attribute, value)
+                with self.assertRaisesRegex(sync.SyncError, message):
+                    sync.sync(self.root)
+                setattr(self, attribute, old)
+                self.assertEqual(self.current.resolve(), self.old)
+        self.verifier.assert_not_called()
+
+    def test_annotated_tags_resolve_and_tag_move_before_activation_is_rejected(self):
+        self.add_release(self.new)
+        self.tag_object = {'type': 'tag', 'sha': '3' * 40}
+        sync.sync(self.root, check=True)
+        self.assertEqual(self.current.resolve(), self.old)
+        with patch('sync.resolve_tag', side_effect=[self.commit, '2' * 40]):
+            with self.assertRaisesRegex(sync.SyncError, 'moved during provenance verification'):
+                sync.sync(self.root)
+        self.assertEqual(self.current.resolve(), self.old)
+
+    def test_staged_manifest_must_match_fresh_attestation(self):
+        self.add_release(self.new)
+        location = self.old / 'downloads' / self.new.tag
+        location.mkdir()
+        for name, data in self.package_data(self.new).items():
+            (location / name).write_bytes(data)
+        path = location / sync.MANIFEST
+        path.write_bytes(path.read_bytes().replace(b'  ', b' *', 1))
+        with self.assertRaisesRegex(sync.SyncError, 'differs from the attested manifest'):
+            sync.sync(self.root)
+        self.assertEqual(self.current.resolve(), self.old)
+
+    def test_package_hash_is_required_without_optional_github_digest(self):
+        self.add_release(self.new)
+        item = next(a for a in self.releases_api[0]['assets'] if a['name'] == self.new.packages()[0])
+        item['digest'] = None
+        data = b'x' * item['size']
+        self.remote[item['url']] = self.remote[item['browser_download_url']] = data
+        with self.assertRaisesRegex(sync.SyncError, 'SHA256SUMS mismatch'):
+            sync.sync(self.root)
+        self.assertEqual(self.current.resolve(), self.old)
+
+    def test_missing_trust_configuration_fails_before_download_or_activation(self):
+        self.add_release(self.new)
+        self.trust_check.side_effect = FileNotFoundError('trusted verifier not provisioned')
+        with self.assertRaises(FileNotFoundError):
+            sync.sync(self.root)
+        self.verifier.assert_not_called()
+        self.assertEqual(self.current.resolve(), self.old)
+
+    def test_bundle_size_and_timeout_fail_closed(self):
+        self.add_release(self.new)
+        item = next(a for a in self.releases_api[0]['assets'] if a['name'] == sync.BUNDLE)
+        original = item['size']
+        item['size'] = sync.BUNDLE_LIMIT + 1
+        with self.assertRaisesRegex(sync.SyncError, 'invalid size'):
+            sync.sync(self.root)
+        item['size'] = original
+        self.verifier.side_effect = subprocess.TimeoutExpired('gh', 120)
+        with self.assertRaisesRegex(sync.SyncError, 'TimeoutExpired'):
+            sync.sync(self.root)
+        self.assertEqual(self.current.resolve(), self.old)
+
+    def test_trust_files_and_parents_require_root_ownership_and_safe_permissions(self):
+        def info(path):
+            return SimpleNamespace(st_mode=(stat.S_IFREG | 0o644) if path == sync.GH else (stat.S_IFDIR | 0o755),
+                                   st_uid=0)
+        with patch('sync.Path.lstat', autospec=True, side_effect=info), patch('sync.os.access', return_value=True):
+            TRUSTED_FILE(sync.GH, executable=True)
+        for mode, owner in [(stat.S_IFREG | 0o664, 0), (stat.S_IFREG | 0o644, 1000),
+                            (stat.S_IFLNK | 0o777, 0)]:
+            with patch('sync.Path.lstat', return_value=SimpleNamespace(st_mode=mode, st_uid=owner)):
+                with self.assertRaisesRegex(sync.SyncError, 'root-owned'):
+                    TRUSTED_FILE(sync.GH)
+        with patch('sync.Path.lstat', autospec=True,
+                   side_effect=lambda p: info(p) if p == sync.GH else SimpleNamespace(st_mode=stat.S_IFDIR | 0o777, st_uid=0)):
+            with self.assertRaisesRegex(sync.SyncError, 'root-owned'):
+                TRUSTED_FILE(sync.GH)
 
     def test_manifest_requires_exact_files_and_disallows_paths(self):
         manifest = self.package_data(self.new)[sync.MANIFEST]

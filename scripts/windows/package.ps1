@@ -1,6 +1,7 @@
 param([ValidateSet("x86_64-pc-windows-msvc")][string]$Target = "x86_64-pc-windows-msvc")
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "../..")
+$Version = (Get-Content "package.json" -Raw | ConvertFrom-Json).version
 npm run build
 if ($LASTEXITCODE -ne 0) { throw "Frontend build failed" }
 $resourceCompiler = Get-Command rc.exe -ErrorAction SilentlyContinue
@@ -29,5 +30,5 @@ Copy-Item "assets/branding/lanlink.ico" "$out/lanlink.ico"
 Copy-Item "apps/web/dist/*" "$out/web" -Recurse -Force
 Copy-Item "scripts/windows/Install.ps1", "scripts/windows/Launch.ps1", "scripts/windows/Uninstall.ps1" $out
 Copy-Item LICENSE "$out/LICENSE"
-Compress-Archive -Path "$out/*" -DestinationPath "dist/LANLink-0.2.0-$Target.zip" -Force
-Get-FileHash "dist/LANLink-0.2.0-$Target.zip" -Algorithm SHA256
+Compress-Archive -Path "$out/*" -DestinationPath "dist/LANLink-$Version-$Target.zip" -Force
+Get-FileHash "dist/LANLink-$Version-$Target.zip" -Algorithm SHA256
