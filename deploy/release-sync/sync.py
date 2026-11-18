@@ -35,6 +35,7 @@ TAG = r'v(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})\.(0|[1-9][0-9]{0,8})(?:-previe
 VERSION_HTML = re.compile(rf'<span class="release-version">({TAG})</span>')
 HASH = r'[0-9a-fA-F]{64}'
 MANIFEST = 'SHA256SUMS'
+RELEASE_INDEX = 'release.json'
 BUNDLE = 'SHA256SUMS.sigstore.jsonl'
 BUNDLE_LIMIT = 1024 * 1024
 WORKFLOW = '.github/workflows/release.yml'
@@ -608,6 +609,12 @@ def verify_public(version, html, directory, assets):
                 raise SyncError(f'Public package size mismatch for {name}')
 
 
+def verify_public_release(version):
+    with open_url(f'{SITE}/{RELEASE_INDEX}', headers={'Cache-Control': 'no-cache'}) as response:
+        if json.loads(read_response(response, 1024)) != {'tag': version.tag}:
+            raise SyncError('Public release index differs from the activated version')
+
+
 @contextmanager
 def release_lock(root):
     with (root / '.release-sync.lock').open('a') as lock:
@@ -633,6 +640,8 @@ def sync(root, check=False):
                 if check:
                     verify_release_files(current, assets, directory)
                 verify_public(current, old_html, directory, assets)
+                if (active / RELEASE_INDEX).is_file():
+                    verify_public_release(current)
                 print(f'{current.tag} is already active and publicly accessible')
                 return
         if not releases_to_sync:
@@ -661,6 +670,7 @@ def sync(root, check=False):
                 verify_downloads(stage, version)
                 verify_release_files(version, assets, downloads, manifest)
             (stage / 'index.html').write_bytes(html.encode('utf-8'))
+            (stage / RELEASE_INDEX).write_text(json.dumps({'tag': newest.tag}) + '\n', encoding='utf-8')
             verify_downloads(stage, current)
             for version, commit in commits.items():
                 if resolve_tag(version) != commit:
@@ -684,7 +694,8 @@ def sync(root, check=False):
                 shutil.rmtree(cache / version.tag, ignore_errors=True)
             for version, assets in assets_by_version.items():
                 verify_public(version, html, published / 'downloads' / version.tag, assets)
-            print(f'Verified public homepage, SHA256SUMS and packages through {newest.tag}')
+            verify_public_release(newest)
+            print(f'Verified public homepage, release index, SHA256SUMS and packages through {newest.tag}')
         finally:
             if stage.exists():
                 shutil.rmtree(stage)

@@ -189,6 +189,7 @@ class ReleaseSyncTest(unittest.TestCase):
         html = (active / 'index.html').read_text(encoding='utf-8')
         self.assertIn(self.stable.tag, html)
         self.assertIn('正式发布', html)
+        self.assertEqual(json.loads((active / 'release.json').read_bytes()), {'tag': self.stable.tag})
         self.assertEqual((active / 'styles.css').read_bytes(), (self.old / 'styles.css').read_bytes())
         sync.verify_links(html, self.stable)
         for version in (self.initial, self.live, self.new, self.stable):

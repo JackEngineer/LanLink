@@ -9,6 +9,7 @@ import type {
   Settings,
   Transfer,
   TransferAction,
+  Update,
 } from './lanlink'
 
 const base = '/api/v1'
@@ -180,6 +181,7 @@ function uploadFile<T>(
 
 export const api = {
   health: () => request<Health>('/health'),
+  checkUpdate: () => mutate<Update>('POST', '/updates/check'),
   device: () => request<Device>('/device'),
   rename: (name: string) => mutate<Device>('PATCH', '/device', { name }),
   peers: () => request<Peer[]>('/devices'),

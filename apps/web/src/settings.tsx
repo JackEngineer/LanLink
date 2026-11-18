@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Check, Copy, FolderDown } from 'lucide-react'
+import { Check, Copy, FolderDown, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { api } from './api'
 import { DeviceIcon, InlineError } from './components'
@@ -60,9 +60,75 @@ export function SettingsPage({
             </div>
           </div>
         )}
-        {version && <p className="version">LANLink {version}</p>}
+        {version && <AppUpdates version={version} disabled={!agentAvailable} />}
       </div>
     </section>
+  )
+}
+
+function AppUpdates({
+  version,
+  disabled,
+}: {
+  version: string
+  disabled: boolean
+}) {
+  const check = useMutation({ mutationFn: api.checkUpdate })
+  const update = check.data
+  let message = ''
+  if (check.isPending) message = '正在检查更新…'
+  else if (update?.status === 'current') message = '当前版本已是最新。'
+  else if (update?.status === 'unsupported') message = '此系统暂无可用安装包。'
+  else if (update?.status === 'available')
+    message = `发现新版本 ${update.version}。`
+
+  return (
+    <div className="settings-group">
+      <h2>
+        <RefreshCw size={19} aria-hidden="true" /> 软件更新
+      </h2>
+      <div className="settings-card">
+        <div className="settings-row">
+          <span className="setting-label">当前版本</span>
+          <div className="setting-field">
+            <div className="field-controls">
+              <span className="setting-value">LANLink {version}</span>
+              <button
+                className="button"
+                type="button"
+                disabled={disabled || check.isPending}
+                onClick={() => check.mutate()}
+              >
+                检查更新
+              </button>
+            </div>
+            <div className="setting-hint update-status" role="status">
+              {message}
+            </div>
+            <InlineError error={check.error} />
+            {update?.status === 'available' && (
+              <div className="field-controls">
+                <a
+                  className="button button-primary"
+                  href={update.download_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  下载安装包
+                </a>
+                <a
+                  href="https://github.com/JackEngineer/LanLink/blob/main/docs/install.md#升级-lanlink"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  升级指南
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

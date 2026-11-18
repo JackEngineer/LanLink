@@ -3,6 +3,11 @@ export interface Health {
   version: string
 }
 
+export type Update =
+  | { status: 'current' }
+  | { status: 'available'; version: string; download_url: string }
+  | { status: 'unsupported' }
+
 export interface Device {
   id: string
   name: string

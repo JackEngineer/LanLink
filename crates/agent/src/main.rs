@@ -5,6 +5,7 @@ mod mobile;
 mod mobile_trust;
 mod network;
 mod state;
+mod updates;
 
 use anyhow::{Context, Result, ensure};
 use clap::Parser;
@@ -17,7 +18,7 @@ use tokio::{
 };
 
 #[derive(Parser)]
-#[command(version, about = "Private offline LAN messaging and file transfer")]
+#[command(version = updates::INSTALLED_VERSION, about = "Private offline LAN messaging and file transfer")]
 struct Args {
     #[arg(long)]
     data_dir: Option<PathBuf>,
@@ -190,7 +191,10 @@ async fn main() -> Result<()> {
             .filter(|p| p.exists())
             .unwrap_or_else(|| PathBuf::from("web/dist"))
     });
-    println!("LANLink {VERSION} ready at {origin} (TCP {tcp_port})");
+    println!(
+        "LANLink {} ready at {origin} (TCP {tcp_port})",
+        updates::INSTALLED_VERSION
+    );
     tracing::info!(%origin, tcp_port, "agent started");
     axum::serve(http, http::router(state.clone(), web_dir))
         .with_graceful_shutdown(async move {

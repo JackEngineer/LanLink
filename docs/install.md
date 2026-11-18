@@ -42,6 +42,17 @@
 
 Windows 默认数据目录为 `%LOCALAPPDATA%\LANLink\LANLink\data`。Agent 日志和启动器的 `launcher.stdout.log`、`launcher.stderr.log` 位于其 `logs` 子目录。
 
+## 升级 LANLink
+
+在桌面 LANLink 中打开「设置」→「软件更新」，点击「检查更新」。发现新版本后点击「下载安装包」。尚无此入口的旧版本可从 [LANLink 官网](https://lanlink.heyyami.com/#download) 下载。检查更新需要联网。
+
+等正在进行的传输完成后，解压安装包，按系统升级。
+
+- macOS 默认安装路径下，在新包的解压目录运行 `bash stop.sh`。将 `LANLink.app` 拖到 `/Applications` 并选择替换，然后打开 LANLink。自定义安装路径时，将旧应用的完整路径作为 `stop.sh` 的参数，并在原路径替换应用。
+- Windows 在新包的解压目录运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1`。安装脚本会停止当前版本，替换程序并打开 LANLink。
+
+覆盖安装沿用原来的设备身份、配对、消息、接收目录和登录启动设置。重新打开「设置」可确认当前版本。
+
 ## 消息与文件
 
 配对后选择设备发送消息。`sent` 表示接收端 Agent 已将消息保存到数据库，不表示对方已阅读。断线后未确认的消息保留原 ID 重试。

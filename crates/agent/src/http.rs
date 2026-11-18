@@ -2,6 +2,7 @@ use crate::{
     files::{self, UploadGuard},
     mobile, network,
     state::State as App,
+    updates,
 };
 use anyhow::Context;
 use axum::{
@@ -51,8 +52,11 @@ pub fn router(state: Arc<App>, web_dir: std::path::PathBuf) -> Router {
     Router::new()
         .route(
             "/api/v1/health",
-            get(|| async { Json(json!({"service":"lanlink","status":"ok","version": VERSION})) }),
+            get(|| async {
+                Json(json!({"service":"lanlink","status":"ok","version": updates::INSTALLED_VERSION}))
+            }),
         )
+        .route("/api/v1/updates/check", post(check_update))
         .route("/api/v1/session", get(session))
         .route("/api/v1/device", get(device).patch(rename))
         .route("/api/v1/devices", get(peers))
@@ -74,6 +78,20 @@ pub fn router(state: Arc<App>, web_dir: std::path::PathBuf) -> Router {
         .layer(middleware::from_fn_with_state(state.clone(), protect))
         .with_state(state)
 }
+async fn check_update() -> Response {
+    match tokio::task::spawn_blocking(updates::check).await {
+        Ok(Ok(update)) => Json(update).into_response(),
+        result => {
+            tracing::debug!(?result, "Update check failed");
+            (
+                StatusCode::BAD_GATEWAY,
+                Json(json!({"error":"无法检查更新，请确认网络连接后重试。"})),
+            )
+                .into_response()
+        }
+    }
+}
+
 async fn protect(State(state): State<Arc<App>>, request: Request, next: Next) -> Response {
     let deny = || {
         (
