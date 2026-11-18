@@ -57,9 +57,7 @@ export function Sidebar({
         aria-label="设备与导航"
       >
         <div className="brand">
-          <div className="brand-mark" aria-hidden="true">
-            <Link2 size={24} />
-          </div>
+          <img className="brand-mark" src="/logo.png" alt="" />
           <span>LANLink</span>
           <button
             type="button"

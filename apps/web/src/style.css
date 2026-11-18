@@ -79,13 +79,12 @@ button:disabled {
 }
 
 .brand-mark {
-  display: grid;
-  place-items: center;
-  inline-size: 37px;
-  block-size: 37px;
-  color: #fff;
-  background: var(--blue);
-  border-radius: 10px;
+  display: block;
+  inline-size: 64px;
+  block-size: 64px;
+  flex-shrink: 0;
+  object-fit: contain;
+  border-radius: 12px;
 }
 
 .main-nav {
