@@ -271,8 +271,7 @@ section[id] {
   border-radius: 2rem;
   background: #091b6133;
 }
-.mode-controls label,
-.rotation-controls label {
+.mode-controls label {
   display: grid;
   min-height: 44px;
   padding: 0.45rem clamp(0.62rem, 1.5vw, 1.13rem);
@@ -287,8 +286,7 @@ section[id] {
     color 160ms,
     background-color 160ms;
 }
-.mode-controls label:hover,
-.rotation-controls label:hover {
+.mode-controls label:hover {
   background-color: #ffffff25;
 }
 #mode-desktop:checked ~ .showcase-shell label[for='mode-desktop'],
@@ -307,11 +305,13 @@ section[id] {
 .mode-view {
   display: none;
 }
-#mode-auto:checked ~ .showcase-shell #view-desktop,
-#mode-desktop:checked ~ .showcase-shell #view-desktop,
+#view-desktop,
 #mode-mobile:checked ~ .showcase-shell #view-mobile,
 #mode-chat:checked ~ .showcase-shell #view-chat {
   display: block;
+}
+:is(#mode-mobile, #mode-chat):checked ~ .showcase-shell #view-desktop {
+  display: none;
 }
 @media (prefers-reduced-motion: no-preference) {
   .mode-view {
@@ -357,19 +357,13 @@ section[id] {
   background: white;
   box-shadow: 0 5px 24px #15246c94;
 }
-.scroll-route,
-.rotation-controls,
-#rotation-paused {
+.scroll-route {
   display: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  #mode-auto:checked ~ .showcase-shell label[for='mode-desktop'] {
+  .showcase:not(:has(> input:checked)) label[for='mode-desktop'] {
     color: #133b93;
     background: white;
-  }
-  #mode-auto:focus-visible ~ .showcase-shell label[for='mode-desktop'] {
-    outline: 3px solid #d7e6ff;
-    outline-offset: 2px;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -377,44 +371,17 @@ section[id] {
     --scene-hold: 6s;
     --scene-cycle: calc(3 * var(--scene-hold));
   }
-  .showcase-navigation,
-  .rotation-controls {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-  .rotation-controls label {
-    border: 1px solid #ffffff45;
-    padding-inline: 0.75rem;
-  }
-  #mode-auto:checked ~ .showcase-shell label[for='mode-auto'] {
-    background: #ffffff22;
-  }
-  #mode-auto:focus-visible ~ .showcase-shell label[for='mode-auto'],
-  #rotation-paused:focus-visible ~ .showcase-shell label[for='rotation-paused'] {
-    outline: 3px solid #d7e6ff;
-    outline-offset: 2px;
-  }
-  #mode-auto:checked ~ #rotation-paused {
-    display: block;
-  }
-  #mode-auto:not(:checked) ~ .showcase-shell label[for='rotation-paused'],
-  #rotation-paused:checked ~ .showcase-shell .rotation-pause,
-  #rotation-paused:not(:checked) ~ .showcase-shell .rotation-resume {
-    display: none;
-  }
-  #mode-auto:checked ~ .showcase-shell .showcase-content {
+  .showcase:not(:has(> input:checked)) .showcase-content {
     display: grid;
   }
-  #mode-auto:checked ~ .showcase-shell .mode-view {
+  .showcase:not(:has(> input:checked)) .mode-view {
     display: block;
     grid-area: 1 / 1;
     min-width: 0;
     visibility: hidden;
     animation: show-rotation var(--scene-cycle) step-end var(--scene-delay, 0s) infinite;
   }
-  #mode-auto:checked ~ .showcase-shell .mode-controls label {
+  .showcase:not(:has(> input:checked)) .mode-controls label {
     animation: mark-rotation var(--scene-cycle) step-end var(--scene-delay, 0s) infinite;
   }
   #view-mobile,
@@ -425,7 +392,6 @@ section[id] {
   label[for='mode-chat'] {
     --scene-delay: calc(-1 * var(--scene-hold));
   }
-  #rotation-paused:checked ~ .showcase-shell,
   .showcase-shell:has(.showcase-content:focus-within) {
     --rotation-state: paused;
   }
@@ -434,7 +400,7 @@ section[id] {
       --rotation-state: paused;
     }
   }
-  #mode-auto:checked ~ .showcase-shell :is(.mode-view, .mode-controls label) {
+  .showcase:not(:has(> input:checked)) :is(.mode-view, .mode-controls label) {
     animation-play-state: var(--rotation-state, running);
   }
   @keyframes show-rotation {
