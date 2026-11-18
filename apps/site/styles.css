@@ -220,8 +220,7 @@ section[id] {
 .experience {
   margin-bottom: clamp(2.8rem, 5.6vw, 5rem);
 }
-.showcase,
-.transfer-demo {
+.showcase {
   position: relative;
   min-width: 0;
   padding: 0;
@@ -262,8 +261,7 @@ section[id] {
   font-size: clamp(1.15rem, 2.3vw, 1.85rem);
   letter-spacing: -0.045em;
 }
-.mode-controls,
-.transfer-steps {
+.mode-controls {
   display: flex;
   width: fit-content;
   max-width: 100%;
@@ -274,7 +272,7 @@ section[id] {
   background: #091b6133;
 }
 .mode-controls label,
-.transfer-steps label {
+.rotation-controls label {
   display: grid;
   min-height: 44px;
   padding: 0.45rem clamp(0.62rem, 1.5vw, 1.13rem);
@@ -290,31 +288,26 @@ section[id] {
     background-color 160ms;
 }
 .mode-controls label:hover,
-.transfer-steps label:hover {
+.rotation-controls label:hover {
   background-color: #ffffff25;
 }
 #mode-desktop:checked ~ .showcase-shell label[for='mode-desktop'],
 #mode-mobile:checked ~ .showcase-shell label[for='mode-mobile'],
-#mode-chat:checked ~ .showcase-shell label[for='mode-chat'],
-#transfer-overview:checked ~ .transfer-controls label[for='transfer-overview'],
-#transfer-request:checked ~ .transfer-controls label[for='transfer-request'],
-#transfer-delivered:checked ~ .transfer-controls label[for='transfer-delivered'] {
+#mode-chat:checked ~ .showcase-shell label[for='mode-chat'] {
   color: #133b93;
   background: white;
   box-shadow: 0 4px 16px #091b6138;
 }
 #mode-desktop:focus-visible ~ .showcase-shell label[for='mode-desktop'],
 #mode-mobile:focus-visible ~ .showcase-shell label[for='mode-mobile'],
-#mode-chat:focus-visible ~ .showcase-shell label[for='mode-chat'],
-#transfer-overview:focus-visible ~ .transfer-controls label[for='transfer-overview'],
-#transfer-request:focus-visible ~ .transfer-controls label[for='transfer-request'],
-#transfer-delivered:focus-visible ~ .transfer-controls label[for='transfer-delivered'] {
+#mode-chat:focus-visible ~ .showcase-shell label[for='mode-chat'] {
   outline: 3px solid #d7e6ff;
   outline-offset: 2px;
 }
 .mode-view {
   display: none;
 }
+#mode-auto:checked ~ .showcase-shell #view-desktop,
 #mode-desktop:checked ~ .showcase-shell #view-desktop,
 #mode-mobile:checked ~ .showcase-shell #view-mobile,
 #mode-chat:checked ~ .showcase-shell #view-chat {
@@ -343,15 +336,6 @@ section[id] {
 }
 .endpoint {
   min-width: 0;
-  transition: transform 440ms cubic-bezier(0.2, 0.8, 0.3, 1);
-}
-#transfer-request:checked ~ .transfer-layout .endpoint-source,
-#transfer-delivered:checked ~ .transfer-layout .endpoint-destination {
-  transform: translateY(-5px);
-}
-#transfer-request:checked ~ .transfer-layout .endpoint-source .screen,
-#transfer-delivered:checked ~ .transfer-layout .endpoint-destination .screen {
-  border-color: #baddff;
 }
 .transfer-route {
   position: relative;
@@ -361,69 +345,118 @@ section[id] {
 .route-packet {
   position: absolute;
   top: 50%;
-  left: 0;
+  left: 50%;
   display: grid;
   width: 2.45rem;
   aspect-ratio: 1;
   place-items: center;
-  transform: translate(-22%, -50%);
+  transform: translate(-50%, -50%);
   z-index: 1;
   border: 1px solid #cbdcff;
   border-radius: 0.8rem;
   background: white;
   box-shadow: 0 5px 24px #15246c94;
-  transition:
-    left 640ms cubic-bezier(0.2, 0.8, 0.28, 1),
-    transform 640ms cubic-bezier(0.2, 0.8, 0.28, 1);
 }
-#transfer-delivered:checked ~ .transfer-layout .route-packet {
-  left: 100%;
-  transform: translate(-78%, -50%);
-}
-.transfer-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.85rem 1rem;
-  margin-top: clamp(1.15rem, 2.6vw, 1.8rem);
-}
-.transfer-steps {
-  border-radius: 0.8rem;
-  flex-wrap: wrap;
-}
-.transfer-steps label {
-  border-radius: 0.55rem;
-}
-.transfer-description {
-  color: #eff5ff;
-  font-size: 0.91rem;
-}
-.phase-overview,
-.phase-request,
-.phase-delivered {
-  display: none;
-}
-#transfer-overview:checked ~ .transfer-controls .phase-overview,
-#transfer-request:checked ~ .transfer-controls .phase-request,
-#transfer-delivered:checked ~ .transfer-controls .phase-delivered {
-  display: block;
-}
-.showcase-foot {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.3rem 1rem;
-  margin-top: 0.8rem;
-}
-.capture-credit {
-  color: #d9e5ff;
-  font-size: 0.75rem;
-}
-.scroll-label,
 .scroll-route,
-.skip-experience {
+.rotation-controls,
+#rotation-paused {
   display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #mode-auto:checked ~ .showcase-shell label[for='mode-desktop'] {
+    color: #133b93;
+    background: white;
+  }
+  #mode-auto:focus-visible ~ .showcase-shell label[for='mode-desktop'] {
+    outline: 3px solid #d7e6ff;
+    outline-offset: 2px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .showcase-shell {
+    --scene-hold: 6s;
+    --scene-cycle: calc(3 * var(--scene-hold));
+  }
+  .showcase-navigation,
+  .rotation-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .rotation-controls label {
+    border: 1px solid #ffffff45;
+    padding-inline: 0.75rem;
+  }
+  #mode-auto:checked ~ .showcase-shell label[for='mode-auto'] {
+    background: #ffffff22;
+  }
+  #mode-auto:focus-visible ~ .showcase-shell label[for='mode-auto'],
+  #rotation-paused:focus-visible ~ .showcase-shell label[for='rotation-paused'] {
+    outline: 3px solid #d7e6ff;
+    outline-offset: 2px;
+  }
+  #mode-auto:checked ~ #rotation-paused {
+    display: block;
+  }
+  #mode-auto:not(:checked) ~ .showcase-shell label[for='rotation-paused'],
+  #rotation-paused:checked ~ .showcase-shell .rotation-pause,
+  #rotation-paused:not(:checked) ~ .showcase-shell .rotation-resume {
+    display: none;
+  }
+  #mode-auto:checked ~ .showcase-shell .showcase-content {
+    display: grid;
+  }
+  #mode-auto:checked ~ .showcase-shell .mode-view {
+    display: block;
+    grid-area: 1 / 1;
+    min-width: 0;
+    visibility: hidden;
+    animation: show-rotation var(--scene-cycle) step-end var(--scene-delay, 0s) infinite;
+  }
+  #mode-auto:checked ~ .showcase-shell .mode-controls label {
+    animation: mark-rotation var(--scene-cycle) step-end var(--scene-delay, 0s) infinite;
+  }
+  #view-mobile,
+  label[for='mode-mobile'] {
+    --scene-delay: calc(-2 * var(--scene-hold));
+  }
+  #view-chat,
+  label[for='mode-chat'] {
+    --scene-delay: calc(-1 * var(--scene-hold));
+  }
+  #rotation-paused:checked ~ .showcase-shell,
+  .showcase-shell:has(.showcase-content:focus-within) {
+    --rotation-state: paused;
+  }
+  @media (hover: hover) {
+    .showcase-shell:has(.showcase-content:hover) {
+      --rotation-state: paused;
+    }
+  }
+  #mode-auto:checked ~ .showcase-shell :is(.mode-view, .mode-controls label) {
+    animation-play-state: var(--rotation-state, running);
+  }
+  @keyframes show-rotation {
+    0% {
+      visibility: visible;
+    }
+    33.333333%,
+    100% {
+      visibility: hidden;
+    }
+  }
+  @keyframes mark-rotation {
+    0% {
+      color: #133b93;
+      background-color: white;
+    }
+    33.333333%,
+    100% {
+      color: white;
+      background-color: transparent;
+    }
+  }
 }
 .alternate-layout {
   display: grid;
@@ -620,9 +653,6 @@ section[id] {
     padding-inline: 0.27rem;
     text-align: center;
   }
-  .transfer-steps label {
-    padding-inline: 0.44rem;
-  }
   .alternate-layout {
     min-height: 0;
     grid-template-columns: minmax(0, 1fr);
@@ -636,21 +666,11 @@ section[id] {
     background-size: 2px 100%;
   }
   .route-packet {
-    top: 0;
+    top: 50%;
     left: 50%;
     width: 1.86rem;
     border-radius: 0.5rem;
-    transform: translate(-50%, -15%) rotate(90deg);
-    transition-property: top, transform;
-  }
-  #transfer-delivered:checked ~ .transfer-layout .route-packet {
-    top: 100%;
-    left: 50%;
-    transform: translate(-50%, -85%) rotate(90deg);
-  }
-  #transfer-request:checked ~ .transfer-layout .endpoint-source,
-  #transfer-delivered:checked ~ .transfer-layout .endpoint-destination {
-    transform: none;
+    transform: translate(-50%, -50%) rotate(90deg);
   }
 }
 @media (max-width: 360px) {
@@ -696,21 +716,8 @@ section[id] {
     #view-desktop .screen :is(.screen-open, .screen-fallback) > img {
       max-height: min(34svh, 16rem);
     }
-    .transfer-route .route-packet,
-    .manual-label {
+    .transfer-route .route-packet {
       display: none;
-    }
-    .scroll-label,
-    .skip-experience {
-      display: inline;
-    }
-    .skip-experience {
-      color: white;
-      font-size: 0.85rem;
-      font-weight: 650;
-    }
-    .skip-experience:focus-visible {
-      outline-color: #e1ebff;
     }
     .scroll-route {
       display: grid;
@@ -752,18 +759,12 @@ section[id] {
       background: #fff;
       box-shadow: 0 0 1.35rem #749eff;
     }
-    .transfer-controls {
-      margin-top: 0.8rem;
-    }
-    #transfer-delivered:checked ~ .scroll-route {
-      --handoff-progress: 100%;
-    }
-    .transfer-demo:has(#transfer-overview:checked) .scroll-route {
+    .scroll-route {
       animation: file-handoff linear both;
       animation-timeline: --handoff;
       animation-range: var(--handoff-range);
     }
-    .transfer-demo:has(#transfer-overview:checked) .endpoint-destination .screen {
+    #view-desktop .endpoint-destination .screen {
       animation: receive-focus linear both;
       animation-timeline: --handoff;
       animation-range: var(--handoff-range);
@@ -815,9 +816,6 @@ section[id] {
   .button,
   .quiet-button,
   .mode-controls label,
-  .transfer-steps label,
-  .endpoint,
-  .route-packet,
   .screen {
     transition: none;
   }

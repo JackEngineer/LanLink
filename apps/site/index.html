@@ -47,12 +47,13 @@
       <section class="experience wrap" id="experience" aria-labelledby="experience-title">
         <fieldset class="showcase">
           <legend class="sr-only">选择演示场景</legend>
+          <input class="sr-only" id="mode-auto" type="radio" name="mode" checked />
+          <input class="sr-only" id="rotation-paused" type="checkbox" aria-label="暂停自动轮播" />
           <input
             class="sr-only"
             id="mode-desktop"
             type="radio"
             name="mode"
-            checked
             aria-controls="view-desktop"
           />
           <input
@@ -72,62 +73,41 @@
           <div class="showcase-shell">
             <div class="showcase-head">
               <h2 id="experience-title">体验 LANLink</h2>
-              <div class="mode-controls">
-                <label for="mode-desktop">电脑互传</label>
-                <label for="mode-mobile">手机扫码</label>
-                <label for="mode-chat">局域网聊天</label>
+              <div class="showcase-navigation">
+                <div class="mode-controls">
+                  <label for="mode-desktop">电脑互传</label>
+                  <label for="mode-mobile">手机扫码</label>
+                  <label for="mode-chat">局域网聊天</label>
+                </div>
+                <div class="rotation-controls">
+                  <label for="mode-auto">自动轮播</label>
+                  <label for="rotation-paused">
+                    <span class="rotation-pause">暂停</span>
+                    <span class="rotation-resume">继续</span>
+                  </label>
+                </div>
               </div>
             </div>
             <div class="showcase-content">
               <section class="mode-view" id="view-desktop" aria-label="电脑互传演示">
-                <fieldset class="transfer-demo">
-                  <legend class="sr-only">选择传输演示方式</legend>
-                  <input class="sr-only" id="transfer-overview" type="radio" name="phase" checked />
-                  <input class="sr-only" id="transfer-request" type="radio" name="phase" />
-                  <input class="sr-only" id="transfer-delivered" type="radio" name="phase" />
-                  <div class="transfer-layout">
-                    <div class="endpoint endpoint-source">{{requestScreen}}</div>
-                    <div class="transfer-route" aria-hidden="true">
-                      <span class="route-packet"
-                        ><img src="./assets/arrow-right.svg" alt="" width="18" height="18"
-                      /></span>
-                    </div>
-                    <div class="endpoint endpoint-destination">{{receiveScreen}}</div>
+                <div class="transfer-layout">
+                  <div class="endpoint endpoint-source">{{requestScreen}}</div>
+                  <div class="transfer-route" aria-hidden="true">
+                    <span class="route-packet"
+                      ><img src="./assets/arrow-right.svg" alt="" width="18" height="18"
+                    /></span>
                   </div>
-                  <div class="scroll-route" aria-hidden="true">
-                    <span>Mac</span>
-                    <div class="scroll-track">
-                      <span class="scroll-file">
-                        文件
-                        <img src="./assets/arrow-right.svg" alt="" width="16" height="16" />
-                      </span>
-                    </div>
-                    <span>Windows</span>
+                  <div class="endpoint endpoint-destination">{{receiveScreen}}</div>
+                </div>
+                <div class="scroll-route" aria-hidden="true">
+                  <span>Mac</span>
+                  <div class="scroll-track">
+                    <span class="scroll-file">
+                      文件
+                      <img src="./assets/arrow-right.svg" alt="" width="16" height="16" />
+                    </span>
                   </div>
-                  <div class="transfer-controls">
-                    <div class="transfer-steps">
-                      <label for="transfer-overview">
-                        <span class="manual-label">查看全程</span>
-                        <span class="scroll-label">跟随滚动</span>
-                      </label>
-                      <label for="transfer-request">发送请求</label>
-                      <label for="transfer-delivered">对方接收</label>
-                    </div>
-                    <div class="transfer-description">
-                      <p class="phase-overview">
-                        <span class="manual-label">Mac 发出请求，Windows 确认后接收文件。</span>
-                        <span class="scroll-label">向下滚动，看文件从 Mac 传到 Windows。</span>
-                      </p>
-                      <p class="phase-request">选择文件发出请求，接收方同意后才开始传输。</p>
-                      <p class="phase-delivered">传完后，在接收端的传输列表里找到文件。</p>
-                    </div>
-                  </div>
-                </fieldset>
-                <div class="showcase-foot">
-                  <p class="capture-credit">
-                    界面来自 Mac 和 Windows 的验收截图，各自展示一个传输阶段。
-                  </p>
-                  <a class="skip-experience" href="#download">跳到下载</a>
+                  <span>Windows</span>
                 </div>
               </section>
 
