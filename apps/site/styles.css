@@ -158,13 +158,67 @@ section[id] {
   letter-spacing: -0.095em;
   text-wrap: balance;
 }
-.hero h1 span {
+.hero h1 strong {
+  font-weight: inherit;
   color: var(--blue);
 }
 .hero p {
   margin-block: 0.95rem 1.3rem;
   color: var(--muted);
   font-size: clamp(1rem, 1.65vw, 1.35rem);
+}
+
+/* Motion Prompt #001-024 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#001
+   Motion Prompt #005 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#005 */
+@media screen and (prefers-reduced-motion: no-preference) {
+  .hero :is(h1, p) {
+    overflow: clip;
+  }
+  .hero-line {
+    display: block;
+    animation: hero-reveal 650ms var(--reveal-ease) 350ms backwards;
+    --reveal-offset: max(120px, 100%);
+    --reveal-ease: linear(0, 0.41 10%, 0.672 20%, 0.832 30%, 0.922 40%, 0.969 50%, 0.998 70%, 1);
+  }
+  .hero p .hero-line {
+    --reveal-offset: min(-60px, -100%);
+    animation-duration: 600ms;
+    animation-delay: 550ms;
+  }
+  @keyframes hero-reveal {
+    from {
+      transform: translateY(var(--reveal-offset));
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Motion Prompt #073-096 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#073
+   Motion Prompt #086 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#086
+   Motion Prompt #093 · MIT License (c) 2026 Shohei Ohtaki · https://showheyohtaki.github.io/motion-prompt/#093 */
+@media screen and (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+  .site-header nav a:not(.nav-download) {
+    position: relative;
+  }
+  .site-header nav a:not(.nav-download)::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 -4px;
+    height: 3px;
+    background: var(--blue);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 300ms cubic-bezier(0.3333, 1, 0.6667, 1);
+  }
+  .site-header nav a:is(:focus-visible, :hover)::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
 }
 .button,
 .guide-link {
