@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { runInNewContext } from 'node:vm';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { resolve, relative, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +9,85 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const output = resolve(root, 'dist/site');
 const release = JSON.parse(await readFile(resolve(root, 'apps/site/release.json'), 'utf8'));
 const html = await readFile(resolve(output, 'index.html'), 'utf8');
+const script = await readFile(resolve(root, 'apps/site/install-copy.js'), 'utf8');
+const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+assert.equal(scripts.length, 1, 'Only the clipboard script is permitted');
+assert.equal(scripts[0][1], script, 'Clipboard script must match its reviewed source');
+const hash = createHash('sha256').update(script).digest('base64');
+const nginx = await readFile(resolve(root, 'deploy/nginx/lanlink.conf'), 'utf8');
+assert.ok(
+  nginx.includes(`script-src 'sha256-${hash}';`),
+  'Nginx CSP must allow only this script hash',
+);
+assert.doesNotMatch(nginx, /script-src[^;]*(?:'self'|'unsafe-inline'|'unsafe-eval')/);
+const promptText = await readFile(resolve(root, 'apps/site/install-prompt.txt'), 'utf8');
+assert.equal(await readFile(resolve(output, 'install.txt'), 'utf8'), promptText);
+const promptMatch = html.match(/<div class="install-steps">([\s\S]*?)<\/div>/);
+const command = html.match(
+  /<textarea id="install-prompt" readonly rows="2">([^<]+)<\/textarea>/,
+)?.[1];
+assert.ok(
+  command && !command.includes('\n') && command.includes('https://lanlink.heyyami.com/install.txt'),
+);
+assert.ok(promptMatch, 'Full installation instructions must be available in the page');
+const decodedPrompt = promptMatch[1]
+  .replaceAll('&lt;', '<')
+  .replaceAll('&gt;', '>')
+  .replaceAll('&quot;', '"')
+  .replaceAll('&amp;', '&');
+assert.equal(decodedPrompt, promptText, 'Displayed steps must match the public instruction file');
+assert.match(html, /id="copy-install" type="button" hidden/);
+for (const clipboard of ['success', 'denied', 'unavailable']) {
+  let click;
+  let copied;
+  const button = {
+    hidden: true,
+    addEventListener: (event, listener) => {
+      assert.equal(event, 'click');
+      click = listener;
+    },
+  };
+  const prompt = {
+    value: command,
+    focus() {
+      this.focused = true;
+    },
+    select() {
+      this.selected = true;
+    },
+  };
+  const status = {};
+  const elements = {
+    'copy-install': button,
+    'install-prompt': prompt,
+    'copy-install-status': status,
+  };
+  runInNewContext(script, {
+    document: { getElementById: (id) => elements[id] },
+    navigator:
+      clipboard === 'unavailable'
+        ? {}
+        : {
+            clipboard: {
+              writeText: async (value) => {
+                if (clipboard === 'denied') throw new Error('Permission denied');
+                copied = value;
+              },
+            },
+          },
+  });
+  assert.equal(button.hidden, false);
+  await click();
+  assert.equal(button.disabled, false);
+  if (clipboard === 'success') {
+    assert.equal(copied, command);
+    assert.match(status.textContent, /已复制/);
+  } else {
+    assert.equal(prompt.focused, true);
+    assert.equal(prompt.selected, true);
+    assert.match(status.textContent, /手动复制/);
+  }
+}
 const releaseIndex = resolve(output, 'release.json');
 assert.deepEqual(JSON.parse(await readFile(releaseIndex, 'utf8')), { tag: release.tag });
 const readme = await readFile(resolve(root, 'README.md'), 'utf8');
@@ -75,7 +156,9 @@ for (const body of [html, readme, install]) {
 assert.equal((html.match(/class="download-card"/g) ?? []).length, release.downloads.length);
 assert.ok(!/{{[^}]+}}/.test(html), 'Unresolved build slots');
 assert.ok(
-  !/<script\b|\son[a-z]+\s*=|<iframe\b|<object\b|<embed\b|<form\b/i.test(html),
+  !/<script\b|\son[a-z]+\s*=|<iframe\b|<object\b|<embed\b|<form\b/i.test(
+    html.replace(scripts[0][0], ''),
+  ),
   'Site must not include executable scripts, embeds, or forms',
 );
 assert.ok(
@@ -129,7 +212,7 @@ async function filesIn(directory) {
 }
 const files = await filesIn(output);
 for (const path of files) {
-  if (path === releaseIndex) continue;
+  if (path === releaseIndex || path === resolve(output, 'install.txt')) continue;
   const extension = extname(path);
   assert.ok(
     ['.html', '.css', '.svg', '.png', '.webp'].includes(extension),

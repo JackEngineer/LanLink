@@ -86,6 +86,17 @@ class ReleaseSyncTest(unittest.TestCase):
             for name, data in self.package_data(version).items():
                 (directory / name).write_bytes(data)
 
+    def test_install_instruction_and_script_survive_release_updates(self):
+        site = Path(__file__).resolve().parents[2] / 'apps' / 'site'
+        prompt = (site / 'install-prompt.txt').read_text(encoding='utf-8')
+        script = (site / 'install-copy.js').read_text(encoding='utf-8')
+        payload = f'<textarea>{prompt}</textarea><script>{script}</script>'
+        html = self.old_html + payload
+        stable = sync.render(html, self.live, self.stable)
+        self.assertIn(payload, stable)
+        preview = sync.render(stable, self.stable, self.new)
+        self.assertIn(payload, preview)
+
     def package_data(self, version):
         packages = {name: f'{version.tag}/{name}'.encode() for name in version.packages()}
         packages[sync.MANIFEST] = ''.join(f'{digest(data)}  {name}\n' for name, data in packages.items()).encode()
@@ -180,6 +191,8 @@ class ReleaseSyncTest(unittest.TestCase):
         return Response(self.remote[url])
 
     def test_publishes_batch_at_newest_and_preserves_every_version_url(self):
+        instructions = (Path(__file__).resolve().parents[2] / 'apps/site/install-prompt.txt').read_bytes()
+        (self.old / 'install.txt').write_bytes(instructions)
         self.add_release(self.stable)
         self.add_release(self.new)
         self.add_release(sync.Version.parse('v1.0.0'), draft=True)
@@ -190,6 +203,7 @@ class ReleaseSyncTest(unittest.TestCase):
         self.assertIn(self.stable.tag, html)
         self.assertIn('正式发布', html)
         self.assertEqual(json.loads((active / 'release.json').read_bytes()), {'tag': self.stable.tag})
+        self.assertEqual((active / 'install.txt').read_bytes(), instructions)
         self.assertEqual((active / 'styles.css').read_bytes(), (self.old / 'styles.css').read_bytes())
         sync.verify_links(html, self.stable)
         for version in (self.initial, self.live, self.new, self.stable):

@@ -144,23 +144,48 @@
 
       <section class="download-section wrap" id="download" aria-labelledby="download-title">
         <div class="download-heading">
-          <h2 id="download-title">选择电脑版本</h2>
-          <p>{{releaseStatus}} <span class="release-version">{{releaseTag}}</span></p>
+          <div class="brand"><img src="./assets/lanlink.png" alt="" width="40" height="40" />LANLink</div>
+          <h2 id="download-title">一句指令，让 AI 帮你安装</h2>
         </div>
-        <div class="download-grid">{{downloadCards}}</div>
-        <div class="download-note">
-          <p>Mac 和 Windows 需要安装。手机和平板扫描电脑端的二维码即可在浏览器里传文件。</p>
-          <p>
-            macOS 安装包尚未提供 Developer ID 签名及 Apple 公证，Windows 安装脚本未签名。Intel Mac
-            已构建和测试，尚未实机验证。请按安装指南操作并保留系统安全保护。
-          </p>
-          <div class="text-links">
-            <a href="https://github.com/JackEngineer/LanLink/blob/main/docs/install.md">安装指南</a>
-            <a href="{{checksumsUrl}}" download>SHA-256 校验值</a>
-            <a href="https://github.com/JackEngineer/LanLink/blob/main/docs/acceptance.md"
-              >验收记录</a
-            >
+        <fieldset class="install-methods">
+          <legend class="sr-only">安装方式</legend>
+          <input class="sr-only" type="radio" name="install-method" id="method-manual" aria-controls="manual-install" />
+          <input class="sr-only" type="radio" name="install-method" id="method-agent" aria-controls="agent-install" checked />
+          <div class="install-tabs">
+            <label for="method-manual">手动安装</label>
+            <label for="method-agent">通过 AI Agent 安装</label>
           </div>
+          <div class="install-panel assistant-install" id="agent-install">
+            <p class="install-hint">复制这行指令，发给能操作这台电脑的 AI 助手。</p>
+            <div class="install-command">
+              <label class="sr-only" for="install-prompt">安装指令</label>
+              <textarea id="install-prompt" readonly rows="2">请按 https://lanlink.heyyami.com/install.txt 安装并打开 LANLink。</textarea>
+              <button class="copy-command" id="copy-install" type="button" hidden aria-label="复制安装指令">复制</button>
+            </div>
+            <p id="copy-install-status" role="status" aria-live="polite"></p>
+            <details>
+              <summary>查看完整安装步骤</summary>
+              <div class="install-steps">{{installPrompt}}</div>
+            </details>
+          </div>
+          <div class="install-panel manual-install" id="manual-install">
+            <p class="install-hint">选择与你的电脑匹配的安装包。</p>
+            <div class="download-grid">{{downloadCards}}</div>
+            <div class="download-note">
+              <p>手机和平板无需安装，扫描电脑上 LANLink 的二维码即可传文件。</p>
+              <p>macOS 安装包尚未提供 Developer ID 签名及 Apple 公证，Windows 安装脚本未签名。Intel Mac 已构建和测试，尚未实机验证。请按安装指南操作并保留系统安全保护。</p>
+              <div class="text-links">
+                <a href="{{checksumsUrl}}" download>SHA-256 校验值</a>
+                <a href="https://github.com/JackEngineer/LanLink/blob/main/docs/acceptance.md">验收记录</a>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+        <div class="install-links">
+          <span>{{releaseStatus}} <span class="release-version">{{releaseTag}}</span></span>
+          <a href="https://github.com/JackEngineer/LanLink/blob/main/docs/install.md">安装指南</a>
+          <a href="https://github.com/JackEngineer/LanLink">开源地址</a>
+          <a href="https://github.com/JackEngineer/LanLink/releases">更新日志</a>
         </div>
       </section>
 
@@ -296,5 +321,6 @@
         </div>
       </div>
     </footer>
+    <script>{{installScript}}</script>
   </body>
 </html>

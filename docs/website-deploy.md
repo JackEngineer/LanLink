@@ -17,7 +17,11 @@ tar -tzf dist/lanlink-website.tar.gz
 shasum -a 256 dist/lanlink-website.tar.gz
 ```
 
-部署包根目录包含 `index.html`、`styles.css`、`release.json` 和 `assets/`。构建检查会核对本地资源、锚点、下载链接，以及 `apps/site/release.json`、README 和安装指南中的版本信息。桌面应用从官网根目录的 `release.json` 读取当前发行标签。发布时将该文件和对应安装包一起切换，并让客户端每次访问该路径时重新验证缓存。
+部署包根目录包含 `index.html`、`styles.css`、`install.txt`、`release.json` 和 `assets/`。构建检查会核对本地资源、锚点、下载链接，以及 `apps/site/release.json`、README 和安装指南中的版本信息。桌面应用从官网根目录的 `release.json` 读取当前发行标签。发布时将该文件和对应安装包一起切换，并让客户端每次访问该路径时重新验证缓存。
+
+首页的复制按钮使用一个固定内联脚本，CSP 仅允许 `deploy/nginx/lanlink.conf` 中对应的 SHA-256，不开放任意同源脚本。修改 `apps/site/install-copy.js` 后，必须同步该 hash；`site:check` 会核对生成页面和 Nginx 模板。部署此功能时先将模板中 `script-src` 的 hash 合并到实际 HTTPS 站点的 CSP，检查配置并重载，再切换页面。保留其他安全限制，不添加 `unsafe-inline` 或脚本目录白名单。
+
+自动 release-sync 只改下载链接、版本和发行文案；安装指令不固定版本号，复制脚本不包含发行文案，因此同步发行版本不会改变脚本 hash。提示内容不经过脚本生成，禁用 JavaScript 时仍可选择安装方式并手动复制。
 
 ## 2. 上传到独立发布目录
 
@@ -85,7 +89,7 @@ curl -fsS https://example.com/release.json
 curl -I https://example.com/this-path-must-not-exist
 ```
 
-首页和静态资源应返回 200，未知路径应返回 404。核对 `release.json` 中的 `tag` 与首页显示的版本及安装包目录一致。确认 HTTPS 证书、内容类型、缓存和安全头。浏览器检查桌面与手机布局、锚点、FAQ、三个平台的四个下载链接，以及安装指南和校验值链接。验证其他既有站点仍可访问。
+首页和静态资源应返回 200，未知路径应返回 404。核对 `release.json` 中的 `tag` 与首页显示的版本及安装包目录一致。确认 HTTPS 证书、内容类型、缓存和安全头。浏览器检查桌面与手机布局、锚点、FAQ、三个平台的四个下载链接，以及安装指南和校验值链接。验证其他既有站点仍可访问。另核对实际 HTTPS 响应的 CSP 含预期脚本 hash，在真实浏览器中点击「复制安装指令」并粘贴核对全文，拒绝剪贴板权限时应选中指令。禁用 JavaScript 时仍能切换安装方式及手动复制。检查公网 `/install.txt` 的内容与部署包一致。控制台不应出现 CSP 拒绝或脚本错误。
 
 ## 5. 回滚
 
