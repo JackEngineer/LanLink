@@ -139,3 +139,14 @@ curl -I https://lanlink.heyyami.com/this-path-must-not-exist
 | Windows 10 22H2，x64        | `%LOCALAPPDATA%\Programs\LANLink` 已安装 0.1.0         | 在现行 Windows PowerShell 策略 `Restricted` 下运行既有 `Launch.ps1`，收到 `UnauthorizedAccess`，退出码 1。回环端口 38761 无监听，界面未打开。Agent 在此停止，未使用旧快捷方式中的策略绕过参数。                                                                                                                 |
 
 两台机器均未重装或升级，均未发现现成的干净测试虚拟机。以上结果覆盖已有安装；从空白环境下载、安装到首次打开的完整流程仍待验证。
+
+### Mac mini 保留数据卸载后重装
+
+2026-11-20（北京时间），在上述 Apple Silicon Mac mini 上执行官方卸载脚本，停止服务。备份默认数据目录并逐文件比对后，将旧应用包移出安装目录，保留作恢复用。Agent 开始执行官网原指令时，系统和用户的 Applications 目录均无 LANLink，回环端口 38761 无监听。
+
+1. Agent 核对官网和 GitHub 最新正式版均为 `v0.2.0`。通过 Chrome 从官网下载 Apple Silicon ZIP，大小为 14,265,454 字节，SHA-256 为 `900f7e46fa01af7e2dedbb35e0e5ac928a6f4ed575e98634ab0981f388e95119`，与该版 GitHub Release 清单一致。[正式版 Release](https://github.com/JackEngineer/LanLink/releases/tag/v0.2.0)
+2. 使用 macOS 归档实用工具解压，将应用放入 `/Applications/LANLink.app`。安装后的版本为 `0.2.0`，保留了浏览器下载的隔离属性。
+3. 正常调用 `open /Applications/LANLink.app` 返回 0。Gatekeeper 的执行评估返回 `rejected`（退出码 3），端口 38761 无监听，健康接口连接失败，未观察到可用界面。Agent 按官网说明停止，未移除隔离标记或修改安全设置。
+4. 重装后复核原数据库、接收文件和其余持久文件，内容均与停机备份一致。原库与备份均通过 SQLite `quick_check`。比对排除了 SQLite 的共享内存及预写日志辅助文件，备份中的预写日志为 0 字节。
+
+本轮实测结果为下载、校验、安装及用户数据保留通过，重装后的首次打开未通过。该轮保留了既有用户数据；Windows 验收结果见上表。
