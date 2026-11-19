@@ -128,3 +128,14 @@ curl -I https://lanlink.heyyami.com/this-path-must-not-exist
 - 桌面 Chrome 默认显示「通过 AI Agent 安装」。点击「复制」后，从系统剪贴板读回的文字与页面指令完全一致：`请按 https://lanlink.heyyami.com/install.txt 安装并打开 LANLink。`
 - 在 375 像素宽的 Chrome 视口模拟剪贴板写入被拒绝，页面提示手动复制。关闭 JavaScript 后仍可查看指令并切换到手动安装。桌面和窄屏均可看到四个手动下载入口，验收期间未观察到页面或控制台错误。
 - 从官网完整下载 Apple Silicon 的 PKG 和 ZIP、Intel Mac 的 ZIP、Windows x64 的 ZIP。四个文件的 SHA-256 均与 GitHub 正式版清单及上表一致。本次验证覆盖下载与文件完整性，未重新运行平台安装程序。[v0.2.0 正式版](https://github.com/JackEngineer/LanLink/releases/tag/v0.2.0)
+
+## Mac 与 Windows Agent 执行官网安装指令
+
+2026-11-19（北京时间），分别将官网下载区复制出的原文“请按 https://lanlink.heyyami.com/install.txt 安装并打开 LANLink。”交给 Apple Silicon Mac 和 Windows x64 上的 Agent。两台电脑均已有 LANLink，按官网说明先尝试打开既有应用。[官网安装指令](https://lanlink.heyyami.com/install.txt)
+
+| 环境                        | 初始状态                                               | 执行和观察                                                                                                                                                                                                                                                                                                      |
+| --------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS 27.0（26A428），arm64 | `/Applications/LANLink.app` 已安装 0.2.0，服务正在运行 | 调用 `open /Applications/LANLink.app` 返回 0。启动日志记录重复实例的数据目录锁错误，原服务继续响应。`/api/v1/health` 返回 `ok` 和版本 `0.2.0`。用独立 Chrome 主动打开回环首页，HTTP 200，可见「设备」「聊天」「文件」「设置」，点击「设置」显示 0.2.0。未观察到启动器自动打开标签页。控制台仅报告 favicon 404。 |
+| Windows 10 22H2，x64        | `%LOCALAPPDATA%\Programs\LANLink` 已安装 0.1.0         | 在现行 Windows PowerShell 策略 `Restricted` 下运行既有 `Launch.ps1`，收到 `UnauthorizedAccess`，退出码 1。回环端口 38761 无监听，界面未打开。Agent 在此停止，未使用旧快捷方式中的策略绕过参数。                                                                                                                 |
+
+两台机器均未重装或升级，均未发现现成的干净测试虚拟机。以上结果覆盖已有安装；从空白环境下载、安装到首次打开的完整流程仍待验证。
