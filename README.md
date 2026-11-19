@@ -63,7 +63,7 @@ cargo test --workspace
 bash scripts/macos/package.sh
 ```
 
-Intel Mac 构建先安装对应 target，再执行 `bash scripts/macos/package.sh x86_64-apple-darwin`。交叉构建不代替 Intel 实机验证。macOS 产物使用本地 ad-hoc 签名，尚未提供 Developer ID 签名或 Apple 公证。
+Intel Mac 构建先安装对应 target，再执行 `bash scripts/macos/package.sh x86_64-apple-darwin`。交叉构建不代替 Intel 实机验证。默认开发包使用 ad-hoc 签名。构建可分发的正式版需要 Developer ID 签名和 Apple 公证，配置见[发布手册](deploy/release-sync/README.md#macos-正式版签名与公证)。
 
 在 Windows x64 开发者环境执行 `./scripts/windows/package.ps1`。ZIP 内 `Install.ps1` 将程序安装到当前用户目录。使用 `-StartAtLogin` 选项开启登录启动。防火墙提示仅允许受信任的专用网络。
 
