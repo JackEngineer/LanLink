@@ -21,21 +21,25 @@ assert.ok(
 );
 assert.doesNotMatch(nginx, /script-src[^;]*(?:'self'|'unsafe-inline'|'unsafe-eval')/);
 const promptText = await readFile(resolve(root, 'apps/site/install-prompt.txt'), 'utf8');
-const promptMatch = html.match(
-  /<textarea id="install-prompt" readonly rows="12">([\s\S]*?)<\/textarea>/,
+assert.equal(await readFile(resolve(output, 'install.txt'), 'utf8'), promptText);
+const promptMatch = html.match(/<div class="install-steps">([\s\S]*?)<\/div>/);
+const command = html.match(
+  /<textarea id="install-prompt" readonly rows="2">([^<]+)<\/textarea>/,
+)?.[1];
+assert.ok(
+  command && !command.includes('\n') && command.includes('https://lanlink.heyyami.com/install.txt'),
 );
-assert.ok(promptMatch, 'Manual copying must work without JavaScript');
+assert.ok(promptMatch, 'Full installation instructions must be available in the page');
 const decodedPrompt = promptMatch[1]
   .replaceAll('&lt;', '<')
   .replaceAll('&gt;', '>')
   .replaceAll('&quot;', '"')
   .replaceAll('&amp;', '&');
-assert.equal(decodedPrompt, promptText, 'Visible and copied installation text must agree');
+assert.equal(decodedPrompt, promptText, 'Displayed steps must match the public instruction file');
 assert.match(html, /id="copy-install" type="button" hidden/);
 for (const clipboard of ['success', 'denied', 'unavailable']) {
   let click;
   let copied;
-  const details = { open: false };
   const button = {
     hidden: true,
     addEventListener: (event, listener) => {
@@ -44,8 +48,7 @@ for (const clipboard of ['success', 'denied', 'unavailable']) {
     },
   };
   const prompt = {
-    value: promptText,
-    closest: () => details,
+    value: command,
     focus() {
       this.focused = true;
     },
@@ -77,10 +80,9 @@ for (const clipboard of ['success', 'denied', 'unavailable']) {
   await click();
   assert.equal(button.disabled, false);
   if (clipboard === 'success') {
-    assert.equal(copied, promptText);
+    assert.equal(copied, command);
     assert.match(status.textContent, /已复制/);
   } else {
-    assert.equal(details.open, true);
     assert.equal(prompt.focused, true);
     assert.equal(prompt.selected, true);
     assert.match(status.textContent, /手动复制/);
@@ -210,7 +212,7 @@ async function filesIn(directory) {
 }
 const files = await filesIn(output);
 for (const path of files) {
-  if (path === releaseIndex) continue;
+  if (path === releaseIndex || path === resolve(output, 'install.txt')) continue;
   const extension = extname(path);
   assert.ok(
     ['.html', '.css', '.svg', '.png', '.webp'].includes(extension),

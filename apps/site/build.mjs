@@ -20,6 +20,7 @@ if (args[0] === '--package') {
       '-C',
       output,
       'index.html',
+      'install.txt',
       'release.json',
       'styles.css',
       'assets',
@@ -124,6 +125,7 @@ if (args[0] === '--package') {
   await mkdir(output, { recursive: true });
   await writeFile(resolve(output, 'index.html'), html);
   await writeFile(resolve(output, 'release.json'), JSON.stringify({ tag: release.tag }) + '\n');
+  await cp(resolve(source, 'install-prompt.txt'), resolve(output, 'install.txt'));
   await cp(resolve(source, 'styles.css'), resolve(output, 'styles.css'));
   await cp(resolve(source, 'assets'), resolve(output, 'assets'), { recursive: true });
   await cp(

@@ -844,30 +844,16 @@ section[id] {
   box-shadow: 0 24px 80px -60px #243a7550;
 }
 .download-heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem 2rem;
-  padding-bottom: 2.5rem;
+  text-align: center;
+}
+.download-heading .brand {
+  justify-content: center;
+  font-size: clamp(1.65rem, 3vw, 2.5rem);
 }
 .download-heading h2 {
-  font-size: clamp(2.1rem, 4.8vw, 4.1rem);
-}
-.download-heading p {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-.release-version {
-  display: inline-block;
-  margin-left: 0.5rem;
-  padding: 0.25rem 0.65rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--ink);
-  font:
-    0.8rem/1.5 ui-monospace,
-    monospace;
+  margin: 1.15rem 0 clamp(2rem, 5vw, 3.5rem);
+  font-size: clamp(1.85rem, 4.4vw, 3.8rem);
+  text-wrap: balance;
 }
 .download-grid {
   display: grid;
@@ -1164,12 +1150,6 @@ section[id] {
     border-radius: 1.25rem;
     padding-block: 2.5rem;
   }
-  .download-heading {
-    align-items: start;
-    flex-direction: column;
-    padding-bottom: 1.5rem;
-    gap: 0.7rem;
-  }
   .download-card {
     align-items: start;
     flex-direction: column;
@@ -1230,41 +1210,123 @@ section[id] {
   }
 }
 
-.assistant-install {
-  padding-bottom: 1.75rem;
+.install-methods {
+  min-inline-size: 0;
+  padding: 0;
+  border: 0;
 }
-.assistant-install p {
-  margin-block: 0.75rem;
+.install-tabs {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.install-tabs label {
+  padding: 0.6rem clamp(0.8rem, 3vw, 2.25rem);
+  border-bottom: 3px solid transparent;
   color: var(--muted);
-}
-.assistant-install button {
+  font-weight: 650;
   cursor: pointer;
 }
-.assistant-install [hidden] {
+#method-agent:checked ~ .install-tabs [for="method-agent"],
+#method-manual:checked ~ .install-tabs [for="method-manual"] {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+#method-agent:focus-visible ~ .install-tabs [for="method-agent"],
+#method-manual:focus-visible ~ .install-tabs [for="method-manual"] {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+#method-agent:checked ~ .manual-install,
+#method-manual:checked ~ .assistant-install,
+.copy-command[hidden] {
   display: none;
 }
-.assistant-install summary {
-  color: var(--blue);
+.install-panel {
+  min-width: 0;
+  padding: clamp(1.25rem, 4vw, 3.25rem);
+  border-radius: 1.1rem;
+  background: #f2f4f7;
+}
+.install-hint {
+  margin-bottom: 1.4rem;
+  color: var(--muted);
+  text-align: center;
+  text-wrap: balance;
+}
+.install-command {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem clamp(0.75rem, 2vw, 1.65rem);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+.install-command textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 1.6em;
+  border: none;
+  padding: 0;
+  resize: none;
+  background: transparent;
+  color: var(--ink);
+  font: 500 clamp(0.92rem, 1.5vw, 1.13rem)/1.6 ui-monospace, monospace;
+  overflow-wrap: anywhere;
+}
+@supports (field-sizing: content) {
+  .install-command textarea {
+    height: auto;
+    field-sizing: content;
+  }
+}
+.copy-command {
+  flex: none;
+  min-height: 44px;
+  padding: 0.3rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  color: var(--muted);
+  background: var(--surface);
+  font-weight: 600;
   cursor: pointer;
 }
-.assistant-install textarea {
-  display: block;
-  width: 100%;
+.copy-command:hover {
+  color: var(--blue);
+  border-color: var(--blue);
+}
+.assistant-install :is(summary, [role="status"]) {
   margin-top: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--line);
-  border-radius: 0.5rem;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  line-height: 1.7;
-  resize: vertical;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.9rem;
 }
-.assistant-install textarea:focus-visible {
-  outline: 3px solid var(--blue);
-  outline-offset: 3px;
+.assistant-install [role="status"]:empty {
+  display: none;
 }
-
-.manual-download-title {
-  margin-bottom: 1rem;
+.assistant-install summary { cursor: pointer; }
+.install-steps {
+  margin-top: 1rem;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.install-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.2rem;
+  margin-top: 1.65rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.install-links a { padding: 0.4rem 0; }
+@media (max-width: 760px) {
+  .install-command { flex-wrap: wrap; }
+  .install-command textarea { flex-basis: 100%; height: 4.8em; }
+  .copy-command { margin-left: auto; }
+  @supports (field-sizing: content) {
+    .install-command textarea { height: auto; }
+  }
 }

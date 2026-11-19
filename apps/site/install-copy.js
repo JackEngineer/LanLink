@@ -8,7 +8,6 @@ button.addEventListener('click', async () => {
     await navigator.clipboard.writeText(prompt.value);
     status.textContent = '已复制。请粘贴给你的 AI 助手。';
   } catch {
-    prompt.closest('details').open = true;
     prompt.focus();
     prompt.select();
     status.textContent = '无法自动复制。已选中文字，请手动复制。';
