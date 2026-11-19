@@ -10,6 +10,12 @@ Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢
 
 ## 下载 v0.2.0 正式版
 
+要让 AI 助手安装，可以复制下面这句话，粘贴给能操作这台电脑的助手。助手会先检查已有安装，再按需下载与你的系统匹配的正式版，校验 SHA-256 后安装并打开 LANLink。[查看完整安装步骤](apps/site/install-prompt.txt)
+
+```text
+请按 https://lanlink.heyyami.com/install.txt 安装并打开 LANLink。
+```
+
 从 [LANLink 官网](https://lanlink.heyyami.com/#download) 选择与你的电脑匹配的正式版安装包。
 
 | 平台                        | 下载包                                                                                                                                                                                   |

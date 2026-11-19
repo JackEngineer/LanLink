@@ -120,3 +120,11 @@ curl -I https://lanlink.heyyami.com/this-path-must-not-exist
 | `LANLink-0.2.0-x86_64-pc-windows-msvc.zip` | `1422013e38b55a995991fce0ae2736c97793f424d969d5a7ba71d7630bfa81e1` |
 
 六个历史预览版本的校验清单均可获取，24 条历史安装包直链均返回 HTTP 200。Mac mini 和 Windows 从官网 `v0.2.0-preview.5` 升级的结果见[一键升级实机验收](acceptance.md#v020-一键升级实机验收)。
+
+## AI 助手安装入口公网验收
+
+2026-11-19（北京时间），从公网访问官网下载区。首页、安装说明、版本索引等 13 个静态文件均返回 HTTP 200，内容与 `8e85a34` 的官网构建产物逐字节一致。首页实际返回的 CSP 与仓库 Nginx 配置一致。[官网下载区](https://lanlink.heyyami.com/#download) · [安装说明](https://lanlink.heyyami.com/install.txt) · [功能 PR #23](https://github.com/JackEngineer/LanLink/pull/23)
+
+- 桌面 Chrome 默认显示「通过 AI Agent 安装」。点击「复制」后，从系统剪贴板读回的文字与页面指令完全一致：`请按 https://lanlink.heyyami.com/install.txt 安装并打开 LANLink。`
+- 在 375 像素宽的 Chrome 视口模拟剪贴板写入被拒绝，页面提示手动复制。关闭 JavaScript 后仍可查看指令并切换到手动安装。桌面和窄屏均可看到四个手动下载入口，验收期间未观察到页面或控制台错误。
+- 从官网完整下载 Apple Silicon 的 PKG 和 ZIP、Intel Mac 的 ZIP、Windows x64 的 ZIP。四个文件的 SHA-256 均与 GitHub 正式版清单及上表一致。本次验证覆盖下载与文件完整性，未重新运行平台安装程序。[v0.2.0 正式版](https://github.com/JackEngineer/LanLink/releases/tag/v0.2.0)
