@@ -112,6 +112,8 @@ if (args[0] === '--package') {
     releaseTag: escape(release.tag),
     checksumsUrl: escape(release.checksumsUrl),
     downloadCards,
+    installPrompt: escape(await readFile(resolve(source, 'install-prompt.txt'), 'utf8')),
+    installScript: await readFile(resolve(source, 'install-copy.js'), 'utf8'),
     ...screenshotSlots,
   })) {
     if (!html.includes(`{{${slot}}}`)) throw new Error(`Missing template slot: ${slot}`);

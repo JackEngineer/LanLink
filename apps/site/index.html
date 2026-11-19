@@ -144,9 +144,21 @@
 
       <section class="download-section wrap" id="download" aria-labelledby="download-title">
         <div class="download-heading">
-          <h2 id="download-title">选择电脑版本</h2>
+          <h2 id="download-title">下载 LANLink</h2>
           <p>{{releaseStatus}} <span class="release-version">{{releaseTag}}</span></p>
         </div>
+        <section class="assistant-install" aria-labelledby="assistant-install-title">
+          <h3 id="assistant-install-title">让 AI 助手帮你安装</h3>
+          <p>复制下面的提示，发给你电脑上能操作文件和终端的 AI 助手。</p>
+          <button class="artifact-link" id="copy-install" type="button" hidden>复制安装指令</button>
+          <p id="copy-install-status" role="status" aria-live="polite"></p>
+          <details>
+            <summary>查看安装指令</summary>
+            <label class="sr-only" for="install-prompt">安装指令</label>
+            <textarea id="install-prompt" readonly rows="12">{{installPrompt}}</textarea>
+          </details>
+        </section>
+        <h3 class="manual-download-title">自行下载安装</h3>
         <div class="download-grid">{{downloadCards}}</div>
         <div class="download-note">
           <p>Mac 和 Windows 需要安装。手机和平板扫描电脑端的二维码即可在浏览器里传文件。</p>
@@ -296,5 +308,6 @@
         </div>
       </div>
     </footer>
+    <script>{{installScript}}</script>
   </body>
 </html>

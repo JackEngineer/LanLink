@@ -86,6 +86,17 @@ class ReleaseSyncTest(unittest.TestCase):
             for name, data in self.package_data(version).items():
                 (directory / name).write_bytes(data)
 
+    def test_install_instruction_and_script_survive_release_updates(self):
+        site = Path(__file__).resolve().parents[2] / 'apps' / 'site'
+        prompt = (site / 'install-prompt.txt').read_text(encoding='utf-8')
+        script = (site / 'install-copy.js').read_text(encoding='utf-8')
+        payload = f'<textarea>{prompt}</textarea><script>{script}</script>'
+        html = self.old_html + payload
+        stable = sync.render(html, self.live, self.stable)
+        self.assertIn(payload, stable)
+        preview = sync.render(stable, self.stable, self.new)
+        self.assertIn(payload, preview)
+
     def package_data(self, version):
         packages = {name: f'{version.tag}/{name}'.encode() for name in version.packages()}
         packages[sync.MANIFEST] = ''.join(f'{digest(data)}  {name}\n' for name, data in packages.items()).encode()

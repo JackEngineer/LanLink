@@ -1229,3 +1229,42 @@ section[id] {
     transition: none;
   }
 }
+
+.assistant-install {
+  padding-bottom: 1.75rem;
+}
+.assistant-install p {
+  margin-block: 0.75rem;
+  color: var(--muted);
+}
+.assistant-install button {
+  cursor: pointer;
+}
+.assistant-install [hidden] {
+  display: none;
+}
+.assistant-install summary {
+  color: var(--blue);
+  cursor: pointer;
+}
+.assistant-install textarea {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.7;
+  resize: vertical;
+}
+.assistant-install textarea:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+
+.manual-download-title {
+  margin-bottom: 1rem;
+}
