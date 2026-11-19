@@ -45,6 +45,8 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
       - if: runner.os == 'macOS'
+        run: python3 -B -m unittest discover -s scripts/macos
+      - if: runner.os == 'macOS'
         run: bash scripts/macos/package.sh ${{ matrix.target }}
       - if: runner.os == 'Windows'
         run: ./scripts/windows/package.ps1
