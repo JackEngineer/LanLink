@@ -57,3 +57,17 @@ sudo systemctl list-timers lanlink-release-sync.timer
 `--check` 在暂存目录验证新品后清理暂存文件，不切换当前版本；若最新版本已经在线，检查现有文件及公网链接。用 `sudo journalctl -u lanlink-release-sync.service -n 100 --no-pager` 查看日志，用 `sudo systemctl stop lanlink-release-sync.timer` 暂停，用 `sudo systemctl start lanlink-release-sync.service` 重试。异常关机残留隐藏 `.sync-*` 目录时，停止服务和定时器，确认目录不在 `current` 路径上后再清理。
 
 手动回滚前先停用定时器，并确认正在运行的任务已结束。把已公开版本下载目录保留在回滚后的站点中。重新启用后，服务仍须先验证最新版本来源证明，再校验已有文件并恢复最新下载入口。
+
+### macOS 正式版签名与公证
+
+正式标签的 macOS 作业需要同一 Apple Developer 团队的 Developer ID Application 和 Developer ID Installer 证书及各自的私钥，以及可提交公证的 App Store Connect 团队 API 密钥。发布负责人在 GitHub 仓库设置中配置以下值。
+
+| 类型              | 名称                                                                 | 内容                                                |
+| ----------------- | -------------------------------------------------------------------- | --------------------------------------------------- |
+| Actions variables | `MAC_APP_IDENTITY`、`MAC_INSTALLER_IDENTITY`                         | 两个签名身份的完整名称，包括团队 ID                 |
+| Actions secrets   | `MAC_CERTIFICATES_P12_BASE64`、`MAC_CERTIFICATES_PASSWORD`           | 包含两个身份的加密 PKCS#12 的 Base64 内容及导出密码 |
+| Actions secrets   | `MAC_NOTARY_KEY_BASE64`、`MAC_NOTARY_KEY_ID`、`MAC_NOTARY_ISSUER_ID` | 公证团队 API 私钥的 Base64 内容、Key ID、Issuer ID  |
+
+仅在受信任的发布提交上创建正式标签。凭证准备、签名或公证失败时，工作流会停止，不会生成可同步的正式发行包。预览标签继续使用开发打包路径。更新本次工作流后，须先按本手册审核服务器上的工作流副本，再发布新版本并保留旧下载链接。
+
+上线后，在启用 Gatekeeper 的 Mac 上从官网浏览器重新下载，对照该版 GitHub 清单校验 SHA-256，解压并安装。记录 Gatekeeper 评估、首次打开、本机健康接口、界面版本及用户数据比对结果。[Apple 公证要求](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)

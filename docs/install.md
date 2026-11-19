@@ -28,7 +28,7 @@
 4. 将两台电脑连接到同一受信任局域网。
 5. 在设备列表发起配对，在两台电脑核对完整安全码后分别确认。
 
-macOS 安装包采用 ad-hoc 签名，尚未提供 Developer ID 签名和 Apple 公证。请保留 Gatekeeper 的保护。
+官网 v0.2.0 的 macOS 包使用 ad-hoc 签名，未通过 Apple 公证。如果首次打开时被 Gatekeeper 拦截，请停止安装，等待已签名并公证的正式版。[Mac mini 实测记录](website-acceptance.md#mac-mini-保留数据卸载后重装)
 
 如需登录时启动，执行 `bash /Applications/LANLink.app/Contents/Resources/login-start.sh enable`。将 `enable` 改为 `disable` 关闭登录启动。
 

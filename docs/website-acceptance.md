@@ -150,3 +150,11 @@ curl -I https://lanlink.heyyami.com/this-path-must-not-exist
 4. 重装后复核原数据库、接收文件和其余持久文件，内容均与停机备份一致。原库与备份均通过 SQLite `quick_check`。比对排除了 SQLite 的共享内存及预写日志辅助文件，备份中的预写日志为 0 字节。
 
 本轮实测结果为下载、校验、安装及用户数据保留通过，重装后的首次打开未通过。该轮保留了既有用户数据；Windows 验收结果见上表。
+
+### Gatekeeper 拒绝原因复核
+
+2026-11-20，在 Gatekeeper 已启用的同一台 Mac mini 上，将上次从官网下载的 Apple Silicon ZIP 解压到独立临时目录，SHA-256 与上文一致。`codesign -dv --verbose=4` 显示应用和内置 Agent 均为 `Signature=adhoc`、`TeamIdentifier=not set`。对该应用执行 `spctl --assess --type execute --verbose=4`，结果为 `rejected`，退出码 3。检查时系统应用目录中没有 LANLink.app，本轮复核对象为下载包内的应用。
+
+当前官网正式版仍是 `v0.2.0`。正式签名与 Apple 公证凭证尚未配置；新包的公证、发布及从官网重装到打开均待验收。[Apple 分发签名与公证要求](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
+
+同机用修改后的打包脚本构建了 Apple Silicon 开发 ZIP 和 PKG。解包后分别逐文件比对，两个包内的应用均与构建目录一致，严格签名完整性校验通过，启动器为原生 arm64 Mach-O。打包期间输出了 `write: Permission denied` 警告，进程退出码为 0。6 项打包测试通过，其中公证请求和响应为模拟，启动器编译和执行为实测；35 项官网发布同步测试通过。以上开发包没有上传或用于官网重装。
