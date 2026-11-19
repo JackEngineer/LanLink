@@ -1,10 +1,12 @@
 # LANLink
 
-LANLink 是面向 macOS 和 Windows 的开源局域网聊天与文件传输工具。每台设备运行 Rust Agent，浏览器访问本机 React 界面。运行时不需要公网服务或第三方账号。
+LANLink 是面向 macOS 和 Windows 的开源局域网聊天与文件传输工具。在同一局域网内，电脑之间可以聊天、互传文件，手机和平板也可以扫码与电脑互传文件。使用时无需访问公网或注册账号。
+
+[官网首页](https://lanlink.heyyami.com/) · [下载安装包](https://lanlink.heyyami.com/#download) · [安装指南](docs/install.md) · [GitHub 发行记录](https://github.com/JackEngineer/LanLink/releases)
 
 Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢复实测。[验收报告](docs/acceptance.md)
 
-LANLink 支持手机和平板扫码传文件。手机和电脑连同一个可信 Wi‑Fi，电脑确认连接后即可双向收发，不用安装移动端 App。[扫码使用说明](docs/install.md#与手机或平板扫码传文件)
+手机和电脑连同一个可信 Wi‑Fi，电脑确认连接后即可双向收发，不用安装移动端 App。[扫码使用说明](docs/install.md#与手机或平板扫码传文件)
 
 ## 下载 v0.2.0 正式版
 
