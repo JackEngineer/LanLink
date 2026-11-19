@@ -14,8 +14,8 @@ const install = await readFile(resolve(root, 'docs/install.md'), 'utf8');
 const downloadBase = `https://lanlink.heyyami.com/downloads/${release.tag}/`;
 assert.match(
   release.tag,
-  /^v\d+\.\d+\.\d+-preview\.\d+$/,
-  'Use a named development preview release',
+  /^v\d+\.\d+\.\d+(?:-preview\.\d+)?$/,
+  'Use a stable or named preview release tag',
 );
 assert.equal(release.checksumsUrl, `${downloadBase}SHA256SUMS`);
 assert.ok(
@@ -64,7 +64,11 @@ assert.deepEqual(
   expected,
   'Install guide download assets differ from release manifest',
 );
-assert.ok(html.includes(release.tag), 'Built page must show the current release');
+const releaseStatus = release.tag.includes('-preview.') ? '开发预览' : '正式发布';
+assert.ok(
+  html.includes(`${releaseStatus} <span class="release-version">${release.tag}</span>`),
+  'Built page must show the current release and channel',
+);
 for (const body of [html, readme, install]) {
   assert.doesNotMatch(body, /https:\/\/github\.com\/JackEngineer\/LanLink\/releases\//i);
 }

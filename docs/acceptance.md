@@ -1,10 +1,25 @@
-# v0.1.0 验收记录
+# LANLink 验收记录
 
-Mac 与 Windows 已完成原生安装、双确认配对、双向消息、双向 10 MiB 与 1 GiB 文件、4 MiB 断点恢复、身份与历史保留、撤销授权及重新配对。发现稳定性修复已在两端超过四分钟的采样中通过，Windows 强杀后的离线更新及自动恢复也已验证。当前可使用开发预览，未发布正式完成声明。
+## v0.2.0 一键升级实机验收
 
-最新结果与安装包哈希见[文件传输修复及最终候选报告](review-fixes.md)。[发现修复阶段报告](physical-final.md)和[初次双机基线](physical-baseline.md)分别保留此前候选的证据。T15 已通过单 Mac 上真实 mDNS、TCP、Noise 和 SQLite 的受控端点换址；实际物理网卡换址及网络切换不在已测范围。
+2026-11-19（北京时间），在 Apple 芯片 Mac mini 和 Windows x64 真机上，分别从官网发布的 `v0.2.0-preview.5` ZIP 升级到 `v0.2.0` 正式版。测试使用独立安装路径和隔离数据目录。升级前在两端分别完成配对、修改接收设置、接收消息和文件，并保留传输记录。[预览版下载校验清单](https://lanlink.heyyami.com/downloads/v0.2.0-preview.5/SHA256SUMS) · [正式版发布与公网验收](website-acceptance.md#v020-正式发布与公网验收)
 
-## 当前候选
+| 实机平台            | 操作与结果                                                                                                              | Agent 进程变化    |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| Apple 芯片 Mac mini | 单击一次「一键升级」。应用自动下载、校验、安装并重启。原标签页自动回到已连接的聊天页，设置显示 `0.2.0`。                | `23037` → `35957` |
+| Windows x64         | 在 Edge 单击一次「一键升级」。浏览器只记录到一次升级请求，返回 HTTP 200。应用自动重启，原标签页自动刷新并显示 `0.2.0`。 | `25492` → `8956`  |
+
+两端安装后的 Agent SHA-256 均与正式包内的二进制一致。重启后逐项核对设备身份、配对、设置、历史消息、传输记录及已接收文件，数据均保留。两端都核对了收件文件的 SHA-256，Windows 也通过下载接口核对了同一份 44,000 字节的文件。
+
+本轮覆盖正常公网升级。自动回滚、登录启动和 Intel Mac 真机升级未在本轮验证。Intel Mac 安装包已通过发行 CI 构建与测试。[发行工作流](https://github.com/JackEngineer/LanLink/actions/runs/44367929423)
+
+## v0.1.0 验收概况
+
+Mac 与 Windows 已完成原生安装、双确认配对、双向消息、双向 10 MiB 与 1 GiB 文件、4 MiB 断点恢复、身份与历史保留、撤销授权及重新配对。发现稳定性修复已在两端超过四分钟的采样中通过，Windows 强杀后的离线更新及自动恢复也已验证。该阶段交付开发预览包。
+
+该版本的结果与安装包哈希见[文件传输修复及最终候选报告](review-fixes.md)。[发现修复阶段报告](physical-final.md)和[初次双机基线](physical-baseline.md)分别保留此前候选的证据。T15 已通过单 Mac 上真实 mDNS、TCP、Noise 和 SQLite 的受控端点换址；实际物理网卡换址及网络切换不在已测范围。
+
+## v0.1.0 最终候选
 
 运行代码为 `c076be2`。`8fe8bc8` 追加可复现的文件失败回归脚本，`93a565d` 仅在两端安装包中加入 MIT 许可证。重打包后，Agent、网页及启动脚本与对应平台的实测安装内容逐字节一致。macOS 新增许可证后重新生成应用签名。
 
@@ -107,8 +122,8 @@ macOS PKG 已展开并验证内含应用的 ad-hoc 签名。应用已复制安�
 
 ![安装后的网页入口](evidence/installed-mac.jpg)
 
-## 当前交付范围
+## v0.1.0 交付范围
 
-最新源码、测试及证据在 [PR #1](https://github.com/JackEngineer/LanLink/pull/1) 中，PR 未合并。Windows x64、Apple Silicon 和 Intel Mac 的构建、单元测试与打包结果见[当前候选报告](review-fixes.md)；物理电脑验收覆盖 Apple Silicon Mac 和 Windows x64。实际 DHCP 或网卡换址、物理 Intel Mac、OS 注销重登录及性能指标不在已测范围。可选登录项的创建、禁用、后台启动和卸载均有原生执行证据。
+该阶段的源码、测试及证据见 [PR #1](https://github.com/JackEngineer/LanLink/pull/1)。Windows x64、Apple Silicon 和 Intel Mac 的构建、单元测试与打包结果见[当前候选报告](review-fixes.md)；物理电脑验收覆盖 Apple Silicon Mac 和 Windows x64。实际 DHCP 或网卡换址、物理 Intel Mac、OS 注销重登录及性能指标不在已测范围。可选登录项的创建、禁用、后台启动和卸载均有原生执行证据。
 
-macOS 包采用 ad-hoc 签名，未提供 Developer ID 签名或 Apple 公证；Windows 开发脚本未签名。目前交付开发预览包，不发布 v0.1.0 正式完成声明。
+macOS 包采用 ad-hoc 签名，未提供 Developer ID 签名或 Apple 公证；Windows 开发脚本未签名。该阶段交付 v0.1.0 开发预览包。

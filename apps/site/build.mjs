@@ -108,6 +108,7 @@ if (args[0] === '--package') {
     .join('\n      ');
   let html = await readFile(resolve(source, 'index.html'), 'utf8');
   for (const [slot, value] of Object.entries({
+    releaseStatus: release.tag.includes('-preview.') ? '开发预览' : '正式发布',
     releaseTag: escape(release.tag),
     checksumsUrl: escape(release.checksumsUrl),
     downloadCards,
