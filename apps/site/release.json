@@ -1,6 +1,6 @@
 {
-  "tag": "v0.2.0",
-  "checksumsUrl": "https://lanlink.heyyami.com/downloads/v0.2.0/SHA256SUMS",
+  "tag": "v0.2.1",
+  "checksumsUrl": "https://lanlink.heyyami.com/downloads/v0.2.1/SHA256SUMS",
   "downloads": [
     {
       "platform": "macos-apple-silicon",
@@ -8,11 +8,11 @@
       "artifacts": [
         {
           "format": "PKG",
-          "url": "https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-aarch64-apple-darwin.pkg"
+          "url": "https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-aarch64-apple-darwin.pkg"
         },
         {
           "format": "ZIP",
-          "url": "https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-aarch64-apple-darwin.zip"
+          "url": "https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-aarch64-apple-darwin.zip"
         }
       ]
     },
@@ -22,7 +22,7 @@
       "artifacts": [
         {
           "format": "ZIP",
-          "url": "https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-x86_64-apple-darwin.zip"
+          "url": "https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-x86_64-apple-darwin.zip"
         }
       ]
     },
@@ -32,7 +32,7 @@
       "artifacts": [
         {
           "format": "ZIP",
-          "url": "https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-x86_64-pc-windows-msvc.zip"
+          "url": "https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-x86_64-pc-windows-msvc.zip"
         }
       ]
     }

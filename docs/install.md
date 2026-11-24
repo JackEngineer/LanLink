@@ -2,17 +2,17 @@
 
 ## 下载正式版
 
-从 [LANLink 官网 v0.2.0](https://lanlink.heyyami.com/#download) 选择与你的电脑匹配的安装包。
+从 [LANLink 官网 v0.2.1](https://lanlink.heyyami.com/#download) 选择与你的电脑匹配的安装包。
 
 | 平台                        | 下载包                                                                                                                                                                                   |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Apple Silicon Mac（M 系列） | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-aarch64-apple-darwin.zip) 或 [PKG](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-aarch64-apple-darwin.pkg) |
-| Intel Mac                   | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-x86_64-apple-darwin.zip)                                                                                                |
-| Windows x64                 | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-x86_64-pc-windows-msvc.zip)                                                                                             |
+| Apple Silicon Mac（M 系列） | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-aarch64-apple-darwin.zip) 或 [PKG](https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-aarch64-apple-darwin.pkg) |
+| Intel Mac                   | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-x86_64-apple-darwin.zip)                                                                                                |
+| Windows x64                 | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-x86_64-pc-windows-msvc.zip)                                                                                             |
 
 在 Mac 上可通过苹果菜单中的「关于本机」确认芯片或处理器型号。Apple Silicon 的 ZIP 和 PKG 两种格式任选其一。
 
-安装包校验值见 [SHA256SUMS](https://lanlink.heyyami.com/downloads/v0.2.0/SHA256SUMS)。Intel Mac 版已通过 CI 构建与测试。实机结果见[一键升级验收](acceptance.md#v020-一键升级实机验收)。
+安装包校验值见 [SHA256SUMS](https://lanlink.heyyami.com/downloads/v0.2.1/SHA256SUMS)。Intel Mac 版已通过 CI 构建与测试。实机结果见[一键升级验收](acceptance.md#v020-一键升级实机验收)。
 
 ## 让 AI 助手协助安装
 
@@ -24,11 +24,11 @@
 
 1. 按上表下载与本机匹配的安装包。
 2. 安装 PKG，或将 ZIP 中的 `LANLink.app` 放到 `/Applications`。
-3. 打开 LANLink。启动器会运行后台 Agent 并打开本机浏览器。
+3. 打开 LANLink。启动器会运行后台 Agent 并打开独立桌面窗口；关闭窗口不会停止后台传输服务。
 4. 将两台电脑连接到同一受信任局域网。
 5. 在设备列表发起配对，在两台电脑核对完整安全码后分别确认。
 
-macOS 安装包采用 ad-hoc 签名，尚未提供 Developer ID 签名和 Apple 公证。请保留 Gatekeeper 的保护。
+本次 macOS 下载包使用本地签名（ad-hoc），没有 Apple Developer ID 签名或公证。可用 SHA-256 校验下载完整性；这不代表通过 Apple 公证。若系统拦截，请停止安装，不要关闭或绕过 Gatekeeper。[历史 Mac mini 拦截记录](website-acceptance.md#mac-mini-保留数据卸载后重装)
 
 如需登录时启动，执行 `bash /Applications/LANLink.app/Contents/Resources/login-start.sh enable`。将 `enable` 改为 `disable` 关闭登录启动。
 
@@ -66,10 +66,10 @@ Windows 默认数据目录为 `%LOCALAPPDATA%\LANLink\LANLink\data`。Agent 日�
 
 1. 将电脑和手机或平板连到同一个可信 Wi‑Fi。在电脑的 LANLink 页面打开「手机互传」，再点击「生成二维码」。如果有多个局域网地址，选择连接到这个 Wi‑Fi 的地址。
 2. 用手机或平板扫描二维码，在浏览器中打开传输页。在电脑上输入手机页面的 6 位确认码，再点击「允许连接」。默认勾选「记住此浏览器」，90 天内用同一个浏览器再次扫码可直接连接。临时借用的设备可以取消勾选。
-3. 任选一端选择文件。手机上传的文件保存在电脑的接收目录，电脑选好的文件可以在手机浏览器里下载。
+3. 确认连接后，两端可以在会话中发送文字，也可以任选一端选择文件。手机上传的文件保存在电脑的接收目录，电脑选好的文件可以在手机浏览器里下载。
 4. 传完后在电脑上结束会话。会话到期也会关闭。传输期间电脑需要保持在线，已经保存到接收目录的文件会保留。
 
-扫码传输使用局域网 HTTP，传输未加密。每次会话只允许一台手机或平板连接，有效期为 10 分钟，最多收发 16 个文件，合计最多 2 GiB。单文件还受电脑上的接收大小设置限制。中断的传输需要重新选择文件。
+扫码会话使用局域网 HTTP，文字和文件传输未加密。每次会话只允许一台手机或平板连接，有效期为 10 分钟，最多收发 16 个文件，合计最多 2 GiB。单文件还受电脑上的接收大小设置限制。中断的传输需要重新选择文件。
 
 「手机互传」中会列出已记住的浏览器。点击「忘记」会撤销其授权，并断开该浏览器的当前互传会话。下次扫码需要重新确认。更换浏览器、使用无痕窗口、清除网站数据，或电脑的局域网 IP 改变后，也可能需要重新确认。
 

@@ -4,6 +4,7 @@ import type {
   Message,
   MobileFile,
   MobileState,
+  MobileText,
   Pairing,
   Peer,
   Settings,
@@ -218,6 +219,11 @@ export const api = {
     mutate<MobileState>('POST', '/mobile/approve', { code, remember }),
   forgetMobileBrowser: (id: string) =>
     mutate<MobileState>('DELETE', `/mobile/browsers/${pathId(id)}`),
+  sendMobileText: (sessionId: string, id: string, body: string) =>
+    mutate<MobileText>('POST', `/mobile/messages/${pathId(sessionId)}`, {
+      id,
+      body,
+    }),
   endMobile: () => mutate<MobileState>('DELETE', '/mobile'),
   uploadMobile: async (
     file: File,

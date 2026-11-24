@@ -1,0 +1,16 @@
+[package]
+name = "lanlink-desktop-shell"
+version = "0.2.1"
+edition = "2024"
+license = "MIT"
+publish = false
+
+# Keep the optional macOS UI dependency graph out of the Agent workspace/lockfile.
+[workspace]
+
+[target.'cfg(target_os = "macos")'.dependencies]
+wry = { version = "=0.57.2", default-features = false }
+tao = { version = "=0.37.2", default-features = false, features = ["rwh_06"] }
+objc2 = "=0.6.5"
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["NSApplication", "NSImage", "NSScreen", "objc2-core-foundation"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["NSString"] }

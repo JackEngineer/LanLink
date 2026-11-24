@@ -97,6 +97,34 @@ describe('local Agent requests', () => {
     },
   )
 
+  it('sends QR text to the current session only via the authenticated local API', async () => {
+    const id = 'message-id'
+    const body = '电脑回复'
+    const fetchMock = mockFetch(
+      Response.json({ token: 'launch-token' }),
+      Response.json({ id, body, direction: 'to_mobile' }),
+    )
+    await expect(api.sendMobileText('session-uuid', id, body)).resolves.toEqual(
+      {
+        id,
+        body,
+        direction: 'to_mobile',
+      },
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/v1/mobile/messages/session-uuid',
+      expect.objectContaining({
+        method: 'POST',
+        headers: new Headers({
+          'X-LANLink-Token': 'launch-token',
+          'Content-Type': 'application/json',
+        }),
+        body: JSON.stringify({ id, body }),
+      }),
+    )
+  })
+
   it('remembers the browser by default when approving a mobile connection', async () => {
     const fetchMock = mockFetch(
       Response.json({ token: 'launch-token' }),

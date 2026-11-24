@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f7f8fc" />
     <meta
       name="description"
-      content="LANLink 是开源的局域网互传工具。Mac 和 Windows 可以互传文件和消息，手机和平板扫码即可传文件。"
+      content="LANLink 是开源的局域网互传工具。Mac 和 Windows 可以互传文件和消息，手机和平板扫码即可收发文字和文件。"
     />
     <title>LANLink · 文件，走近路</title>
     <link rel="icon" type="image/png" href="./assets/lanlink.png" />
@@ -35,7 +35,7 @@
         </h1>
         <p>
           <span class="hero-line"
-            >Mac 与 Windows 在同一个局域网互传文件和消息。<br />手机扫一下，也能收发文件。</span
+            >Mac 与 Windows 在同一个局域网互传文件和消息。<br />手机扫一下，也能收发文字和文件。</span
           >
         </p>
         <a class="button" href="#download">
@@ -109,7 +109,7 @@
                 <div class="alternate-layout mobile-layout">
                   <div class="alternate-copy">
                     <h3>用手机，扫一下。</h3>
-                    <p>在同一个可信 Wi-Fi 下打开手机相机。收发文件都在手机浏览器里完成。</p>
+                    <p>在同一个可信 Wi-Fi 下打开手机相机。收发文字和文件都在手机浏览器里完成。</p>
                   </div>
                   <div class="scan-steps">
                     <details name="scan-step" open>
@@ -122,7 +122,7 @@
                     </details>
                     <details name="scan-step">
                       <summary><span class="step-index">3</span>选择要收发的文件</summary>
-                      <p>手机可以把文件发给电脑，也可以在浏览器下载电脑发来的文件。</p>
+                      <p>手机和电脑可以双向发送文字。手机可以上传文件，也可以下载电脑发来的文件。</p>
                     </details>
                   </div>
                 </div>
@@ -172,7 +172,7 @@
             <p class="install-hint">选择与你的电脑匹配的安装包。</p>
             <div class="download-grid">{{downloadCards}}</div>
             <div class="download-note">
-              <p>手机和平板无需安装，扫描电脑上 LANLink 的二维码即可传文件。</p>
+              <p>手机和平板无需安装，扫描电脑上 LANLink 的二维码即可收发文字和文件。</p>
               <p>macOS 安装包尚未提供 Developer ID 签名及 Apple 公证，Windows 安装脚本未签名。Intel Mac 已构建和测试，尚未实机验证。请按安装指南操作并保留系统安全保护。</p>
               <div class="text-links">
                 <a href="{{checksumsUrl}}" download>SHA-256 校验值</a>
@@ -183,6 +183,7 @@
         </fieldset>
         <div class="install-links">
           <span>{{releaseStatus}} <span class="release-version">{{releaseTag}}</span></span>
+          <span>macOS 安装包未通过 Apple 公证；Windows 通过本机浏览器打开。</span>
           <a href="https://github.com/JackEngineer/LanLink/blob/main/docs/install.md">安装指南</a>
           <a href="https://github.com/JackEngineer/LanLink">开源地址</a>
           <a href="https://github.com/JackEngineer/LanLink/releases">更新日志</a>
@@ -201,9 +202,9 @@
               </p>
             </article>
             <article>
-              <h3>手机和平板扫码传文件</h3>
+              <h3>手机和平板扫码收发文字和文件</h3>
               <p>
-                在电脑上打开「手机互传」，用手机或平板扫码，在浏览器中收发文件。扫码传输使用局域网
+                在电脑上打开「手机互传」，用手机或平板扫码，在浏览器中和电脑收发文字及文件。扫码传输使用局域网
                 HTTP，请在可信网络中使用。
               </p>
             </article>

@@ -31,6 +31,24 @@
       </section>
 
       <div id="transfer" hidden>
+        <section
+          class="card"
+          id="text-panel"
+          aria-labelledby="text-heading"
+          hidden
+        >
+          <h2 id="text-heading">文字互传</h2>
+          <ul id="texts" aria-label="本次连接的文字" aria-live="polite"></ul>
+          <form id="text-form">
+            <label for="text-input">发送文字给电脑</label>
+            <textarea id="text-input" maxlength="2048" rows="3"></textarea>
+            <p class="subtle">
+              每条最多 2048 字节。仅在本次连接内显示，软件不会保存文字记录。
+            </p>
+            <button type="submit" id="text-send" disabled>发送文字</button>
+            <p class="error" id="text-error" role="alert" hidden></p>
+          </form>
+        </section>
         <section class="card" aria-labelledby="send-heading">
           <h2 id="send-heading">发送给电脑</h2>
           <form id="upload">
