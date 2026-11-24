@@ -1328,3 +1328,20 @@ button:disabled {
     transition: none !important;
   }
 }
+
+.mobile-text-list {
+  max-height: 12rem;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.mobile-text-list li + li {
+  margin-top: 0.5rem;
+}
+
+.mobile-send textarea {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+}

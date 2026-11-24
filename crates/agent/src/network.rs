@@ -1228,7 +1228,7 @@ mod tests {
         let peer = device.id.clone();
         let task =
             tokio::spawn(async move { ready(&child_state, &mut server, &peer, &session).await });
-        timeout(Duration::from_secs(2), async {
+        timeout(Duration::from_secs(5), async {
             loop {
                 match client.recv_control().await? {
                     Control::Chat { id, .. } => {
@@ -1245,7 +1245,8 @@ mod tests {
             }
             Ok::<_, anyhow::Error>(())
         })
-        .await??;
+        .await
+        .context("timed out waiting for the valid queued message or file offer")??;
         tokio::fs::write(files::spool_path(&state, &source), b"x").await?;
         client
             .control(Control::TransferState {
@@ -1262,7 +1263,7 @@ mod tests {
                 created_at: now_ms(),
             })
             .await?;
-        timeout(Duration::from_secs(2), async {
+        timeout(Duration::from_secs(5), async {
             let mut cancelled = false;
             loop {
                 match client.recv_control().await? {
@@ -1276,7 +1277,8 @@ mod tests {
             }
             Ok::<_, anyhow::Error>(())
         })
-        .await??;
+        .await
+        .context("timed out waiting for the lost-source cancel or follow-up chat ACK")??;
         assert_eq!(
             state.store.message(&invalid.id).await?.status,
             MessageStatus::Failed

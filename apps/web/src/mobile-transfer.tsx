@@ -7,6 +7,7 @@ import { InlineError, Modal } from './components'
 import {
   formatBytes,
   type MobileSession,
+  type MobileText,
   type RememberedBrowser,
 } from './lanlink'
 
@@ -22,6 +23,92 @@ type SessionAction =
   | { type: 'approve'; code: string; remember: boolean }
   | { type: 'forget'; id: string }
   | { type: 'end' }
+
+function MobileTexts({
+  sessionId,
+  messages,
+}: {
+  sessionId: string
+  messages: MobileText[]
+}) {
+  const client = useQueryClient()
+  const [text, setText] = useState('')
+  const retry = useRef<{ id: string; body: string } | null>(null)
+  const inFlight = useRef(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  async function send(body: string) {
+    if (inFlight.current) return
+    const draft =
+      retry.current?.body === body
+        ? retry.current
+        : { id: crypto.randomUUID(), body }
+    retry.current = draft
+    inFlight.current = true
+    setSending(true)
+    setError(null)
+    try {
+      await api.sendMobileText(sessionId, draft.id, draft.body)
+      retry.current = null
+      setText('')
+      await client.invalidateQueries({ queryKey: mobileKey })
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason : new Error('发送失败，请重试。'),
+      )
+      await client.invalidateQueries({ queryKey: mobileKey })
+    } finally {
+      inFlight.current = false
+      setSending(false)
+    }
+  }
+  const body = text.trim()
+  const canSend =
+    !sending && body.length > 0 && new TextEncoder().encode(body).length <= 2048
+  return (
+    <section className="mobile-files" aria-label="文字互传">
+      <ul
+        className="mobile-text-list"
+        aria-label="本次连接的文字"
+        aria-live="polite"
+      >
+        {messages.map((message) => (
+          <li key={message.direction + message.id}>
+            <strong>
+              {message.direction === 'to_computer' ? '手机' : '电脑'}：
+            </strong>
+            <span>{message.body}</span>
+          </li>
+        ))}
+      </ul>
+      <form
+        className="mobile-send"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (!canSend) return
+          void send(body)
+        }}
+      >
+        <label className="mobile-field">
+          发送文字给手机
+          <textarea
+            value={text}
+            maxLength={2048}
+            disabled={sending}
+            onChange={(event) => setText(event.target.value)}
+          />
+        </label>
+        <p className="modal-detail">
+          每条最多 2048 字节。仅在本次连接内显示，软件不会保存文字记录。
+        </p>
+        <button type="submit" className="button" disabled={!canSend}>
+          发送文字
+        </button>
+        <InlineError error={error} />
+      </form>
+    </section>
+  )
+}
 
 function updateSession(action: SessionAction) {
   switch (action.type) {
@@ -43,6 +130,7 @@ export function MobileTransferDialog({ onClose }: { onClose: () => void }) {
     queryFn: ({ signal }) => api.mobile(signal),
     refetchInterval: 1_500,
     retry: false,
+    gcTime: 0,
   })
   const [selectedAddress, setSelectedAddress] = useState('')
   const addresses = status.data?.addresses ?? []
@@ -50,8 +138,27 @@ export function MobileTransferDialog({ onClose }: { onClose: () => void }) {
     ? selectedAddress
     : (addresses[0] ?? '')
   const session = status.data?.session
+  const expiresAt = session?.expires_at ?? 0
+  const [textClock, setTextClock] = useState(Date.now)
+  useEffect(() => {
+    if (!expiresAt) return
+    const tick = () => setTextClock(Date.now())
+    const timer = window.setTimeout(tick, Math.max(0, expiresAt - Date.now()))
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', tick)
+    }
+  }, [expiresAt])
+  const textSessionIsCurrent = !status.isError && expiresAt > textClock
   const action = useMutation({
-    mutationFn: updateSession,
+    mutationFn: async (input: SessionAction) => {
+      const result = await updateSession(input)
+      if (result.session) {
+        return { ...result, session: { ...result.session, messages: [] } }
+      }
+      return result
+    },
     onSuccess: async (data) => {
       await client.cancelQueries({ queryKey: mobileKey })
       client.setQueryData(mobileKey, data)
@@ -151,6 +258,13 @@ export function MobileTransferDialog({ onClose }: { onClose: () => void }) {
                   ? '已记住此浏览器，下次扫码可直接连接。'
                   : '本次为临时连接，下次扫码仍需电脑确认。'}
               </p>
+              {session.id && textSessionIsCurrent && !action.isPending && (
+                <MobileTexts
+                  key={session.id}
+                  sessionId={session.id}
+                  messages={session.messages ?? []}
+                />
+              )}
               <MobileFiles
                 key={session.url}
                 session={session}

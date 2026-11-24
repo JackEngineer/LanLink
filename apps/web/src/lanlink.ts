@@ -76,7 +76,15 @@ export interface MobileFile {
   direction: 'to_computer' | 'to_mobile'
 }
 
+export interface MobileText {
+  id: string
+  body: string
+  direction: 'to_computer' | 'to_mobile'
+}
+
 export interface MobileSession {
+  id?: string
+  messages?: MobileText[]
   url: string
   phase: 'inviting' | 'pending' | 'approved'
   code: string | null

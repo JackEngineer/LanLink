@@ -27,10 +27,98 @@ let maxFileSize = 0
 let inboxKey = ''
 let uploading = false
 let polling = false
+let generation = 0
 let clockOffset = 0
 let connected = false
 let activeUpload
 let phase
+const textPanel = document.querySelector('#text-panel')
+const textForm = document.querySelector('#text-form')
+const textInput = document.querySelector('#text-input')
+const textSend = document.querySelector('#text-send')
+const textError = document.querySelector('#text-error')
+const texts = document.querySelector('#texts')
+let textKey = ''
+let sendingText = false
+let pendingText
+
+function textId() {
+  // getRandomValues is available on the existing local HTTP phone page.
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 15) | 64
+  bytes[8] = (bytes[8] & 63) | 128
+  const hex = Array.from(bytes, (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('')
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join('-')
+}
+
+function showTexts(items) {
+  textPanel.hidden = !Array.isArray(items)
+  if (textPanel.hidden) return
+  const key = JSON.stringify(items)
+  if (key === textKey) return
+  textKey = key
+  texts.replaceChildren()
+  for (const item of items) {
+    const row = document.createElement('li')
+    const line = document.createElement('span')
+    line.textContent =
+      (item.direction === 'to_computer' ? '手机：' : '电脑：') + item.body
+    row.append(line)
+    texts.append(row)
+  }
+}
+
+function updateTextSend() {
+  const body = textInput.value.trim()
+  textSend.disabled =
+    !connected ||
+    phase !== 'approved' ||
+    sendingText ||
+    !body ||
+    new TextEncoder().encode(body).length > 2048
+}
+
+textInput.addEventListener('input', updateTextSend)
+textForm.addEventListener('submit', async (event) => {
+  event.preventDefault()
+  if (textSend.disabled) return
+  const activeGeneration = generation
+  const body = textInput.value.trim()
+  if (pendingText?.body !== body) pendingText = { id: textId(), body }
+  sendingText = true
+  textInput.disabled = true
+  updateTextSend()
+  showError(textError, '')
+  try {
+    await request('messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(pendingText),
+    })
+    if (activeGeneration !== generation) return
+    textInput.value = ''
+    pendingText = undefined
+  } catch (error) {
+    if (activeGeneration !== generation) return
+    if (terminal(error))
+      endSession('互传已结束或已过期。请扫描电脑上的新二维码。')
+    else showError(textError, error.message || '发送失败，请重试。')
+  } finally {
+    if (activeGeneration === generation) {
+      sendingText = false
+      textInput.disabled = false
+      updateTextSend()
+    }
+  }
+})
 
 class RequestError extends Error {
   constructor(status, message) {
@@ -63,6 +151,7 @@ function showError(node, message) {
 }
 
 async function request(path, options) {
+  const activeGeneration = generation
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 8_000)
   try {
@@ -80,7 +169,9 @@ async function request(path, options) {
       )
     }
     const serverTime = Date.parse(response.headers.get('Date'))
-    if (Number.isFinite(serverTime)) clockOffset = serverTime - Date.now()
+    if (activeGeneration === generation && Number.isFinite(serverTime)) {
+      clockOffset = serverTime - Date.now()
+    }
     return data
   } finally {
     window.clearTimeout(timeout)
@@ -147,14 +238,17 @@ function showState(state) {
   showError(connectionError, '')
   showTime()
 
-  if (approved) {
+  if (phase === 'approved') {
     setText(limit, '单个文件最大 ' + formatBytes(maxFileSize))
     showInbox(state.files)
+    showTexts(state.messages)
+    updateTextSend()
     updateSend()
   }
 }
 
 function endSession(message) {
+  generation++
   polling = false
   connected = false
   activeUpload?.abort()
@@ -164,6 +258,13 @@ function endSession(message) {
   confirmation.hidden = true
   remembered.hidden = true
   code.textContent = ''
+  texts.replaceChildren()
+  textInput.value = ''
+  textInput.disabled = false
+  sendingText = false
+  pendingText = undefined
+  textKey = ''
+  updateTextSend()
   transfer.hidden = true
   updateSend()
   showError(connectionError, '')
@@ -176,21 +277,31 @@ function terminal(error) {
   )
 }
 
-async function poll() {
+function schedulePoll(activeGeneration) {
+  if (polling && activeGeneration === generation) {
+    window.setTimeout(() => void poll(activeGeneration), 1_200)
+  }
+}
+
+async function poll(activeGeneration) {
+  if (!polling || activeGeneration !== generation) return
   try {
-    showState(await request('state'))
+    const state = await request('state')
+    if (!polling || activeGeneration !== generation) return
+    showState(state)
   } catch (error) {
-    if (!polling) return
+    if (!polling || activeGeneration !== generation) return
     if (terminal(error)) {
       endSession('互传已结束或已过期。请扫描电脑上的新二维码。')
     } else {
       connected = false
       transfer.hidden = true
       updateSend()
+      updateTextSend()
       showError(connectionError, '暂时无法连接电脑，正在重试。')
     }
   }
-  if (polling) window.setTimeout(poll, 1_200)
+  schedulePoll(activeGeneration)
 }
 
 function clearInvite() {
@@ -200,6 +311,8 @@ function clearInvite() {
 }
 
 async function connect() {
+  const activeGeneration = ++generation
+  polling = false
   retry.hidden = true
   showError(connectionError, '')
   setText(status, '正在连接电脑…')
@@ -212,23 +325,29 @@ async function connect() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invite }),
       })
+      if (activeGeneration !== generation) return
       clearInvite()
     } else {
       state = await request('state')
     }
-    showState(state)
+    if (activeGeneration !== generation) return
     polling = true
-    window.setTimeout(poll, 1_200)
+    showState(state)
+    schedulePoll(activeGeneration)
   } catch (error) {
+    if (activeGeneration !== generation) return
     if (invite) {
       // A lost claim response may still have set the session cookie.
       try {
-        showState(await request('state'))
+        const state = await request('state')
+        if (activeGeneration !== generation) return
         clearInvite()
         polling = true
-        window.setTimeout(poll, 1_200)
+        showState(state)
+        schedulePoll(activeGeneration)
         return
       } catch {}
+      if (activeGeneration !== generation) return
       if (
         error instanceof RequestError &&
         error.status >= 400 &&

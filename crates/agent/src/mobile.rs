@@ -30,6 +30,10 @@ use tokio_util::{io::ReaderStream, sync::CancellationToken};
 use uuid::Uuid;
 
 const SESSION_LIFETIME: Duration = Duration::from_secs(600);
+const MESSAGE_BYTES: usize = 2048;
+const MESSAGE_LIMIT: usize = 40;
+const MESSAGE_INTERVAL: Duration = Duration::from_millis(750);
+const JSON_MESSAGE_LIMIT: usize = 16 * 1024;
 const MAX_FILES: usize = 16;
 const MAX_SESSION_BYTES: u64 = MAX_FILE_SIZE;
 const MULTIPART_OVERHEAD: u64 = 1024 * 1024;
@@ -67,6 +71,7 @@ const BAD_MULTIPART: MobileError =
     MobileError(StatusCode::BAD_REQUEST, "upload one file at a time");
 
 pub struct Session {
+    id: Uuid,
     host: String,
     origin: String,
     url: String,
@@ -124,6 +129,22 @@ fn multipart_error(error: axum::extract::multipart::MultipartError) -> MobileErr
 struct SessionData {
     phase: Phase,
     files: Vec<StoredFile>,
+    messages: Vec<SessionMessage>,
+    last_message: [Option<Instant>; 2],
+}
+
+#[derive(Clone, Serialize)]
+struct SessionMessage {
+    id: Uuid,
+    body: String,
+    direction: FileDirection,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MessageInput {
+    id: Uuid,
+    body: String,
 }
 
 enum Phase {
@@ -186,10 +207,12 @@ struct MobileView {
     expires_at: i64,
     max_file_size: u64,
     files: Vec<FileInfo>,
+    messages: Vec<SessionMessage>,
 }
 
 #[derive(Serialize)]
 struct DesktopSession {
+    id: Uuid,
     url: String,
     #[serde(flatten)]
     view: MobileView,
@@ -258,7 +281,9 @@ impl Session {
     async fn end(&self) {
         self.stop.cancel();
         let _upload = self.upload.lock().await;
-        self.data.lock().await.files.clear();
+        let mut data = self.data.lock().await;
+        data.files.clear();
+        data.messages.clear();
     }
 
     fn view(&self, data: &SessionData) -> MobileView {
@@ -279,6 +304,7 @@ impl Session {
             expires_at: self.expires_at,
             max_file_size: self.max_file_size,
             files: data.files.iter().map(|file| file.info.clone()).collect(),
+            messages: data.messages.clone(),
         }
     }
 
@@ -327,6 +353,10 @@ pub fn desktop_router(web_dir: PathBuf) -> Router<Arc<App>> {
         .route("/api/v1/mobile/approve", post(approve))
         .route("/api/v1/mobile/browsers/{id}", delete(revoke_browser))
         .route("/api/v1/mobile/files", post(stage))
+        .route(
+            "/api/v1/mobile/messages/{session_id}",
+            post(desktop_message).layer(DefaultBodyLimit::max(JSON_MESSAGE_LIMIT)),
+        )
         .route("/api/v1/mobile/files/{id}", get(receipt))
         .layer(Extension(web_dir))
 }
@@ -346,6 +376,7 @@ async fn snapshot(app: &App) -> Result<Json<DesktopView>> {
         Some(session) if session.active().is_ok() => {
             let data = session.data.lock().await;
             Some(DesktopSession {
+                id: session.id,
                 url: session.url.clone(),
                 view: session.view(&data),
             })
@@ -403,6 +434,7 @@ async fn open(
         .await
         .map_err(MobileError::io)?;
     let session = Arc::new(Session {
+        id: Uuid::new_v4(),
         host,
         url: format!("{origin}/mobile/#{invite}"),
         origin,
@@ -420,6 +452,8 @@ async fn open(
         data: Mutex::new(SessionData {
             phase: Phase::Inviting { invite },
             files: Vec::new(),
+            messages: Vec::new(),
+            last_message: [None; 2],
         }),
         assets,
     });
@@ -600,6 +634,10 @@ fn lan_router(session: Arc<Session>) -> Router {
             )),
         )
         .route("/mobile/files/{id}", get(deliver))
+        .route(
+            "/mobile/messages",
+            post(phone_message).layer(DefaultBodyLimit::max(JSON_MESSAGE_LIMIT)),
+        )
         .layer(middleware::from_fn_with_state(session.clone(), protect))
         .with_state(session)
 }
@@ -808,6 +846,91 @@ async fn mobile_view(State(session): State<Arc<Session>>, headers: HeaderMap) ->
     Ok(response)
 }
 
+async fn desktop_message(
+    State(app): State<Arc<App>>,
+    headers: HeaderMap,
+    Path(session_id): Path<Uuid>,
+    Json(input): Json<MessageInput>,
+) -> Result<Json<SessionMessage>> {
+    if !exact_header(&headers, "x-lanlink-token", &app.token) {
+        return Err(FORBIDDEN);
+    }
+    let session = current_session(&app).await?;
+    if session.id != session_id {
+        return Err(EXPIRED);
+    }
+    send_session_message(&session, None, FileDirection::ToMobile, input).await
+}
+
+async fn phone_message(
+    State(session): State<Arc<Session>>,
+    headers: HeaderMap,
+    Json(input): Json<MessageInput>,
+) -> Result<Json<SessionMessage>> {
+    send_session_message(&session, Some(&headers), FileDirection::ToComputer, input).await
+}
+
+async fn send_session_message(
+    session: &Session,
+    headers: Option<&HeaderMap>,
+    direction: FileDirection,
+    input: MessageInput,
+) -> Result<Json<SessionMessage>> {
+    let trust = session.trust.data.lock().await;
+    let mut data = session.data.lock().await;
+    authorize_transfer(session, &data, headers)?;
+    if let Phase::Approved(browser) = &data.phase
+        && let Some(credential) = &browser.remembered
+        && !trust.contains(&credential.browser.id, now_ms())
+    {
+        session.stop.cancel();
+        return Err(EXPIRED);
+    }
+    let body = input.body.trim();
+    if body.is_empty() || body.len() > MESSAGE_BYTES {
+        return Err(MobileError(
+            StatusCode::BAD_REQUEST,
+            "消息不能为空，且不能超过 2048 字节。",
+        ));
+    }
+    if let Some(existing) = data
+        .messages
+        .iter()
+        .find(|item| item.direction == direction && item.id == input.id)
+    {
+        return if existing.body == body {
+            Ok(Json(existing.clone()))
+        } else {
+            Err(MobileError(
+                StatusCode::CONFLICT,
+                "此消息编号已用于其他内容。",
+            ))
+        };
+    }
+    if data.messages.len() >= MESSAGE_LIMIT {
+        return Err(MobileError(
+            StatusCode::CONFLICT,
+            "本次连接已达到 40 条文字上限，请开启新连接。",
+        ));
+    }
+    let index = usize::from(direction == FileDirection::ToMobile);
+    let now = Instant::now();
+    if data.last_message[index].is_some_and(|last| now.duration_since(last) < MESSAGE_INTERVAL) {
+        return Err(MobileError(
+            StatusCode::TOO_MANY_REQUESTS,
+            "发送太快，请稍后重试。",
+        ));
+    }
+    let message = SessionMessage {
+        id: input.id,
+        body: body.to_owned(),
+        direction,
+    };
+    data.last_message[index] = Some(now);
+    data.messages.push(message.clone());
+    Ok(Json(message))
+}
+
 async fn receive(
     State(session): State<Arc<Session>>,
     headers: HeaderMap,
@@ -1007,6 +1130,7 @@ mod tests {
             .await
             .unwrap();
         Session {
+            id: Uuid::new_v4(),
             trust: Arc::new(Registry::open(store, &"a".repeat(64)).await.unwrap()),
             host: "192.168.1.2:12345".into(),
             origin: "http://192.168.1.2:12345".into(),
@@ -1026,6 +1150,8 @@ mod tests {
                     invite: "invite".into(),
                 },
                 files: Vec::new(),
+                messages: Vec::new(),
+                last_message: [None; 2],
             }),
             assets: Assets {
                 html: b"mobile".to_vec(),
@@ -1048,6 +1174,252 @@ mod tests {
             .header(header::CONTENT_TYPE, "multipart/form-data; boundary=test")
             .body(Body::from(body))?;
         Ok(Multipart::from_request(request, &()).await?)
+    }
+
+    #[tokio::test]
+    async fn session_text_uses_existing_approval_and_boundaries_without_listening()
+    -> anyhow::Result<()> {
+        let root = tempfile::tempdir()?;
+        let app = Arc::new(crate::state::test_state(root.path()).await?);
+        let session = paired_session(root.path(), app.mobile_trust.clone(), 10008).await;
+        *app.mobile.lock().await = Some(session.clone());
+        let phone = lan_router(session.clone());
+        let desktop = desktop_router(root.path().to_path_buf()).with_state(app.clone());
+        let (view, cookie) = claim_browser(session.clone(), HeaderMap::new(), "invite").await?;
+        let id = Uuid::new_v4();
+        let request = |origin: &str, cookie: &str, id: Uuid, body: &str| {
+            Request::builder()
+                .method(Method::POST)
+                .uri("/mobile/messages")
+                .header(header::HOST, &session.host)
+                .header(header::ORIGIN, origin)
+                .header(header::COOKIE, cookie.split(';').next().unwrap())
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"id":id, "body":body}).to_string()))
+                .unwrap()
+        };
+        let desktop_request = |session_id: Uuid, token: &str| {
+            Request::builder()
+                .method(Method::POST)
+                .uri(format!("/api/v1/mobile/messages/{session_id}"))
+                .header("x-lanlink-token", token)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"id":id, "body":"电脑回复"}).to_string()))
+                .unwrap()
+        };
+        let oversized_text = "字".repeat(683);
+        let oversized_json = "a".repeat(17_000);
+        let ask = |id, body| request(&session.origin, &cookie, id, body);
+        assert_eq!(
+            phone.clone().oneshot(ask(id, "手机文字")).await?.status(),
+            StatusCode::CONFLICT
+        );
+        let approved = approve(
+            State(app.clone()),
+            Json(Approval {
+                code: view["code"].as_str().unwrap().into(),
+                remember: true,
+            }),
+        )
+        .await
+        .unwrap();
+        let remembered_id = Uuid::parse_str(&approved.0.remembered_browsers[0].id)?;
+        assert_eq!(
+            phone
+                .clone()
+                .oneshot(request(&session.origin, "not_the_cookie=1", id, "手机文字"))
+                .await?
+                .status(),
+            StatusCode::FORBIDDEN
+        );
+        assert_eq!(
+            phone
+                .clone()
+                .oneshot(request("http://wrong.invalid", &cookie, id, "手机文字"))
+                .await?
+                .status(),
+            StatusCode::FORBIDDEN
+        );
+        assert_eq!(
+            desktop
+                .clone()
+                .oneshot(desktop_request(session.id, "wrong"))
+                .await?
+                .status(),
+            StatusCode::FORBIDDEN
+        );
+        assert_eq!(
+            desktop
+                .clone()
+                .oneshot(desktop_request(Uuid::new_v4(), &app.token))
+                .await?
+                .status(),
+            StatusCode::GONE
+        );
+        assert_eq!(
+            phone.clone().oneshot(ask(id, " ")).await?.status(),
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            phone
+                .clone()
+                .oneshot(ask(id, &oversized_text))
+                .await?
+                .status(),
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            phone
+                .clone()
+                .oneshot(ask(id, &oversized_json))
+                .await?
+                .status(),
+            StatusCode::PAYLOAD_TOO_LARGE
+        );
+        assert_eq!(
+            phone.clone().oneshot(ask(id, "手机文字")).await?.status(),
+            StatusCode::OK
+        );
+        assert_eq!(
+            phone.clone().oneshot(ask(id, " 手机文字 ")).await?.status(),
+            StatusCode::OK
+        );
+        assert_eq!(
+            phone.clone().oneshot(ask(id, "不同文字")).await?.status(),
+            StatusCode::CONFLICT
+        );
+        assert_eq!(
+            phone
+                .clone()
+                .oneshot(ask(Uuid::new_v4(), "第二条"))
+                .await?
+                .status(),
+            StatusCode::TOO_MANY_REQUESTS
+        );
+        assert_eq!(
+            desktop
+                .clone()
+                .oneshot(desktop_request(session.id, &app.token))
+                .await?
+                .status(),
+            StatusCode::OK
+        );
+        for _ in 0..2 {
+            let view = body_json(
+                mobile_view(State(session.clone()), cookie_header(&cookie))
+                    .await
+                    .unwrap(),
+            )
+            .await?;
+            assert_eq!(view["messages"].as_array().unwrap().len(), 2);
+            assert_eq!(view["messages"][0]["body"], "手机文字");
+            assert_eq!(view["messages"][1]["body"], "电脑回复");
+        }
+        let snap = snapshot(&app).await.unwrap();
+        assert_eq!(snap.0.session.unwrap().view.messages.len(), 2);
+        {
+            let mut data = session.data.lock().await;
+            for _ in data.messages.len()..MESSAGE_LIMIT {
+                data.messages.push(SessionMessage {
+                    id: Uuid::new_v4(),
+                    body: "填充".into(),
+                    direction: FileDirection::ToComputer,
+                });
+            }
+        }
+        assert_eq!(
+            phone
+                .clone()
+                .oneshot(ask(Uuid::new_v4(), "队列已满"))
+                .await?
+                .status(),
+            StatusCode::CONFLICT
+        );
+        assert_eq!(
+            phone.clone().oneshot(ask(id, "手机文字")).await?.status(),
+            StatusCode::OK
+        );
+        assert!(
+            revoke_browser(State(app.clone()), Path(remembered_id))
+                .await
+                .unwrap()
+                .0
+                .session
+                .is_none()
+        );
+        assert!(session.data.lock().await.messages.is_empty());
+        assert_eq!(
+            phone.oneshot(ask(id, "手机文字")).await?.status(),
+            StatusCode::GONE
+        );
+        assert_eq!(
+            desktop
+                .oneshot(desktop_request(session.id, &app.token))
+                .await?
+                .status(),
+            StatusCode::GONE
+        );
+        let next = paired_session(root.path(), app.mobile_trust.clone(), 10009).await;
+        assert!(next.data.lock().await.messages.is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn desktop_text_production_router_rejects_mismatched_origin_token_and_large_body()
+    -> anyhow::Result<()> {
+        let root = tempfile::tempdir()?;
+        let app = Arc::new(crate::state::test_state(root.path()).await?);
+        let router = crate::http::router(
+            app.clone(),
+            root.path().into(),
+            crate::upgrade::Updater::new(root.path(), root.path(), 0),
+        );
+        let post = |origin: &str, token: &str, text: String| {
+            Request::builder()
+                .method(Method::POST)
+                .uri(format!("/api/v1/mobile/messages/{}", Uuid::new_v4()))
+                .header(header::HOST, &app.host)
+                .header(header::ORIGIN, origin)
+                .header("x-lanlink-token", token)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(
+                    json!({"id": Uuid::new_v4(), "body": text}).to_string(),
+                ))
+                .unwrap()
+        };
+        for (origin, token) in [
+            ("http://wrong.invalid", app.token.as_str()),
+            (app.origin.as_str(), "wrong"),
+        ] {
+            assert_eq!(
+                router
+                    .clone()
+                    .oneshot(post(origin, token, "text".into()))
+                    .await?
+                    .status(),
+                StatusCode::FORBIDDEN
+            );
+        }
+        assert_eq!(
+            router
+                .clone()
+                .oneshot(post(
+                    &app.origin,
+                    &app.token,
+                    "a".repeat(JSON_MESSAGE_LIMIT + 1)
+                ))
+                .await?
+                .status(),
+            StatusCode::PAYLOAD_TOO_LARGE
+        );
+        assert_eq!(
+            router
+                .oneshot(post(&app.origin, &app.token, "small".into()))
+                .await?
+                .status(),
+            StatusCode::GONE
+        );
+        Ok(())
     }
 
     #[tokio::test]
@@ -1589,6 +1961,20 @@ mod tests {
             .await?;
         assert_eq!(response.status(), StatusCode::GONE);
         assert_eq!(body_json(response).await?["error"], "mobile session ended");
+        let response = lan_router(expired.clone())
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/mobile/messages")
+                    .header(header::HOST, &expired.host)
+                    .header(header::ORIGIN, &expired.origin)
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(
+                        json!({"id": Uuid::new_v4(), "body": "过期"}).to_string(),
+                    ))?,
+            )
+            .await?;
+        assert_eq!(response.status(), StatusCode::GONE);
         assert!(
             claim(
                 State(expired),

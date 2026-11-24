@@ -128,3 +128,33 @@ curl -I https://lanlink.heyyami.com/this-path-must-not-exist
 - 桌面 Chrome 默认显示「通过 AI Agent 安装」。点击「复制」后，从系统剪贴板读回的文字与页面指令完全一致：`请按 https://lanlink.heyyami.com/install.txt 安装并打开 LANLink。`
 - 在 375 像素宽的 Chrome 视口模拟剪贴板写入被拒绝，页面提示手动复制。关闭 JavaScript 后仍可查看指令并切换到手动安装。桌面和窄屏均可看到四个手动下载入口，验收期间未观察到页面或控制台错误。
 - 从官网完整下载 Apple Silicon 的 PKG 和 ZIP、Intel Mac 的 ZIP、Windows x64 的 ZIP。四个文件的 SHA-256 均与 GitHub 正式版清单及上表一致。本次验证覆盖下载与文件完整性，未重新运行平台安装程序。[v0.2.0 正式版](https://github.com/JackEngineer/LanLink/releases/tag/v0.2.0)
+
+## Mac 与 Windows Agent 执行官网安装指令
+
+2026-11-19（北京时间），分别将官网下载区复制出的原文“请按 https://lanlink.heyyami.com/install.txt 安装并打开 LANLink。”交给 Apple Silicon Mac 和 Windows x64 上的 Agent。两台电脑均已有 LANLink，按官网说明先尝试打开既有应用。[官网安装指令](https://lanlink.heyyami.com/install.txt)
+
+| 环境                        | 初始状态                                               | 执行和观察                                                                                                                                                                                                                                                                                                      |
+| --------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS 27.0（26A428），arm64 | `/Applications/LANLink.app` 已安装 0.2.0，服务正在运行 | 调用 `open /Applications/LANLink.app` 返回 0。启动日志记录重复实例的数据目录锁错误，原服务继续响应。`/api/v1/health` 返回 `ok` 和版本 `0.2.0`。用独立 Chrome 主动打开回环首页，HTTP 200，可见「设备」「聊天」「文件」「设置」，点击「设置」显示 0.2.0。未观察到启动器自动打开标签页。控制台仅报告 favicon 404。 |
+| Windows 10 22H2，x64        | `%LOCALAPPDATA%\Programs\LANLink` 已安装 0.1.0         | 在现行 Windows PowerShell 策略 `Restricted` 下运行既有 `Launch.ps1`，收到 `UnauthorizedAccess`，退出码 1。回环端口 38761 无监听，界面未打开。Agent 在此停止，未使用旧快捷方式中的策略绕过参数。                                                                                                                 |
+
+两台机器均未重装或升级，均未发现现成的干净测试虚拟机。以上结果覆盖已有安装；从空白环境下载、安装到首次打开的完整流程仍待验证。
+
+### Mac mini 保留数据卸载后重装
+
+2026-11-20（北京时间），在上述 Apple Silicon Mac mini 上执行官方卸载脚本，停止服务。备份默认数据目录并逐文件比对后，将旧应用包移出安装目录，保留作恢复用。Agent 开始执行官网原指令时，系统和用户的 Applications 目录均无 LANLink，回环端口 38761 无监听。
+
+1. Agent 核对官网和 GitHub 最新正式版均为 `v0.2.0`。通过 Chrome 从官网下载 Apple Silicon ZIP，大小为 14,265,454 字节，SHA-256 为 `900f7e46fa01af7e2dedbb35e0e5ac928a6f4ed575e98634ab0981f388e95119`，与该版 GitHub Release 清单一致。[正式版 Release](https://github.com/JackEngineer/LanLink/releases/tag/v0.2.0)
+2. 使用 macOS 归档实用工具解压，将应用放入 `/Applications/LANLink.app`。安装后的版本为 `0.2.0`，保留了浏览器下载的隔离属性。
+3. 正常调用 `open /Applications/LANLink.app` 返回 0。Gatekeeper 的执行评估返回 `rejected`（退出码 3），端口 38761 无监听，健康接口连接失败，未观察到可用界面。Agent 按官网说明停止，未移除隔离标记或修改安全设置。
+4. 重装后复核原数据库、接收文件和其余持久文件，内容均与停机备份一致。原库与备份均通过 SQLite `quick_check`。比对排除了 SQLite 的共享内存及预写日志辅助文件，备份中的预写日志为 0 字节。
+
+本轮实测结果为下载、校验、安装及用户数据保留通过，重装后的首次打开未通过。该轮保留了既有用户数据；Windows 验收结果见上表。
+
+### Gatekeeper 拒绝原因复核
+
+2026-11-20，在 Gatekeeper 已启用的同一台 Mac mini 上，将上次从官网下载的 Apple Silicon ZIP 解压到独立临时目录，SHA-256 与上文一致。`codesign -dv --verbose=4` 显示应用和内置 Agent 均为 `Signature=adhoc`、`TeamIdentifier=not set`。对该应用执行 `spctl --assess --type execute --verbose=4`，结果为 `rejected`，退出码 3。检查时系统应用目录中没有 LANLink.app，本轮复核对象为下载包内的应用。
+
+当前官网正式版仍是 `v0.2.0`。正式签名与 Apple 公证凭证尚未配置；新包的公证、发布及从官网重装到打开均待验收。[Apple 分发签名与公证要求](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
+
+同机用修改后的打包脚本构建了 Apple Silicon 开发 ZIP 和 PKG。解包后分别逐文件比对，两个包内的应用均与构建目录一致，严格签名完整性校验通过，启动器为原生 arm64 Mach-O。打包期间输出了 `write: Permission denied` 警告，进程退出码为 0。6 项打包测试通过，其中公证请求和响应为模拟，启动器编译和执行为实测；35 项官网发布同步测试通过。以上开发包没有上传或用于官网重装。

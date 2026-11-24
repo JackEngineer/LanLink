@@ -26,6 +26,10 @@ const session: MobileSession = {
 function renderState(state: MobileState) {
   const client = new QueryClient()
   client.setQueryData(['agent', 'mobile'], state)
+  return renderClient(client)
+}
+
+function renderClient(client: QueryClient) {
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
       <MobileTransferDialog onClose={() => {}} />
@@ -77,4 +81,58 @@ it.each([
 
   expect(html).toContain(copy)
   expect(html).toContain('传输未加密，仅在可信 Wi-Fi 使用。')
+})
+
+it('renders plain text only for the active approved QR session', () => {
+  const withText: MobileSession = {
+    ...session,
+    id: 'current-session',
+    messages: [
+      {
+        id: 'msg-1',
+        direction: 'to_computer',
+        body: '<img src=x onerror=alert(1)>',
+      },
+    ],
+  }
+  expect(renderState({ addresses: [], session: withText })).not.toContain(
+    '发送文字给手机',
+  )
+  const html = renderState({
+    addresses: [],
+    session: { ...withText, phase: 'approved' },
+  })
+  expect(html).toContain('发送文字给手机')
+  expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
+  expect(html).not.toContain('<img src=x')
+})
+
+it('hides expired or failed polling text while retaining the file controls', async () => {
+  const active: MobileSession = {
+    ...session,
+    id: 'current-session',
+    phase: 'approved',
+    messages: [
+      { id: 'secret', direction: 'to_computer', body: '只在连接内显示' },
+    ],
+  }
+  const expired = renderState({
+    addresses: [],
+    session: { ...active, expires_at: Date.now() - 1 },
+  })
+  expect(expired).not.toContain('只在连接内显示')
+  expect(expired).toContain('发送文件')
+  const client = new QueryClient()
+  const queryKey = ['agent', 'mobile']
+  client.setQueryData(queryKey, { addresses: [], session: active })
+  await expect(
+    client.fetchQuery({
+      queryKey,
+      queryFn: () => Promise.reject(new Error('离线')),
+      retry: false,
+    }),
+  ).rejects.toThrow('离线')
+  const failed = renderClient(client)
+  expect(failed).not.toContain('只在连接内显示')
+  expect(failed).toContain('发送文件')
 })

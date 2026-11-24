@@ -1,14 +1,14 @@
 # LANLink
 
-LANLink 是面向 macOS 和 Windows 的开源局域网聊天与文件传输工具。在同一局域网内，电脑之间可以聊天、互传文件，手机和平板也可以扫码与电脑互传文件。使用时无需访问公网或注册账号。
+LANLink 是面向 macOS 和 Windows 的开源局域网聊天与文件传输工具。在同一局域网内，电脑之间可以聊天、互传文件，手机和平板也可以扫码与电脑双向收发文字和文件。使用时无需访问公网或注册账号。
 
 [官网首页](https://lanlink.heyyami.com/) · [下载安装包](https://lanlink.heyyami.com/#download) · [安装指南](docs/install.md) · [GitHub 发行记录](https://github.com/JackEngineer/LanLink/releases)
 
 Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢复实测。[验收报告](docs/acceptance.md)
 
-手机和电脑连同一个可信 Wi‑Fi，电脑确认连接后即可双向收发，不用安装移动端 App。[扫码使用说明](docs/install.md#与手机或平板扫码传文件)
+Mac 默认打开独立桌面窗口，Windows 通过本机浏览器使用。手机和电脑连同一个可信 Wi‑Fi，电脑确认后即可双向收发文字和文件，不用安装移动端 App。[扫码使用说明](docs/install.md#与手机或平板扫码传文件)
 
-## 下载 v0.2.0 正式版
+## 下载 v0.2.1 正式版
 
 要让 AI 助手安装，可以复制下面这句话，粘贴给能操作这台电脑的助手。助手会先检查已有安装，再按需下载与你的系统匹配的正式版，校验 SHA-256 后安装并打开 LANLink。[查看完整安装步骤](apps/site/install-prompt.txt)
 
@@ -20,11 +20,11 @@ Mac 与 Windows 已通过配对、双向聊天、双向 1 GiB 文件及断线恢
 
 | 平台                        | 下载包                                                                                                                                                                                   |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Apple Silicon Mac（M 系列） | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-aarch64-apple-darwin.zip) 或 [PKG](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-aarch64-apple-darwin.pkg) |
-| Intel Mac                   | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-x86_64-apple-darwin.zip)                                                                                                |
-| Windows x64                 | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.0/LANLink-0.2.0-x86_64-pc-windows-msvc.zip)                                                                                             |
+| Apple Silicon Mac（M 系列） | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-aarch64-apple-darwin.zip) 或 [PKG](https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-aarch64-apple-darwin.pkg) |
+| Intel Mac                   | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-x86_64-apple-darwin.zip)                                                                                                |
+| Windows x64                 | [ZIP](https://lanlink.heyyami.com/downloads/v0.2.1/LANLink-0.2.1-x86_64-pc-windows-msvc.zip)                                                                                             |
 
-下载后按[安装指南](docs/install.md)操作。安装包校验值见 [SHA256SUMS](https://lanlink.heyyami.com/downloads/v0.2.0/SHA256SUMS)。
+macOS 包未通过 Apple 签名或公证，Windows 包仍通过本机浏览器打开。下载后按[安装指南](docs/install.md)操作。安装包校验值见 [SHA256SUMS](https://lanlink.heyyami.com/downloads/v0.2.1/SHA256SUMS)。
 
 已安装 `v0.2.0-preview.4` 或 `v0.2.0-preview.5` 的用户可以在「设置」点击「一键升级」。从官网下载的 `v0.2.0-preview.5` 已在 Mac mini 和 Windows x64 上实测升级到正式版。[一键升级验收](docs/acceptance.md#v020-一键升级实机验收)
 
@@ -63,7 +63,7 @@ cargo test --workspace
 bash scripts/macos/package.sh
 ```
 
-Intel Mac 构建先安装对应 target，再执行 `bash scripts/macos/package.sh x86_64-apple-darwin`。交叉构建不代替 Intel 实机验证。macOS 产物使用本地 ad-hoc 签名，尚未提供 Developer ID 签名或 Apple 公证。
+Intel Mac 构建先安装对应 target，再执行 `bash scripts/macos/package.sh x86_64-apple-darwin`。交叉构建不代替 Intel 实机验证。默认开发包使用 ad-hoc 签名。构建可分发的正式版需要 Developer ID 签名和 Apple 公证，配置见[发布手册](deploy/release-sync/README.md#macos-正式版签名与公证)。
 
 在 Windows x64 开发者环境执行 `./scripts/windows/package.ps1`。ZIP 内 `Install.ps1` 将程序安装到当前用户目录。使用 `-StartAtLogin` 选项开启登录启动。防火墙提示仅允许受信任的专用网络。
 

@@ -253,3 +253,17 @@ a[download] {
   color: var(--blue-dark);
   background: #fff;
 }
+
+#text-input {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  font: inherit;
+}
+#texts {
+  max-height: 12rem;
+  overflow: auto;
+}
+#texts > li {
+  white-space: pre-wrap;
+}
